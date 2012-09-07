@@ -12,8 +12,9 @@ For more information look [here](http://velsa.calepin.co/edtr.me/)
         handlers/
             base.py
         logconfig/
-        settings/
+        static/
         templates/
+        tests/
 
         app.py
         settings.py
@@ -39,6 +40,10 @@ A subfolder each for CSS, Javascript and images.
 ### edtr.me/templates
 
 Folder for all templates
+
+### edtr.me/tests
+
+Folder for all tests
 
 ### etc/
 
