@@ -1,0 +1,118 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>edtr.me - {% block extra_title %}{% endblock %}</title>
+    <meta name="description" content="edtr.me - Simple hosting and blogging for perfectionists">
+    <meta name="author" content="Vladimir Lobak; Alexey Evseev; Bova Bovaev">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->    
+    <!--
+    <link href="{{ static_url('bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ static_url('bootstrap/css/bootstrap-responsive.min.css') }}" rel="stylesheet">
+	-->
+    <link href="{{ static_url('bootstrap/css/bootstrap.css') }}" rel="stylesheet">
+    <link href="{{ static_url('bootstrap/css/bootstrap-responsive.css') }}" rel="stylesheet">
+
+    <!-- Le fav and touch icons -->
+    <link rel="shortcut icon" href="{{ static_url('images/favicon.ico') }}">
+
+    {% block extra_head %}
+    <!-- bootstrap customizations -->
+    <style type="text/css">
+        body {
+            padding-top: 0px;
+            padding-bottom: 40px;
+        }
+    </style>
+    {% endblock %} <!-- extra_head -->
+</head>
+
+<body>
+    {% block body_before_container %}
+    {% endblock %} <!-- body_before_container -->
+
+    <div class="container">
+        {% block body_container %}
+        {% endblock %} <!-- body_container -->
+
+        <hr>
+
+        <footer>
+            <p>&copy; Some company </p>
+
+            {% block extra_footer %}
+            {% endblock %} <!-- extra_footer -->
+        </footer>
+    </div><!--/.container-->
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <!--
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="{{ static_url('bootstrap/js/bootstrap.min.js') }}"></script>
+    -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.js"></script>
+    <script src="{{ static_url('bootstrap/js/bootstrap.js') }}"></script>
+
+    <!-- More plugins -->
+    <script src="{{ static_url('js/jquery_cookie.js') }}"></script>
+
+    <!-- Special processing for each AJAX request -
+         will make sure CSRF token is present in each request so tornado will accept it
+    -->
+    <script type="text/javascript">
+        $(document).ajaxSend(function(event, xhr, settings) {
+            function getCookie(name) {
+                var cookieValue = null;
+                if (document.cookie && document.cookie != '') {
+                    var cookies = document.cookie.split(';');
+                    for (var i = 0; i < cookies.length; i++) {
+                        var cookie = jQuery.trim(cookies[i]);
+                        // Does this cookie string begin with the name we want?
+                        if (cookie.substring(0, name.length + 1) == (name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+            function sameOrigin(url) {
+                // url could be relative or scheme relative or absolute
+                var host = document.location.host; // host + port
+                var protocol = document.location.protocol;
+                var sr_origin = '//' + host;
+                var origin = protocol + sr_origin;
+                // Allow absolute or scheme relative URLs to same origin
+                return (url == origin || url.slice(0, origin.length + 1) == origin + '/') ||
+                        (url == sr_origin || url.slice(0, sr_origin.length + 1) == sr_origin + '/') ||
+                    // or any other URL that isn't scheme relative or absolute i.e relative.
+                        !(/^(\/\/|http:|https:).*/.test(url));
+            }
+            function safeMethod(method) {
+                return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+            }
+
+            if (!safeMethod(settings.type) && sameOrigin(settings.url)) {
+                xhr.setRequestHeader("X-CSRFToken", getCookie('csrftoken'));
+            }
+        });
+    </script>
+
+    <!-- Our JS -->
+    <script src="{{ static_url('js/mdb-helpers.js') }}"></script>
+
+    {% block extra_body_js %}
+    {% endblock %} <!-- extra_body_js -->
+</body>
+
+</html>

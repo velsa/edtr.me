@@ -1,3 +1,4 @@
+*.log
 *.py[co]
 
 # Packages
@@ -25,3 +26,7 @@ pip-log.txt
 
 #Mr Developer
 .mr.developer.cfg
+
+#Others
+activate_venv.bat
+venv_edtr/

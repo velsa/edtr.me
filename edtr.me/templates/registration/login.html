@@ -1,0 +1,80 @@
+{% extends "registration/base_registration.html" %}
+
+{% block extra_title %}Login{% endblock %}
+
+{% block body_before_container %}
+{% endblock %} <!-- body_before_container -->
+
+{%  block body_container_header %}
+    {{ super() }}
+    <b class="pull-right"><a href="/signup">Sign Up</a></b> <!-- #TODO -->
+{% endblock %}
+
+{% block body_container %}
+    {{ super() }}
+    <div class="row">
+        <div class="span7 offset2">
+            <p>
+                <h1>Enter your username and password:</h1>
+            <p>
+            <br/>
+            <!-- TODO: if form.errors -->
+            <form class="form-inline" method="post" > <!-- #TODO action-->
+                {{ xsrf_form_html()|safe }}
+                <div class="control-group pull-left"
+                     style="margin-right: 40px;">
+                    <label class="control-label" for="id_username">Username</label>
+                    <div class="controls">
+                        <input id="id_username" type="text" name="username"
+                               class="input-large" placeholder="">
+                        <p class="help-block">
+                            same as your subdomain name
+                            <a>&nbsp</a> <!-- to align with next field -->
+                        </p>
+                    </div>
+                </div>
+                <div class="control-group">
+                    <label class="control-label" for="id_password">Password</label>
+                    <div class="controls">
+                        <input id="id_password" type="password" name="password"
+                               class="input-large" placeholder="">
+                        <p class="help-block">
+                            If you forgot it
+                            <a href="login/"> click here</a><!-- #TODO -->
+                        </p>
+                    </div>
+                </div>
+                <br/><br/>
+                <button id="login" type="submit" class="btn btn-primary">
+                    Login
+                </button>
+                <input type="hidden" name="next" value="/" />
+            </form>
+        </div>
+
+    </div>
+{% endblock %}
+
+{% block extra_body_js %}
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#login').attr('disabled', 'disabled');
+            $('#id_username').focus();
+
+            var check_login = function() {
+                if ($('#id_username').val() != "" && $('#id_password').val() != "") {
+                    $('#login').removeAttr('disabled');
+                }
+                else {
+                    $('#login').attr('disabled', 'disabled');
+                }
+            };
+            $('#id_username, #id_password').keyup(check_login);
+            $('#id_username, #id_password').change(check_login);
+
+            $('.close').click(function() {
+               $('.alert').hide();
+            });
+        });
+    </script>
+{% endblock %}

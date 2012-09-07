@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+    {{ super() }}
+    <!-- bootstrap customizations -->
+    <style type="text/css">
+        a, tr, td, label {
+            font-size: 16px;
+            line-height: 36px;
+            font-variant: small-caps;
+        }
+        input, .add-on {
+            font-size: 16px;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            font-family: "Courier New";
+        }
+        .btn {
+            width: 200px;
+            height: 40px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .errorlist {
+            padding-left: 0;
+            list-style-type: none;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}
+
+{% block body_before_container %}
+    {{ super() }}
+{% endblock %} <!-- body_before_container -->
+
+{% block body_container %}
+    {{ super() }}
+    <div class="page-header">
+        <a href="/"><b style="color: #b0b0eb;">(m) MarkDownBox</b></a>
+        {% block body_container_header %}
+        {% endblock %}
+    </div>
+{% endblock %}
+
+{% block extra_footer %}
+    {{ super() }}
+{% endblock %} <!-- extra_footer -->
