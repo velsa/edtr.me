@@ -5,7 +5,7 @@ import os
 from tornado.options import define, options
 import sys
 from logconfig import dictconfig
-from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+from jinja2 import Environment, FileSystemLoader
 
 # Make filepaths relative to settings.
 path = lambda root,*a: os.path.join(root, *a)
@@ -73,7 +73,7 @@ LOGGING = {
             'level' :       'DEBUG',
             'formatter' :   'verbose',
             'class' :       'logging.handlers.TimedRotatingFileHandler',
-            'filename' :    'd:/temp/logs/edtrme.log', # full path works
+            'filename' :    LOG_FILE, # full path works
             'when' :        'midnight',
             'interval' :    1, # day
             'backupCount' : 7,
