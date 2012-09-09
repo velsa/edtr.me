@@ -7,7 +7,7 @@
 
 {%  block body_container_header %}
     {{ super() }}
-    <b class="pull-right"><a href="/accounts/register">Sign Up</a></b> <!-- #TODO -->
+    <b class="pull-right"><a href="{{get_url('register')}}">Sign Up</a></b>
 {% endblock %}
 
 {% block body_container %}
@@ -40,7 +40,7 @@
                                class="input-large" placeholder="">
                         <p class="help-block">
                             If you forgot it
-                            <a href="/accounts/login"> click here</a><!-- #TODO -->
+                            <a href="{{get_url('login')}}"> click here</a>
                         </p>
                     </div>
                 </div>

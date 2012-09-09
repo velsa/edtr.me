@@ -2,6 +2,7 @@ import tornado.web
 import logging
 from settings import jinja_env
 
+
 logger = logging.getLogger('edtr_logger')
 
 class BaseHandler(tornado.web.RequestHandler):
@@ -12,6 +13,8 @@ class BaseHandler(tornado.web.RequestHandler):
     def render(self, template, context = None):
         if not context: context = {}
         context.update(self.get_template_namespace())
+        from urls import url_names
+        context.update({"get_url": lambda x: url_names[x]})
         self.write(jinja_env.get_template(template).render(context))
         self.flush()
 
