@@ -1,0 +1,190 @@
+{% extends "registration/base_registration.html" %}
+
+{% block extra_title %}Sign Up{% endblock %}
+
+{% block extra_head %}
+    {{ super() }}
+    <!-- bootstrap customizations -->
+    <style type="text/css">
+
+    </style>
+{% endblock %}
+
+{% block body_before_container %}
+    {{ super() }}
+{% endblock %} <!-- body_before_container -->
+
+{% block body_container %}
+    {{ super() }}
+    <div class="row">
+    <div class="span9 offset2">
+            <div class="header">
+                <h2>Create new account:</h2>
+                <br/><br/>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="span5 offset2">
+            <form class="form-search" method="post" _lpchecked="1"> {# TODO action #}
+                {{ xsrf_form_html()|safe }}
+
+                {# TODO {{ form.non_field_errors }} #}
+
+                <div id="username_ctl" class="control-group">
+                    <label class="control-label" for="id_username">Username:</label>
+                    <div class="controls">
+                        <div class="input-append">
+                            <input id="id_username" type="text" name="username" maxlength="30"
+                                   class="search-query" style="width: 170px;">
+                            <span class="add-on">.markdbox.com</span>
+                        </div>
+                        <p class="help-block">
+                            at least 4 characters
+                            <span id="username_err" class="errorlist"
+                                  style="margin-left: 20px;">
+                            {# TODO
+                            {% for error in form.username.errors %}
+                               {{ error }}
+                            {% endfor %}
+                            #}
+                            </span>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="password1_ctl" class="control-group" style="margin-right: 20px;">
+                    <label class="control-label" for="id_password1">Password:</label>
+                    <div class="controls">
+                        <input id="id_password1" type="password" name="password1"
+                               class="search-query input-large" placeholder="">
+                        <p class="help-block">
+                            at least 6 characters
+                            {# TODO 
+                            {% for error in form.password1.errors %}
+                                <span class="errorlist">{{ error }}</span>
+                            {% endfor %}
+                            #}
+                        </p>
+                    </div>
+                </div>
+                <div id="password2_ctl" class="control-group">
+                    <label class="control-label" for="id_password2">Again:</label>
+                    <div class="controls">
+                        <input id="id_password2" type="password" name="password2"
+                               class="search-query input-large"
+                               placeholder="">
+                        <p class="help-block">
+                            for verification
+                            {# TODO 
+                            {% for error in form.password2.errors %}
+                                <span class="errorlist">{{ error }}</span>
+                            {% endfor %}
+                            #}
+                        </p>
+                    </div>
+                </div>
+
+                <br/>
+                <button id="signup" type="submit" class="btn btn-success">
+                    Sign up !
+                </button>
+            </form>
+        </div>
+        <div class="well span4">
+            Please note that your username will also be your subdomain name on markdbox.com
+            <br/><br/>
+            So choose it wisely :)
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_body_js %}
+    <script type="text/javascript">
+        $(document).ready(function(){
+            var user_available = 2; // 2 - never checked, 1 - available, 0 - not, 3 - invalid
+
+            $('#signup').attr('disabled', 'disabled');
+            $('#id_username').focus();
+
+            var check_fields = function() {
+                var ret = 0;
+                $('#username_ctl').removeClass("success").removeClass("error");
+                if ($('#id_username').val() != "") {
+                    if (    user_available == 0 ||
+                            user_available == 3 ||
+                            $('#id_username').val().length < 4) {
+                        $('#username_ctl').addClass("error");
+                    } else {
+                            $('#username_ctl').addClass("success");
+                            ret++;
+                    }
+                }
+                $('#password1_ctl').removeClass("success").removeClass("error");
+                if (    ($('#id_password1').val() == "" && $('#id_username').val() != "") ||
+                        ($('#id_password1').val() != "" && $('#id_password1').val().length < 6)) {
+                    $('#password1_ctl').addClass("error");
+                }
+                else {
+                    if ($('#id_password1').val() != "") {
+                        $('#password1_ctl').addClass("success");
+                        ret++;
+                    }
+                }
+                $('#password2_ctl').removeClass("success").removeClass("error");
+                if ($('#id_password2').val() != $('#id_password1').val()) {
+                    $('#password2_ctl').addClass("error");
+                } else {
+                    if ($('#id_password2').val() != "") {
+                        $('#password2_ctl').addClass("success");
+                        ret++;
+                    }
+                }
+
+                if (ret == 3) {
+                    $('#signup').removeAttr('disabled');
+                }
+                else {
+                    $('#signup').attr('disabled', 'disabled');
+                }
+            };
+
+            // Check if user exists
+            $('#id_username').keyup(function(){
+                var username = $(this).val().toLowerCase();
+                if (!check_valid_username(username)) {
+                    $('#username_err').text("Invalid characters in username");
+                    user_available = 3;
+                    check_fields();
+                } else {
+                    user_available = 2;
+                    $('#username_err').text("");
+                    $.get("/check_username_availability/"+username+"/", function(data) {
+                        if ($('#id_username').val().length >= 4) {
+                            //$('#username_ctl').removeClass("success").removeClass("error");
+                            //$('#username_ctl').addClass(data);
+                            if (data == "success") {
+                                $('#username_err').text("Available !");
+                                user_available = 1;
+                            } else {
+                                $('#username_err').text("Already taken. Sorry.");
+                                user_available = 0;
+                            }
+                            check_fields();
+                        }
+                    });
+                }
+            });
+
+            // Assign validation handlers
+            $('#id_password1,#id_password2').change(check_fields);
+            $('#id_username').change(function() {
+                $(this).val($(this).val().toLowerCase());
+                check_fields();
+            });
+
+            $('#id_username,#id_password1,#id_password2').keyup(check_fields);
+            $('#id_username,#id_password1,#id_password2').focus(check_fields);
+        });
+    </script>
+{% endblock %}

@@ -10,3 +10,10 @@ class LoginHandler(BaseHandler):
 
     def get(self):
         self.render("registration/login.html")
+
+class RegisterHandler(BaseHandler):
+	"""Handler for registration page. Show and process register form.
+	"""
+
+	def get(self):
+		self.render("registration/register.html")

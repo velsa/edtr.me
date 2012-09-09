@@ -25,7 +25,7 @@ settings = {
     'static_path': STATIC_ROOT,
     'cookie_secret': "vZS/c+BKTASaEjrBJ51uMMX+AwCyp0bcmXHOlX0jd0s=",
     'xsrf_cookies': True,
-    'login_url': '/login',
+    'login_url': '/accounts/login',
 }
 
 # Jinja settings
