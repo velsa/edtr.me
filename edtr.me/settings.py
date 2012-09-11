@@ -36,6 +36,13 @@ jinja_settings = {
 jinja_env = Environment(loader = FileSystemLoader(TEMPLATE_ROOT), 
             **jinja_settings)
 
+# Mongo settings
+mongo_address = {    
+    'host': '127.0.0.1',
+    'port': 27017,
+}
+MONGO_DB = "edtrme"
+
 # Log settings
 if "win" in sys.platform:
     LOG_FILE = 'd:/temp/logs/edtrme.log'

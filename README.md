@@ -12,9 +12,11 @@ For more information look [here](http://velsa.calepin.co/edtr.me/)
         handlers/
             base.py
         logconfig/
+        models/
         static/
         templates/
         tests/
+        utils/
 
         app.py
         settings.py
@@ -33,6 +35,11 @@ An extended version of the
 [log_settings](https://github.com/jbalogh/zamboni/blob/master/log_settings.py)
 module from Mozilla's [zamboni](https://github.com/jbalogh/zamboni).
 
+### edtr.me/models
+
+Contains all model definitions
+
+
 ### edtr.me/static
 
 A subfolder each for CSS, Javascript and images.
@@ -44,6 +51,10 @@ Folder for all templates
 ### edtr.me/tests
 
 Folder for all tests
+
+### edtr.me/utils
+
+Contains function-helpers
 
 ### etc/
 

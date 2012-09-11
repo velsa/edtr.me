@@ -26,10 +26,12 @@
     </div>
     <div class="row">
         <div class="span5 offset2">
-            <form class="form-search" method="post" _lpchecked="1"> {# TODO action #}
+            <form class="form-search" method="post" _lpchecked="1">
                 {{ xsrf_form_html()|safe }}
 
-                {# TODO {{ form.non_field_errors }} #}
+                {% for error in errors['non_field'] %}
+                    <span class="errorlist">{{error}}</span>
+                {% endfor %}
 
                 <div id="username_ctl" class="control-group">
                     <label class="control-label" for="id_username">Username:</label>
@@ -43,11 +45,9 @@
                             at least 4 characters
                             <span id="username_err" class="errorlist"
                                   style="margin-left: 20px;">
-                            {# TODO
-                            {% for error in form.username.errors %}
-                               {{ error }}
-                            {% endfor %}
-                            #}
+                                {% for error in errors['username'] %}
+                                    <span class="errorlist">{{error}}</span>
+                                {% endfor %}
                             </span>
                         </p>
                     </div>
@@ -60,11 +60,9 @@
                                class="search-query input-large" placeholder="">
                         <p class="help-block">
                             at least 6 characters
-                            {# TODO 
-                            {% for error in form.password1.errors %}
-                                <span class="errorlist">{{ error }}</span>
+                            {% for error in errors['password'] %}
+                                <span class="errorlist">{{error}}</span>
                             {% endfor %}
-                            #}
                         </p>
                     </div>
                 </div>
@@ -76,11 +74,9 @@
                                placeholder="">
                         <p class="help-block">
                             for verification
-                            {# TODO 
-                            {% for error in form.password2.errors %}
-                                <span class="errorlist">{{ error }}</span>
+                            {% for error in errors['password2'] %}
+                                <span class="errorlist">{{error}}</span>
                             {% endfor %}
-                            #}
                         </p>
                     </div>
                 </div>
