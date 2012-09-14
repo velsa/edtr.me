@@ -30,6 +30,8 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
         if hasattr(self, "session"):
             if 'user' in self.session:
+                # TODO 
+                # maybe try to find user with username == session['user']
                 return True
         return None
 

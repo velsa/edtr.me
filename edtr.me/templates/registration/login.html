@@ -18,7 +18,15 @@
                 <h1>Enter your username and password:</h1>
             <p>
             <br/>
-            <!-- TODO: if form.errors -->
+            {% if errors %}
+                <div class="alert alert-warning">
+                    <p class="errorlist">
+                        <a class="close">×</a><br/>
+                        Username and password didn't match.<br/>
+                        Please try again.
+                    </p>
+                </div>
+            {% endif %}
             <form class="form-inline" method="post" >
                 {{ xsrf_form_html()|safe }}
                 <div class="control-group pull-left"

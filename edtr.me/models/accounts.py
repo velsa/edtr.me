@@ -38,3 +38,6 @@ class UserModel(BaseModel):
         self["password"] = make_password(raw_password)
 
         return None
+
+    def check_password(self, entered_password):
+        return check_password(entered_password, self['password'])

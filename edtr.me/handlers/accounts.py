@@ -19,6 +19,52 @@ class LoginHandler(BaseHandler):
     def get(self):
         self.render("registration/login.html")
 
+    @tornado.web.asynchronous
+    @asyncmongosession
+    @gen.engine
+    def post(self):
+        tmpl = 'registration/login.html'
+        context = {"errors": True}
+
+        username = self.get_argument("username", "")
+        password = self.get_argument("password", "")
+
+        # empty user
+        if not username:
+            self.render_async(tmpl, context)
+            return
+
+        # find user with specified username
+        response, not_used = yield gen.Task(UserModel.find_one, 
+            {"username": username})
+
+        # error from database
+        if response[K_ERROR]:
+            self.render_async(tmpl, context)
+            return
+
+        # user not found
+        user = response[K_MODEL]
+        if not user:
+            self.render_async(tmpl, context)
+            return
+
+        # passwords mismatch
+        user = UserModel(user)
+        if not user.check_password(password):
+            self.render_async(tmpl, context)
+            return
+
+        # username and password correct
+        context['errors'] = False
+        self.set_current_user(username)
+        next = self.get_argument('next')
+        if next:
+            self.redirect(next)
+        else:
+            self.redirect(self.get_url_by_name("home"))
+
+
     def set_current_user(self, user):
         if user:
             self.session['user'] = tornado.escape.json_encode(user)
@@ -32,7 +78,6 @@ class LoginHandler(BaseHandler):
 class RegisterHandler(LoginHandler):
     """Handler for registration page. Show and process register form.
     """
-
 
     def init_context(self):
         return {'errors': defaultdict(list),}
