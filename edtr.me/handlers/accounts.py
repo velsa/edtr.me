@@ -96,5 +96,20 @@ class RegisterHandler(LoginHandler):
 
         # user save succeeded
         self.set_current_user(username)
-        # TODO redirect
-        self.render_async(tmpl, context)
+
+        self.redirect(self.get_url_by_name("home"))
+
+
+class UserNameAvailabilityHandler(BaseHandler):
+    
+    @tornado.web.asynchronous
+    @gen.engine
+    def get(self, username):
+        response, not_used = yield gen.Task(UserModel.find_one, 
+            {"username": username})
+        self.set_header("Content-Type", "text/plain")
+        if response[K_ERROR] or response[K_MODEL]:
+            self.write('error')
+        else:
+            self.write("success")
+        self.finish()

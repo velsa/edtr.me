@@ -20,6 +20,7 @@
     <div class="span9 offset2">
             <div class="header">
                 <h2>Create new account:</h2>
+
                 <br/><br/>
             </div>
         </div>
@@ -155,7 +156,7 @@
                 } else {
                     user_available = 2;
                     $('#username_err').text("");
-                    $.get("/check_username_availability/"+username+"/", function(data) {
+                    $.get("/accounts/check_username_availability/"+username+"/", function(data) {
                         if ($('#id_username').val().length >= 4) {
                             //$('#username_ctl').removeClass("success").removeClass("error");
                             //$('#username_ctl').addClass(data);
