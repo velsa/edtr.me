@@ -1,6 +1,6 @@
 from handlers.home import HomeHandler
 from handlers.accounts import (LoginHandler, RegisterHandler, 
-							   UserNameAvailabilityHandler)
+	UserNameAvailabilityHandler, LogoutHandler)
 
 # Snippet to get url by name from templates
 # this code will execute at each url request
@@ -9,6 +9,7 @@ named_url_patterns = [
     (r"/", HomeHandler, "home"),
     (r'/accounts/login', LoginHandler, "login"),
     (r'/accounts/register', RegisterHandler, "register"),
+    (r'/accounts/logout', LogoutHandler, "logout"),
     (r'/accounts/check_username_availability/(.+)/', 
     	UserNameAvailabilityHandler, "user_name_avaliability"),
 ]

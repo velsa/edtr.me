@@ -12,7 +12,24 @@ logger = logging.getLogger('edtr_logger')
 
 K_MODEL, K_ERROR = range(2)
 
-class LoginHandler(BaseHandler):
+class LogoutHandler(BaseHandler):
+    """Handler for logout url. Delete session and redirect to home page.
+    """
+    
+    def set_current_user(self, user):
+        if user:
+            self.session['user'] = tornado.escape.json_encode(user)
+        else:
+            self.session.delete()
+
+    @tornado.web.asynchronous
+    @asyncmongosession
+    def get(self):
+        if hasattr(self, 'session'):
+            self.set_current_user(None)
+        self.redirect(self.get_url_by_name("home"))
+
+class LoginHandler(LogoutHandler):
     """Handler for login page. Show and process login form.
     """
 
@@ -64,18 +81,7 @@ class LoginHandler(BaseHandler):
         else:
             self.redirect(self.get_url_by_name("home"))
 
-
-    def set_current_user(self, user):
-        if user:
-            self.session['user'] = tornado.escape.json_encode(user)
-        else:
-            try:
-                del self.session['user']
-            except KeyError:
-                pass
-
-
-class RegisterHandler(LoginHandler):
+class RegisterHandler(LogoutHandler):
     """Handler for registration page. Show and process register form.
     """
 
