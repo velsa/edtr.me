@@ -2,6 +2,8 @@
 import motor
 from settings import mongo_address, MONGO_DB
 
+database = motor.MotorConnection(**mongo_address).open_sync()[MONGO_DB]
+
 class BaseModel(dict):
     """Base class for database object abstration. Async features of
     pymongo motor are used (http://emptysquare.net/motor/)
@@ -19,7 +21,7 @@ class BaseModel(dict):
             model.update(kwargs)
         super(BaseModel, self).__init__(model)
 
-    database = motor.MotorConnection(**mongo_address).open_sync()[MONGO_DB]
+    database = database
 
     @property
     def skeleton(self):

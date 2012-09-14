@@ -43,6 +43,22 @@ mongo_address = {
 }
 MONGO_DB = "edtrme"
 
+# Sessions settings
+session = {
+    "COOKIE_NAME": "asyncmongo_session",
+    "DEFAULT_COOKIE_PATH": "/",
+    "SESSION_EXPIRE_TIME": 7200,    # sessions are valid for 7200 seconds
+                                    # (2 hours)
+    "SET_COOKIE_EXPIRES": True,     # Set to True to add expiration field to
+                                    # cookie
+    "SESSION_TOKEN_TTL": 5,         # Number of seconds a session token is valid
+                                    # for.
+    "UPDATE_LAST_ACTIVITY": 60,     # Number of seconds that may pass before
+                                    # last_activity is updated
+    "MONGO_COLLECTION": 'sessions',
+    "MONGO_COLLECTION_SIZE": 100000,
+}
+
 # Log settings
 if "win" in sys.platform:
     LOG_FILE = 'd:/temp/logs/edtrme.log'

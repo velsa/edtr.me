@@ -4,6 +4,7 @@ from tornado import gen
 import tornado.web
 import tornado.escape
 from collections import defaultdict
+from utils.sessions import asyncmongosession
 
 import logging
 
@@ -19,18 +20,19 @@ class LoginHandler(BaseHandler):
         self.render("registration/login.html")
 
     def set_current_user(self, user):
-        # TODO
-        # This is simple stub
-        # Need to save session to database, like in django
-        # and check it, when checking cookie
         if user:
-            self.set_secure_cookie("user", tornado.escape.json_encode(user))
+            self.session['user'] = tornado.escape.json_encode(user)
         else:
-            self.clear_cookie("user")
+            try:
+                del self.session['user']
+            except KeyError:
+                pass
+
 
 class RegisterHandler(LoginHandler):
     """Handler for registration page. Show and process register form.
     """
+
 
     def init_context(self):
         return {'errors': defaultdict(list),}
@@ -40,6 +42,7 @@ class RegisterHandler(LoginHandler):
         self.render("registration/register.html", context)
 
     @tornado.web.asynchronous
+    @asyncmongosession
     @gen.engine
     def post(self):
         tmpl = "registration/register.html"

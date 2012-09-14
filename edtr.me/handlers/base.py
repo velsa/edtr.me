@@ -28,15 +28,10 @@ class BaseHandler(tornado.web.RequestHandler):
         self.flush()
 
     def get_current_user(self):
-        # TODO
-        # This is simple stub
-        # Need to save session to database, like in django
-        # and check it, when checking cookie        
-        user_json = self.get_secure_cookie("user")
-        if user_json:
-            return tornado.escape.json_decode(user_json)
-        else:
-            return None
+        if hasattr(self, "session"):
+            if 'user' in self.session:
+                return True
+        return None
 
     def render_async(self, tmpl, context):
         self.render(tmpl, context)
