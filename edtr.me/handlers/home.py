@@ -36,7 +36,7 @@ class HomeHandler(BaseHandler, DropboxMixin):
         user = response[DB.model]
         if not user:
             self.set_current_user(None)
-            self.redirect('/')
+            self.redirect(self.get_url_by_name("home"))
             return
         else:
             user = UserModel(user)
@@ -62,11 +62,10 @@ class HomeHandler(BaseHandler, DropboxMixin):
                     logger.error(response[DB.error])
                     raise tornado.web.HTTPError(500, 
                         'Database Error {0}'.format(response[DB.error]))
-                self.redirect('/')
+                self.redirect(self.get_url_by_name("home"))
                 return
             else:
                 self.authorize_redirect(callback_uri=self.request.full_url())
                 return
-                
-        self.render("base.html")
-        self.finish()
+
+        self.render_async("home.html", {"user": user})
