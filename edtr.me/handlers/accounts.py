@@ -5,22 +5,15 @@ import tornado.web
 import tornado.escape
 from collections import defaultdict
 from utils.sessions import asyncmongosession
+from utils.main import DB
 
 import logging
 
 logger = logging.getLogger('edtr_logger')
 
-K_MODEL, K_ERROR = range(2)
-
 class LogoutHandler(BaseHandler):
     """Handler for logout url. Delete session and redirect to home page.
     """
-    
-    def set_current_user(self, user):
-        if user:
-            self.session['user'] = tornado.escape.json_encode(user)
-        else:
-            self.session.delete()
 
     @tornado.web.asynchronous
     @asyncmongosession
@@ -29,7 +22,7 @@ class LogoutHandler(BaseHandler):
             self.set_current_user(None)
         self.redirect(self.get_url_by_name("home"))
 
-class LoginHandler(LogoutHandler):
+class LoginHandler(BaseHandler):
     """Handler for login page. Show and process login form.
     """
 
@@ -56,12 +49,12 @@ class LoginHandler(LogoutHandler):
             {"username": username})
 
         # error from database
-        if response[K_ERROR]:
+        if response[DB.error]:
             self.render_async(tmpl, context)
             return
 
         # user not found
-        user = response[K_MODEL]
+        user = response[DB.model]
         if not user:
             self.render_async(tmpl, context)
             return
@@ -81,7 +74,7 @@ class LoginHandler(LogoutHandler):
         else:
             self.redirect(self.get_url_by_name("home"))
 
-class RegisterHandler(LogoutHandler):
+class RegisterHandler(BaseHandler):
     """Handler for registration page. Show and process register form.
     """
 
@@ -111,13 +104,13 @@ class RegisterHandler(LogoutHandler):
             {"username": username})
 
         # on error from database
-        if response[K_ERROR]:
-            context['errors']['non_field'].append(str(error))
+        if response[DB.error]:
+            context['errors']['non_field'].append(str(response[DB.error]))
             self.render_async(tmpl, context)
             return
 
         # user already exists
-        if response[K_MODEL]: 
+        if response[DB.model]: 
             context['errors']['username'].append("Already taken. Sorry.")
             self.render_async(tmpl, context)
             return
@@ -136,10 +129,10 @@ class RegisterHandler(LogoutHandler):
             'username': username,
             'password': pwd1,
         })
-        response, not_used = yield gen.Task(user.save)
+        response, not_used = yield gen.Task(user.insert)
 
         # user save failed
-        error = response[K_ERROR]
+        error = response[DB.error]
         if error:
             if isinstance(error, dict):
                 context['errors'] = error
@@ -162,7 +155,7 @@ class UserNameAvailabilityHandler(BaseHandler):
         response, not_used = yield gen.Task(UserModel.find_one, 
             {"username": username})
         self.set_header("Content-Type", "text/plain")
-        if response[K_ERROR] or response[K_MODEL]:
+        if response[DB.error] or response[DB.model]:
             self.write('error')
         else:
             self.write("success")

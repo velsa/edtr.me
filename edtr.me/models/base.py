@@ -55,7 +55,6 @@ class BaseModel(dict):
                 self.__class__.__name__
         ))
 
-
     def save(self, *args, **kwargs):
         errors = self.validate()
         if errors:
@@ -65,6 +64,11 @@ class BaseModel(dict):
         return BaseModel.database[self.collection].save(self, *args, **kwargs)
 
     def insert(self, *args, **kwargs):
+        errors = self.validate()
+        if errors:
+            callback = kwargs.get('callback')
+            callback(None, errors)
+            return
         return self.database[self.collection].insert(self, *args, **kwargs)
 
     @classmethod

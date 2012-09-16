@@ -13,8 +13,15 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 
 define("port", default=8888, help="run on the given port", type=int)
 define("config", default=None, help="tornado config file")
+define('flagfile', default='config.flags', help="dropbox key and secret")
 define("debug", default=False, help="debug mode")
+# These don't have defaults; see README for details.
+define('dropbox_consumer_key') 
+define('dropbox_consumer_secret')
+define('dropbox_access_type')
+
 tornado.options.parse_command_line()
+tornado.options.parse_config_file(options.flagfile)
 
 STATIC_ROOT = path(ROOT, 'static')
 TEMPLATE_ROOT = path(ROOT, 'templates')
@@ -24,6 +31,9 @@ settings = {
     'debug': options.debug,
     'static_path': STATIC_ROOT,
     'cookie_secret': "vZS/c+BKTASaEjrBJ51uMMX+AwCyp0bcmXHOlX0jd0s=",
+    'dropbox_consumer_key': options.dropbox_consumer_key,
+    'dropbox_consumer_secret': options.dropbox_consumer_secret,
+    'dropbox_access_type': options.dropbox_access_type,
     'xsrf_cookies': True,
     'login_url': '/accounts/login',
 }
@@ -58,6 +68,10 @@ session = {
     "MONGO_COLLECTION": 'sessions',
     "MONGO_COLLECTION_SIZE": 100000,
 }
+
+# Extensions that get converted to .html
+# All other files are stored without conversion and served from nginx as is
+SUPPORTED_EXTS=('.md', '.txt')
 
 # Log settings
 if "win" in sys.platform:
