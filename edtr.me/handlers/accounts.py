@@ -50,6 +50,7 @@ class LoginHandler(BaseHandler):
 
         # error from database
         if response[DB.error]:
+            logger.error(response[DB.error])
             self.render_async(tmpl, context)
             return
 
@@ -105,6 +106,7 @@ class RegisterHandler(BaseHandler):
 
         # on error from database
         if response[DB.error]:
+            logger.error(response[DB.error])
             context['errors']['non_field'].append(str(response[DB.error]))
             self.render_async(tmpl, context)
             return

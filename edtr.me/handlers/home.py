@@ -28,14 +28,16 @@ class HomeHandler(BaseHandler, DropboxMixin):
         # error from database
         if response[DB.error]:
             # TODO process error
+            logger.error(response[DB.error])
             raise tornado.web.HTTPError(500, 
                 'Database Error {0}'.format(response[DB.error]))
 
         # user not found
         user = response[DB.model]
         if not user:
-            # TODO process error
-            raise tornado.web.HTTPError(500, 'User not found')
+            self.set_current_user(None)
+            self.redirect('/')
+            return
         else:
             user = UserModel(user)
 
@@ -57,6 +59,7 @@ class HomeHandler(BaseHandler, DropboxMixin):
                 # error from database
                 if response[DB.error]:
                     # TODO process error
+                    logger.error(response[DB.error])
                     raise tornado.web.HTTPError(500, 
                         'Database Error {0}'.format(response[DB.error]))
                 self.redirect('/')
@@ -64,6 +67,6 @@ class HomeHandler(BaseHandler, DropboxMixin):
             else:
                 self.authorize_redirect(callback_uri=self.request.full_url())
                 return
-
+                
         self.render("base.html")
-        self.finish()     
+        self.finish()

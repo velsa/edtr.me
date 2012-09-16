@@ -6,15 +6,19 @@ from utils.mdb_dropbox.mdb_session import MDBDropboxSession
 class UserModel(BaseModel):
     collection = "accounts"
     skeleton = {
-        "username": None,
-        "password": None,
-        "token_string": None,
-        "first_name": None,
-        "last_name": None,
-        "email": None,
+        "username": "",
+        "password": "",
+        "token_string": "",
+        "first_name": "",
+        "last_name": "",
+        "email": "",
+        "validated": False,
     }
 
     def validate(self):
+        if self['validated']:
+            return None
+
         errors = defaultdict(list)
         # validate username
         username = self.get('username')        
@@ -41,7 +45,7 @@ class UserModel(BaseModel):
 
         # validation succeded
         self["password"] = make_password(raw_password)
-
+        self["validated"] = True
         return None
 
     def check_password(self, entered_password):
