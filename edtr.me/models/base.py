@@ -14,7 +14,7 @@ class BaseModel(dict):
     skeleton = None
 
     def __init__(self, base_dict=None, **kwargs):
-        model = self.skeleton
+        model = dict(self.skeleton)
         if base_dict:
             model.update(base_dict)
         if kwargs:
