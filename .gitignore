@@ -31,3 +31,4 @@ pip-log.txt
 activate_venv.bat
 venv_edtr/
 edtr.me/config.flags
+src/
