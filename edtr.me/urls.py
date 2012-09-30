@@ -1,4 +1,5 @@
 from handlers.home import HomeHandler
+from handlers.fake import FakeHandler
 from handlers.accounts import (LoginHandler, RegisterHandler, 
 	UserNameAvailabilityHandler, LogoutHandler)
 
@@ -13,8 +14,8 @@ named_url_patterns = [
     (r'/accounts/check_username_availability/(.+)/', 
     	UserNameAvailabilityHandler, "user_name_avaliability"),
 
-    (r'/accounts/profile', None, "profile"), #TODO
-    (r'/accounts/settings', None, "settings"), #TODO
+    (r'/accounts/profile', FakeHandler, "profile"), #TODO
+    (r'/accounts/settings', FakeHandler, "settings"), #TODO
 ]
 
 url_patterns = [x[:2] for x in named_url_patterns]
