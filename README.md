@@ -6,7 +6,7 @@ edtr.me
 - `pip install -r requirements.txt`
 - `cp config.flags.sample config.flags`
 - *specify `dropbox_consumer_key`, `dropbox_consumer_secret`, `dropbox_access_type` in config.flags. You can find these at [http://www.dropbox.com/developers/apps](http://www.dropbox.com/developers/apps)*
-- `python app.py` \
+- `python app.py`
 - *or for debug mode* 
 - `python app.py --debug=True`
 
