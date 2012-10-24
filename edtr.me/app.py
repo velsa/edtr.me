@@ -10,9 +10,10 @@ from urls import url_patterns
 
 from models.base import database
 
+
 class TornadoBoilerplate(tornado.web.Application):
     def __init__(self):
-    	self.db=database
+        self.db = database
         tornado.web.Application.__init__(self, url_patterns, **settings)
 
 

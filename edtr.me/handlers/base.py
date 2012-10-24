@@ -4,7 +4,8 @@ import logging
 from settings import jinja_env
 import re
 
-logger = logging.getLogger('edtr_logger')       
+logger = logging.getLogger('edtr_logger')
+
 
 class BaseHandler(tornado.web.RequestHandler):
     """A class to collect common handler methods - all other handlers should
@@ -19,9 +20,10 @@ class BaseHandler(tornado.web.RequestHandler):
             url_name = re.sub("\(.*?\)", arg, url_name, 1)
         return url_name
 
-    def render(self, template, context = None):
+    def render(self, template, context=None):
         """Renders template using jinja2"""
-        if not context: context = {}
+        if not context:
+            context = {}
         context.update(self.get_template_namespace())
         context.update({"get_url": self.get_url_by_name})
         self.write(jinja_env.get_template(template).render(context))
@@ -39,7 +41,7 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
         if hasattr(self, "session"):
             if 'user' in self.session:
-                # TODO 
+                # TODO
                 # maybe try to find user with username == session['user']
                 return tornado.escape.json_decode(self.session['user'])
         return None

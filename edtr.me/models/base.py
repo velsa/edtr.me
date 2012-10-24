@@ -4,13 +4,14 @@ from settings import mongo_address, MONGO_DB
 
 database = motor.MotorConnection(**mongo_address).open_sync()[MONGO_DB]
 
+
 class BaseModel(dict):
     """Base class for database object abstration. Async features of
     pymongo motor are used (http://emptysquare.net/motor/)
     """
 
     # must be specified
-    collection = None 
+    collection = None
     skeleton = None
 
     def __init__(self, base_dict=None, **kwargs):
@@ -42,10 +43,10 @@ class BaseModel(dict):
 
     def validate(self):
         """ This method will be called before saving model to database.
-        Define here fields checks and preparations. 
-        If validation succeeded, it must return empty defaultdict (or another 
+        Define here fields checks and preparations.
+        If validation succeeded, it must return empty defaultdict (or another
         object, that treats by python as false: None, False, [], {}, ets)
-        Otherwise it must return collections.defaultdict(list) with errors in 
+        Otherwise it must return collections.defaultdict(list) with errors in
         format:
         {'field_name1': "error description",
          'field_name2': "error description",}
@@ -74,7 +75,7 @@ class BaseModel(dict):
     @classmethod
     def find(cls, pattern, limit=None):
         """Async find method, wraper for motor to_list method.
-        The caller is responsible for making sure that there is enough memory 
+        The caller is responsible for making sure that there is enough memory
         to store the results – it is strongly recommended you use a limit.
         For details look
         http://emptysquare.net/motor/pymongo/api/motor/motor_cursor.html#motor.MotorCursor.to_list

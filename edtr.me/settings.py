@@ -1,4 +1,3 @@
-import logging
 import tornado
 import tornado.template
 import os
@@ -8,7 +7,7 @@ from logconfig import dictconfig
 from jinja2 import Environment, FileSystemLoader
 
 # Make filepaths relative to settings.
-path = lambda root,*a: os.path.join(root, *a)
+path = lambda root, *a: os.path.join(root, *a)
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 define("port", default=8888, help="run on the given port", type=int)
@@ -16,7 +15,7 @@ define("config", default=None, help="tornado config file")
 define('flagfile', default='config.flags', help="dropbox key and secret")
 define("debug", default=False, help="debug mode")
 # These don't have defaults; see README for details.
-define('dropbox_consumer_key') 
+define('dropbox_consumer_key')
 define('dropbox_consumer_secret')
 define('dropbox_access_type')
 
@@ -43,11 +42,11 @@ settings = {
 jinja_settings = {
     'autoescape': True,
 }
-jinja_env = Environment(loader = FileSystemLoader(TEMPLATE_ROOT), 
+jinja_env = Environment(loader=FileSystemLoader(TEMPLATE_ROOT),
             **jinja_settings)
 
 # Mongo settings
-mongo_address = {    
+mongo_address = {
     'host': '127.0.0.1',
     'port': 27017,
 }
@@ -71,7 +70,7 @@ session = {
 
 # Extensions that get converted to .html
 # All other files are stored without conversion and served from nginx as is
-SUPPORTED_EXTS=('.md', '.txt')
+SUPPORTED_EXTS = ('.md', '.txt')
 
 # Log settings
 if "win" in sys.platform:
@@ -110,9 +109,9 @@ LOGGING = {
             'level' :       'DEBUG',
             'formatter' :   'verbose',
             'class' :       'logging.handlers.TimedRotatingFileHandler',
-            'filename' :    LOG_FILE, # full path works
+            'filename' :    LOG_FILE,  # full path works
             'when' :        'midnight',
-            'interval' :    1, # day
+            'interval' :    1,  # day
             'backupCount' : 7,
         },
     },

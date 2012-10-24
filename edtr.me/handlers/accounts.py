@@ -11,6 +11,7 @@ import logging
 
 logger = logging.getLogger('edtr_logger')
 
+
 class LogoutHandler(BaseHandler):
     """Handler for logout url. Delete session and redirect to home page.
     """
@@ -21,6 +22,7 @@ class LogoutHandler(BaseHandler):
         if hasattr(self, 'session'):
             self.set_current_user(None)
         self.redirect(self.get_url_by_name("home"))
+
 
 class LoginHandler(BaseHandler):
     """Handler for login page. Show and process login form.
@@ -45,7 +47,7 @@ class LoginHandler(BaseHandler):
             return
 
         # find user with specified username
-        response, not_used = yield gen.Task(UserModel.find_one, 
+        response, not_used = yield gen.Task(UserModel.find_one,
             {"username": username})
 
         # error from database
@@ -75,12 +77,13 @@ class LoginHandler(BaseHandler):
         else:
             self.redirect(self.get_url_by_name("home"))
 
+
 class RegisterHandler(BaseHandler):
     """Handler for registration page. Show and process register form.
     """
 
     def init_context(self):
-        return {'errors': defaultdict(list),}
+        return {'errors': defaultdict(list), }
 
     def get(self):
         context = self.init_context()
@@ -101,7 +104,7 @@ class RegisterHandler(BaseHandler):
             return
 
         # find user with specified username
-        response, not_used = yield gen.Task(UserModel.find_one, 
+        response, not_used = yield gen.Task(UserModel.find_one,
             {"username": username})
 
         # on error from database
@@ -112,7 +115,7 @@ class RegisterHandler(BaseHandler):
             return
 
         # user already exists
-        if response[DB.model]: 
+        if response[DB.model]:
             context['errors']['username'].append("Already taken. Sorry.")
             self.render_async(tmpl, context)
             return
@@ -150,11 +153,11 @@ class RegisterHandler(BaseHandler):
 
 
 class UserNameAvailabilityHandler(BaseHandler):
-    
+
     @tornado.web.asynchronous
     @gen.engine
     def get(self, username):
-        response, not_used = yield gen.Task(UserModel.find_one, 
+        response, not_used = yield gen.Task(UserModel.find_one,
             {"username": username})
         self.set_header("Content-Type", "text/plain")
         if response[DB.error] or response[DB.model]:

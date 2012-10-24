@@ -3,6 +3,7 @@ from collections import defaultdict
 from utils.auth import check_password, make_password
 from utils.mdb_dropbox.mdb_session import MDBDropboxSession
 
+
 class UserModel(BaseModel):
     collection = "accounts"
     skeleton = {
@@ -21,7 +22,7 @@ class UserModel(BaseModel):
 
         errors = defaultdict(list)
         # validate username
-        username = self.get('username')        
+        username = self.get('username')
         if not username:
             errors['username'].append("Field is required")
         elif len(username) < 4:
@@ -52,10 +53,10 @@ class UserModel(BaseModel):
         return check_password(entered_password, self['password'])
 
     def set_dropbox_account_info(self):
-        """ Sets user account information from dropbox in database. 
+        """ Sets user account information from dropbox in database.
         Remember: you need to save set data by yourself, this method won't
         do it. Must be called only when self['token_string'] is defined. """
-        
+
         token_string = self.get('token_string', None)
         assert token_string, "set_dropbox_account_info is called with \
             undefined 'token_string'"

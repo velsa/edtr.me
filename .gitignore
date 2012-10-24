@@ -35,3 +35,4 @@ src/
 *.sublime-project
 *.sublime-workspace
 TODO.txt
+*.TODO

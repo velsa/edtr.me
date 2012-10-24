@@ -14,11 +14,18 @@ class UpdateDropboxTree(BaseHandler):
     """Sync directories and files from dropbox to server
     """
 
+    def finish_json_request(self, ret):
+        self.set_header("Content-Type",  'application/json')
+        self.write(simplejson.dumps(ret))
+        self.finish()
+
     @tornado.web.asynchronous
     @asyncmongosession
     @gen.engine
     @tornado.web.authenticated
     def get(self):
+        ret = {'status': 'error', 'message': '', 'task_id': '', }
+
         username = self.current_user
 
         # find user with specified username
@@ -27,10 +34,10 @@ class UpdateDropboxTree(BaseHandler):
 
         # error from database
         if response[DB.error]:
-            # TODO process error
             logger.error(response[DB.error])
-            raise tornado.web.HTTPError(500,
-                'Database Error {0}'.format(response[DB.error]))
+            ret['message'] = "<strong>Database Error</strong>"
+            self.finish_json_request(ret)
+            return
 
         # user not found
         user = response[DB.model]
@@ -41,11 +48,7 @@ class UpdateDropboxTree(BaseHandler):
         else:
             user = UserModel(user)
 
-        ret = {'status': 'error', 'message': '', 'task_id': '', }
         # TODO user doesn't have saved token string
         # if not user['token_string']:
-
         ret['message'] = "<strong>Currently debug stub</strong>"
-        self.set_header("Content-Type",  'application/json')
-        self.write(simplejson.dumps(ret))
-        self.finish()
+        self.finish_json_request(ret)
