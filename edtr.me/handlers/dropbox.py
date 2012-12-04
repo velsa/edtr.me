@@ -6,7 +6,7 @@ from utils.main import DB
 from utils.sessions import asyncmongosession
 from models.accounts import UserModel
 from django.utils import simplejson
-
+from utils.mdb_dropbox.tasks import process_web_sync
 logger = logging.getLogger('edtr_logger')
 
 
@@ -50,5 +50,6 @@ class UpdateDropboxTree(BaseHandler):
 
         # TODO user doesn't have saved token string
         # if not user['token_string']:
+        process_web_sync(user)
         ret['message'] = "<strong>Currently debug stub</strong>"
         self.finish_json_request(ret)

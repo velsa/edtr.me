@@ -8,7 +8,7 @@ from tornado.options import options
 from settings import settings
 from urls import url_patterns
 
-from models.base import database
+from models.base import database  # looks like not needed
 
 
 class TornadoBoilerplate(tornado.web.Application):

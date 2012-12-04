@@ -29,7 +29,8 @@ pip-log.txt
 
 #Others
 activate_venv.bat
-venv_edtr/
+venv/
+debugging/
 edtr.me/config.flags
 src/
 *.sublime-project
