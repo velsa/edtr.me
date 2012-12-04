@@ -30,6 +30,7 @@ settings = {
     'debug': options.debug,
     'static_path': STATIC_ROOT,
     'cookie_secret': "vZS/c+BKTASaEjrBJ51uMMX+AwCyp0bcmXHOlX0jd0s=",
+    'cookie_expires': 31,  # cookie will be valid for this amount of days
     'dropbox_consumer_key': options.dropbox_consumer_key,
     'dropbox_consumer_secret': options.dropbox_consumer_secret,
     'dropbox_access_type': options.dropbox_access_type,
@@ -52,21 +53,6 @@ mongo_address = {
 }
 MONGO_DB = "edtrme"
 
-# Sessions settings
-session = {
-    "COOKIE_NAME": "asyncmongo_session",
-    "DEFAULT_COOKIE_PATH": "/",
-    "SESSION_EXPIRE_TIME": 7200,    # sessions are valid for 7200 seconds
-                                    # (2 hours)
-    "SET_COOKIE_EXPIRES": True,     # Set to True to add expiration field to
-                                    # cookie
-    "SESSION_TOKEN_TTL": 5,         # Number of seconds a session token is valid
-                                    # for.
-    "UPDATE_LAST_ACTIVITY": 60,     # Number of seconds that may pass before
-                                    # last_activity is updated
-    "MONGO_COLLECTION": 'sessions',
-    "MONGO_COLLECTION_SIZE": 100000,
-}
 
 # Extensions that get converted to .html
 # All other files are stored without conversion and served from nginx as is

@@ -3,7 +3,6 @@ import logging
 import tornado.web
 from tornado import gen
 from utils.main import DB
-from utils.sessions import asyncmongosession
 from utils.async_dropbox import DropboxMixin
 from models.accounts import UserModel
 
@@ -16,7 +15,6 @@ class HomeHandler(BaseHandler, DropboxMixin):
     """
 
     @tornado.web.asynchronous
-    @asyncmongosession
     @gen.engine
     @tornado.web.authenticated
     def get(self):

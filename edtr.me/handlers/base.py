@@ -31,20 +31,13 @@ class BaseHandler(tornado.web.RequestHandler):
 
     def set_current_user(self, user):
         if user:
-            self.session['user'] = tornado.escape.json_encode(user)
-        elif hasattr(self, 'session'):
-            self.session.delete()
+            self.set_secure_cookie('user', user)
         else:
-            # Nothing to do
-            pass
+            self.clear_cookie('user')
 
     def get_current_user(self):
-        if hasattr(self, "session"):
-            if 'user' in self.session:
-                # TODO
-                # maybe try to find user with username == session['user']
-                return tornado.escape.json_decode(self.session['user'])
-        return None
+        expires = self.settings.get('cookie_expires', 31)
+        return self.get_secure_cookie('user', max_age_days=expires)
 
     def render_async(self, tmpl, context):
         self.render(tmpl, context)

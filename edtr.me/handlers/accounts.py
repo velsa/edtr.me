@@ -4,7 +4,6 @@ from tornado import gen
 import tornado.web
 import tornado.escape
 from collections import defaultdict
-from utils.sessions import asyncmongosession
 from utils.main import DB
 
 import logging
@@ -17,10 +16,8 @@ class LogoutHandler(BaseHandler):
     """
 
     @tornado.web.asynchronous
-    @asyncmongosession
     def get(self):
-        if hasattr(self, 'session'):
-            self.set_current_user(None)
+        self.set_current_user(None)
         self.redirect(self.get_url_by_name("home"))
 
 
@@ -32,7 +29,6 @@ class LoginHandler(BaseHandler):
         self.render("registration/login.html")
 
     @tornado.web.asynchronous
-    @asyncmongosession
     @gen.engine
     def post(self):
         tmpl = 'registration/login.html'
@@ -90,7 +86,6 @@ class RegisterHandler(BaseHandler):
         self.render("registration/register.html", context)
 
     @tornado.web.asynchronous
-    @asyncmongosession
     @gen.engine
     def post(self):
         tmpl = "registration/register.html"

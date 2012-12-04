@@ -3,7 +3,6 @@ import logging
 import tornado.web
 from tornado import gen
 from utils.main import DB
-from utils.sessions import asyncmongosession
 from models.accounts import UserModel
 from django.utils import simplejson
 from utils.mdb_dropbox.tasks import process_web_sync
@@ -20,7 +19,6 @@ class UpdateDropboxTree(BaseHandler):
         self.finish()
 
     @tornado.web.asynchronous
-    @asyncmongosession
     @gen.engine
     @tornado.web.authenticated
     def get(self):
