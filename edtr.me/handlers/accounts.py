@@ -60,24 +60,20 @@ class RegisterHandler(BaseHandler):
     def initialize(self, **kwargs):
         super(RegisterHandler, self).initialize(**kwargs)
         self.tmpl = "registration/register.html"
-
-    def init_context(self):
-        return {'errors': defaultdict(list), }
+        self.context = {'errors': defaultdict(list), }
 
     def get(self):
-        context = self.init_context()
-        self.render(self.tmpl, context)
+        self.render(self.tmpl, self.context)
 
     @tornado.web.asynchronous
     @gen.engine
     def post(self):
-        context = self.init_context()
         password = self.get_argument('password1', None)
         password2 = self.get_argument('password2', None)
 
         if password != password2:
-            context['errors']['password2'].append("Passwords not equal")
-            self.render_async(self.tmpl, context)
+            self.context['errors']['password2'].append("Passwords not equal")
+            self.render_async(self.tmpl, self.context)
             return
 
         usr = UserModel()
@@ -94,12 +90,12 @@ class RegisterHandler(BaseHandler):
                 self.redirect(self.get_url_by_name("home"))
                 return
             except DuplicateKeyError:
-                context['errors']['username'].append("Already taken. Sorry.")
+                self.context['errors']['username'].append("Already taken. Sorry.")
         else:
             for err in result.value:
-                context['errors'][err.name].append(err.message)
+                self.context['errors'][err.name].append(err.message)
 
-        self.render_async(self.tmpl, context)
+        self.render_async(self.tmpl, self.context)
 
 
 class UserNameAvailabilityHandler(BaseHandler):
