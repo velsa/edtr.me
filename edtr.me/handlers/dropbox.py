@@ -2,10 +2,10 @@ from handlers.base import BaseHandler
 import logging
 import tornado.web
 from tornado import gen
-from utils.main import DB
 from models.accounts import UserModel
 from django.utils import simplejson
 from utils.mdb_dropbox.tasks import process_web_sync
+import motor
 logger = logging.getLogger('edtr_logger')
 
 
@@ -26,25 +26,14 @@ class UpdateDropboxTree(BaseHandler):
 
         username = self.current_user
 
-        # find user with specified username
-        response, not_used = yield gen.Task(UserModel.find_one,
-            {"username": username})
-
-        # error from database
-        if response[DB.error]:
-            logger.error(response[DB.error])
-            ret['message'] = "<strong>Database Error</strong>"
-            self.finish_json_request(ret)
-            return
-
+        result = yield motor.Op(self.db.accounts.find_one, {"username": username})
+        if not result:
         # user not found
-        user = response[DB.model]
-        if not user:
             self.set_current_user(None)
             self.redirect(self.get_url_by_name("home"))
             return
-        else:
-            user = UserModel(user)
+
+        user = UserModel(**result)
 
         # TODO user doesn't have saved token string
         # if not user['token_string']:

@@ -2,9 +2,10 @@ from handlers.base import BaseHandler
 import logging
 import tornado.web
 from tornado import gen
-from utils.main import DB
 from utils.async_dropbox import DropboxMixin
 from models.accounts import UserModel
+from schematics.serialize import to_python
+import motor
 
 logger = logging.getLogger('edtr_logger')
 
@@ -21,46 +22,29 @@ class HomeHandler(BaseHandler, DropboxMixin):
         username = self.current_user
 
         # find user with specified username
-        response, not_used = yield gen.Task(UserModel.find_one,
+        result = yield motor.Op(self.db.accounts.find_one,
             {"username": username})
 
-        # error from database
-        if response[DB.error]:
-            # TODO process error
-            logger.error(response[DB.error])
-            raise tornado.web.HTTPError(500,
-                'Database Error {0}'.format(response[DB.error]))
-
-        # user not found
-        user = response[DB.model]
-        if not user:
+        if not result:
             self.set_current_user(None)
             self.redirect(self.get_url_by_name("home"))
             return
-        else:
-            user = UserModel(user)
+        user = UserModel(**result)
 
         # user doesn't have saved token string
-        if not user['token_string']:
+        if not user.token_string:
             if self.get_argument("oauth_token", None):
                 token = yield gen.Task(self.get_authenticated_user)
 
                 if not token:
                     raise tornado.web.HTTPError(500, "Dropbox auth failed")
-                user['token_string'] = '|'.join([
+                user.token_string = '|'.join([
                     token['access_token']['key'],
                     token['access_token']['secret'], ])
 
                 user.set_dropbox_account_info()
 
-                response, not_used = yield gen.Task(user.save)
-
-                # error from database
-                if response[DB.error]:
-                    # TODO process error
-                    logger.error(response[DB.error])
-                    raise tornado.web.HTTPError(500,
-                        'Database Error {0}'.format(response[DB.error]))
+                yield motor.Op(self.db.accounts.save, to_python(user))
                 self.redirect(self.get_url_by_name("home"))
                 return
             else:

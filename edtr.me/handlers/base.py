@@ -11,6 +11,9 @@ class BaseHandler(tornado.web.RequestHandler):
     """A class to collect common handler methods - all other handlers should
     subclass this one.
     """
+    def initialize(self, **kwargs):
+        super(BaseHandler, self).initialize(**kwargs)
+        self.db = self.settings['db']
 
     @classmethod
     def get_url_by_name(cls, name, *args):
