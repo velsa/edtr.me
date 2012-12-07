@@ -19,7 +19,6 @@ class LogoutHandler(BaseHandler):
     """Handler for logout url. Delete session and redirect to home page.
     """
 
-    @tornado.web.asynchronous
     def get(self):
         self.set_current_user(None)
         self.redirect(self.get_url_by_name("home"))
