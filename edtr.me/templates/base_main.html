@@ -33,16 +33,16 @@
                             <a href="/">Home</a>
                         </li>
                         <li id="navbar_settings" class="navbar_li">
-                            <a href="{{get_url('settings')}}">Settings</a>
+                            <a href="{{reverse_url('settings')}}">Settings</a>
                         </li>
                         <li id="navbar_profile" class="navbar_li">
-                            <a href="{{get_url('profile')}}">Profile</a>
+                            <a href="{{reverse_url('profile')}}">Profile</a>
                         </li>
                     </ul>
                     <p class="navbar-text pull-right">
-                        <a href="{{get_url('profile')}}">{{ user['username'] }}</a>
+                        <a href="{{reverse_url('profile')}}">{{ user['username'] }}</a>
                         ({{ user['email'] }})
-                        <a href="{{get_url('logout')}}"
+                        <a href="{{reverse_url('logout')}}"
                                 style="margin-left: 20px;">Sign Out</a>
                     </p>
                 </div><!--/.nav-collapse -->

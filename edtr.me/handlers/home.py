@@ -27,7 +27,7 @@ class HomeHandler(BaseHandler, DropboxMixin):
 
         if not result:
             self.set_current_user(None)
-            self.redirect(self.get_url_by_name("home"))
+            self.redirect(self.reverse_url("home"))
             return
         user = UserModel(**result)
 
@@ -45,7 +45,7 @@ class HomeHandler(BaseHandler, DropboxMixin):
                 user.set_dropbox_account_info()
 
                 yield motor.Op(self.db.accounts.save, to_python(user))
-                self.redirect(self.get_url_by_name("home"))
+                self.redirect(self.reverse_url("home"))
                 return
             else:
                 self.authorize_redirect(callback_uri=self.request.full_url())

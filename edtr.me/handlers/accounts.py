@@ -21,7 +21,7 @@ class LogoutHandler(BaseHandler):
 
     def get(self):
         self.set_current_user(None)
-        self.redirect(self.get_url_by_name("home"))
+        self.redirect(self.reverse_url("home"))
 
 
 class LoginHandler(BaseHandler):
@@ -48,7 +48,7 @@ class LoginHandler(BaseHandler):
                 if next:
                     self.redirect(next)
                 else:
-                    self.redirect(self.get_url_by_name("home"))
+                    self.redirect(self.reverse_url("home"))
                 return
 
         self.render_async(self.tmpl, {"errors": True})
@@ -87,7 +87,7 @@ class RegisterHandler(BaseHandler):
                 yield motor.Op(self.db.accounts.insert, to_python(usr))
                 # user save succeeded
                 self.set_current_user(usr.username)
-                self.redirect(self.get_url_by_name("home"))
+                self.redirect(self.reverse_url("home"))
                 return
             except DuplicateKeyError:
                 self.context['errors']['username'].append("Already taken. Sorry.")

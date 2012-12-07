@@ -7,7 +7,7 @@
 
 {%  block body_container_header %}
     {{ super() }}
-    <b class="pull-right"><a href="{{get_url('register')}}">Sign Up</a></b>
+    <b class="pull-right"><a href="{{reverse_url('register')}}">Sign Up</a></b>
 {% endblock %}
 
 {% block body_container %}
@@ -48,7 +48,7 @@
                                class="input-large" placeholder="">
                         <p class="help-block">
                             If you forgot it
-                            <a href="{{get_url('login')}}"> click here</a>
+                            <a href="{{reverse_url('login')}}"> click here</a>
                         </p>
                     </div>
                 </div>

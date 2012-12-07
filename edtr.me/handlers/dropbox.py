@@ -30,7 +30,7 @@ class UpdateDropboxTree(BaseHandler):
         if not result:
         # user not found
             self.set_current_user(None)
-            self.redirect(self.get_url_by_name("home"))
+            self.redirect(self.reverse_url("home"))
             return
 
         user = UserModel(**result)
