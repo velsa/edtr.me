@@ -9,15 +9,19 @@ from settings import settings, mongo_address, MONGO_DB
 from urls import url_patterns
 
 
-class TornadoBoilerplate(tornado.web.Application):
-    def __init__(self):
-        db = motor.MotorConnection(**mongo_address).open_sync()[MONGO_DB]
+class EdtrmeApp(tornado.web.Application):
+    def __init__(self, *args, **kwargs):
+        mongo_addr = kwargs.get('mongo_addr', mongo_address)
+        mongo_db = kwargs.get('mongo_db', MONGO_DB)
+        db = motor.MotorConnection(**mongo_addr).open_sync()[mongo_db]
         db.accounts.ensure_index("username", unique=True)
-        tornado.web.Application.__init__(self, url_patterns, db=db, **settings)
+        super(EdtrmeApp, self).__init__(url_patterns, db=db, *args, **dict(settings, **kwargs))
+        # tornado.web.Application.__init__(
+        #     self, url_patterns, db=db, *args, **dict(settings, **kwargs))
 
 
 def main():
-    app = TornadoBoilerplate()
+    app = EdtrmeApp()
     http_server = tornado.httpserver.HTTPServer(app)
     http_server.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
