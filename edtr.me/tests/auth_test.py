@@ -22,6 +22,7 @@ db = app.settings['db']
 class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
     def setUp(self):
         super(BaseTest, self).setUp()
+        ### clear data base before each test
         self.db_clear()
         # raw fix for TestClient. Currently don't understand, how to use it
         # without source modification
@@ -142,3 +143,24 @@ class LoginTest(BaseTest):
         self.assertEqual(user['first_name'], first_name)
         self.assertEqual(user['last_name'], last_name)
         self.assertEqual(user['email'], email)
+
+    @patch.object(BaseHandler, 'get_current_user')
+    def test_logged_in_user_page(self, m_get_current_user):
+        ### test init
+        username = 'testuser'
+        first_name = 'first'
+        last_name = 'last'
+        email = 'test@test.com'
+        m_get_current_user.return_value = username
+        self.db_save({
+            'username': username,
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email,
+            'token_string': 'some_token_string',
+        })
+
+        ### test sequence
+        resp = self.get(reverse_url('home'))
+        self.assertEqual(resp.code, 200)
+        self.assertIn(email, resp.body)
