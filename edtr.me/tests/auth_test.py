@@ -5,8 +5,11 @@ from tornado.options import options
 from tornado.ioloop import IOLoop
 from tornado import gen
 import motor
+from mock import patch
 from app import EdtrmeApp
 from http_test_client import TestClient
+from handlers.base import BaseHandler
+from handlers.home import HomeHandler
 
 MONGO_TEST_DB = 'edtrme_test'
 
@@ -18,7 +21,7 @@ db = app.settings['db']
 class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
     def setUp(self):
         super(BaseTest, self).setUp()
-        self.clear_db()
+        self.db_clear()
         # raw fix for TestClient. Currently don't understand, how to use it
         # without source modification
         self.cookies = Cookie.SimpleCookie()
@@ -32,7 +35,7 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
     def get_http_port(self):
         return options.port
 
-    def clear_db(self):
+    def db_clear(self):
         @gen.engine
         def async_op():
             yield motor.Op(db.accounts.remove)
@@ -40,10 +43,18 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         async_op()
         self.wait()
 
-    def find_one(self, user_data):
+    def db_find_one(self, user_data):
         @gen.engine
         def async_op():
             result = yield motor.Op(db.accounts.find_one, user_data)
+            self.stop(result)
+        async_op()
+        return self.wait()
+
+    def db_save(self, user_data):
+        @gen.engine
+        def async_op():
+            result = yield motor.Op(db.accounts.save, user_data)
             self.stop(result)
         async_op()
         return self.wait()
@@ -68,9 +79,10 @@ class RegisterTest(BaseTest):
             '<input type="hidden" name="_xsrf" value="(.*?)"', resp.body).group(1)
         resp = self.post(reg_url, data=post_data)
         # check we are redirected to home page
+        self.assertEqual(resp.code, 302)
         self.assertEqual(resp.error.response.headers['Location'], reverse_url('home'))
         # check, user is created
-        user = self.find_one({'username': username})
+        user = self.db_find_one({'username': username})
         self.assertEqual(user['username'], username)
 
     def test_invalid_signup_data(self):
@@ -79,9 +91,17 @@ class RegisterTest(BaseTest):
 
 
 class LoginTest(BaseTest):
+    def setUp(self):
+        super(LoginTest, self).setUp()
+
     def test_login_page_exists(self):
         response = self.get(reverse_url('login'))
         self.assertEqual(response.code, 200)
 
-    def test_login_user_dropbox_redirect(self):
-        pass
+    @patch.object(BaseHandler, 'get_current_user')
+    @patch.object(HomeHandler, 'authorize_redirect')
+    def test_login_user_dropbox_redirect(self, mock_curr_user, mock_oauth_redirect):
+        self.db_save({'username': 'testuser'})
+        mock_curr_user.return_value = 'testuser'
+        self.get(reverse_url('home'))
+        self.assertEqual(mock_oauth_redirect.called, True)
