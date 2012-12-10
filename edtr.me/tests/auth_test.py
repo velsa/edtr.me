@@ -15,9 +15,9 @@ reverse_url = app.reverse_url
 db = app.settings['db']
 
 
-class RegisterTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
+class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
     def setUp(self):
-        super(RegisterTest, self).setUp()
+        super(BaseTest, self).setUp()
         self.clear_db()
         # raw fix for TestClient. Currently don't understand, how to use it
         # without source modification
@@ -48,8 +48,10 @@ class RegisterTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         async_op()
         return self.wait()
 
+
+class RegisterTest(BaseTest):
     def test_register_page_exists(self):
-        response = self.fetch(reverse_url('register'), follow_redirects=False)
+        response = self.get(reverse_url('register'))
         self.assertEqual(response.code, 200)
 
     def test_signup_user_is_created(self):
@@ -73,4 +75,13 @@ class RegisterTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
 
     def test_invalid_signup_data(self):
         # TODO
+        pass
+
+
+class LoginTest(BaseTest):
+    def test_login_page_exists(self):
+        response = self.get(reverse_url('login'))
+        self.assertEqual(response.code, 200)
+
+    def test_login_user_dropbox_redirect(self):
         pass
