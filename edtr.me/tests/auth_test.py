@@ -10,6 +10,7 @@ from app import EdtrmeApp
 from http_test_client import TestClient
 from handlers.base import BaseHandler
 from handlers.home import HomeHandler
+from utils.mdb_dropbox.mdb_session import MDBDropboxSession
 
 MONGO_TEST_DB = 'edtrme_test'
 
@@ -80,7 +81,7 @@ class RegisterTest(BaseTest):
         resp = self.post(reg_url, data=post_data)
         # check we are redirected to home page
         self.assertEqual(resp.code, 302)
-        self.assertEqual(resp.error.response.headers['Location'], reverse_url('home'))
+        self.assertEqual(resp.headers['Location'], reverse_url('home'))
         # check, user is created
         user = self.db_find_one({'username': username})
         self.assertEqual(user['username'], username)
@@ -100,8 +101,44 @@ class LoginTest(BaseTest):
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(HomeHandler, 'authorize_redirect')
-    def test_login_user_dropbox_redirect(self, mock_curr_user, mock_oauth_redirect):
+    def test_login_user_dropbox_redirect(self,
+        m_get_current_user, m_authorize_redirect):
+        m_get_current_user.return_value = 'testuser'
         self.db_save({'username': 'testuser'})
-        mock_curr_user.return_value = 'testuser'
         self.get(reverse_url('home'))
-        self.assertEqual(mock_oauth_redirect.called, True)
+        self.assertEqual(m_authorize_redirect.called, True)
+
+    @patch.object(MDBDropboxSession, 'get_account_info')
+    @patch.object(BaseHandler, 'get_current_user')
+    @patch.object(HomeHandler, 'get_authenticated_user')
+    def test_login_account_info_set(self,
+        m_get_authenticated_user, m_get_current_user, m_get_account_info):
+        ### test init
+        auth_key = 'auth_key'
+        auth_secret = 'auth_secret'
+        username = 'testuser'
+        first_name = 'first'
+        last_name = 'last'
+        email = 'test@test.com'
+
+        def get_authenticated_user_side(callback):
+            callback({'access_token':
+                {'key': auth_key, 'secret': auth_secret}})
+
+        m_get_authenticated_user.side_effect = get_authenticated_user_side
+        m_get_current_user.return_value = username
+        m_get_account_info.return_value = {
+            'display_name': " ".join([first_name, last_name]),
+            'email': email}
+        self.db_save({'username': username})
+
+        ### test sequence
+        resp = self.get(reverse_url('home') + "?oauth_token=lxfz2xs3sjsmjo8")
+        user = self.db_find_one({'username': username})
+        self.assertEqual(resp.code, 302)
+        self.assertEqual(resp.headers['Location'], reverse_url('home'))
+
+        self.assertEqual(user['token_string'], '|'.join([auth_key, auth_secret]))
+        self.assertEqual(user['first_name'], first_name)
+        self.assertEqual(user['last_name'], last_name)
+        self.assertEqual(user['email'], email)
