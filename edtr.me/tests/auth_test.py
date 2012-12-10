@@ -1,11 +1,12 @@
-import urllib
 import re
+import Cookie
 from tornado.testing import AsyncHTTPTestCase, LogTrapTestCase
 from tornado.options import options
 from tornado.ioloop import IOLoop
 from tornado import gen
 import motor
 from app import EdtrmeApp
+from http_test_client import TestClient
 
 MONGO_TEST_DB = 'edtrme_test'
 
@@ -14,9 +15,13 @@ reverse_url = app.reverse_url
 db = app.settings['db']
 
 
-class RegisterTest(AsyncHTTPTestCase, LogTrapTestCase):
+class RegisterTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
     def setUp(self):
         super(RegisterTest, self).setUp()
+        self.clear_db()
+        # raw fix for TestClient. Currently don't understand, how to use it
+        # without source modification
+        self.cookies = Cookie.SimpleCookie()
 
     def get_app(self):
         return app
@@ -49,25 +54,23 @@ class RegisterTest(AsyncHTTPTestCase, LogTrapTestCase):
 
     def test_signup_user_is_created(self):
         username = 'testuser'
-        self.clear_db()
         post_data = {
             'username': username,
             'password1': '123123',
             'password2': '123123',
         }
         reg_url = reverse_url('register')
-        resp = self.fetch(reg_url, follow_redirects=False)
-        # set xsrf cookie and add to post request
-        post_data['_xsrf'] = re.search('<input type="hidden" name="_xsrf" value="(.*?)"',
-            resp.body).group(1)
-        post_body = urllib.urlencode(post_data)
-        cookie = resp.headers['Set-Cookie']
-        # send post data
-        resp = self.fetch(reg_url, method='POST', body=post_body,
-            headers={'Cookie': cookie}, follow_redirects=False)
-
+        resp = self.get(reg_url)
+        # add xsrf to post request
+        post_data['_xsrf'] = re.search(
+            '<input type="hidden" name="_xsrf" value="(.*?)"', resp.body).group(1)
+        resp = self.post(reg_url, data=post_data)
         # check we are redirected to home page
         self.assertEqual(resp.error.response.headers['Location'], reverse_url('home'))
         # check, user is created
         user = self.find_one({'username': username})
         self.assertEqual(user['username'], username)
+
+    def test_invalid_signup_data(self):
+        # TODO
+        pass
