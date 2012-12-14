@@ -3,7 +3,7 @@ from handlers.home import HomeHandler
 from handlers.fake import FakeHandler
 from handlers.accounts import (LoginHandler, RegisterHandler,
     UserNameAvailabilityHandler, LogoutHandler)
-from handlers.dropbox import UpdateDropboxTree
+from handlers.api.v01.dropbox import UpdateDropboxTree, DropboxGetPath
 
 url_patterns = [
     url(r"/", HomeHandler, name="home"),
@@ -16,5 +16,6 @@ url_patterns = [
     url(r'/accounts/profile', FakeHandler, name="profile"),  # TODO
     url(r'/accounts/settings', FakeHandler, name="settings"),  # TODO
 
-    url(r'/async/update_db_tree/', UpdateDropboxTree, name="update_db_tree"),
+    url(r'/async/update_db_tree/', UpdateDropboxTree, name="update_db_tree"),  # TODO remove it. Use /api/0.1/dropbox/get_path/
+    url(r'/api/0.1/dropbox/get_path/', DropboxGetPath, name="dropbox_get_path"),
 ]

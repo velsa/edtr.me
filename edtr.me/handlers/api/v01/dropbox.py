@@ -9,14 +9,28 @@ import motor
 logger = logging.getLogger('edtr_logger')
 
 
-class UpdateDropboxTree(BaseHandler):
-    """Sync directories and files from dropbox to server
-    """
-
+class DropboxHandler(BaseHandler):
     def finish_json_request(self, ret):
         self.set_header("Content-Type",  'application/json')
         self.write(simplejson.dumps(ret))
         self.finish()
+
+
+class DropboxGetPath(DropboxHandler):
+    """Get path metadata from dropbox.
+    Save it to database.
+    Return path metadata."""
+
+    @tornado.web.asynchronous
+    @gen.engine
+    @tornado.web.authenticated
+    def post(self):
+        self.finish_json_request({'status': 'stub'})
+
+
+class UpdateDropboxTree(DropboxHandler):
+    """Sync directories and files from dropbox to server
+    """
 
     @tornado.web.asynchronous
     @gen.engine
