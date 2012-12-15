@@ -3,9 +3,10 @@ from tornado.testing import AsyncHTTPTestCase, LogTrapTestCase
 from tornado.options import options
 from tornado.ioloop import IOLoop
 from tornado import gen
+from tests.lib.httpclient import AsyncHTTPClient
 import motor
 from app import EdtrmeApp
-from http_test_client import TestClient
+from tests.lib.http_test_client import TestClient
 
 MONGO_TEST_DB = 'edtrme_test'
 
@@ -30,6 +31,13 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
 
     def get_new_ioloop(self):
         return IOLoop.instance()
+
+    def get_http_client(self):
+        """ Return here local http client. Because reqular tornado http client
+        can be mocked in test. But for fetching server urls we need real
+        client (not mocked). Here it is.
+        """
+        return AsyncHTTPClient(io_loop=self.io_loop)
 
     def get_http_port(self):
         return options.port
