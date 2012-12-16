@@ -1,9 +1,9 @@
 import re
 import cStringIO
 from lib.mock import patch
+from django.utils import simplejson as json
 from handlers.base import BaseHandler
 from handlers.home import HomeHandler
-from utils.mdb_dropbox.mdb_session import MDBDropboxSession
 from base import BaseTest
 from tornado.httpclient import HTTPResponse, HTTPRequest
 from tornado.httputil import HTTPHeaders
@@ -14,6 +14,7 @@ from utils.async_dropbox import DropboxMixin
 _OAUTH_REQUEST_TOKEN_URL = DropboxMixin._OAUTH_REQUEST_TOKEN_URL
 _OAUTH_ACCESS_TOKEN_URL = DropboxMixin._OAUTH_ACCESS_TOKEN_URL
 _OAUTH_AUTHORIZE_URL = DropboxMixin._OAUTH_AUTHORIZE_URL
+_DROPBOX_ACCOUNT_INFO_URL = "https://api.dropbox.com/1/account/info"
 
 
 class RegisterTest(BaseTest):
@@ -63,11 +64,10 @@ class LoginTest(BaseTest):
         self.get(self.reverse_url('home'))
         self.assertEqual(m_authorize_redirect.called, True)
 
-    @patch.object(MDBDropboxSession, 'get_account_info')
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')  # all requests are mocked
     def test_login_account_info_set(self,
-        m_fetch, m_get_current_user, m_get_account_info):
+        m_fetch, m_get_current_user):
         ### test init
         oauth_request_token = "q7mu9foyzr6j47z"
         oauth_request_token_secret = "8ypm9lz45qt9hlp"
@@ -85,6 +85,7 @@ class LoginTest(BaseTest):
         fetch_mock_called = {
             _OAUTH_REQUEST_TOKEN_URL: False,
             _OAUTH_ACCESS_TOKEN_URL: False,
+            _DROPBOX_ACCOUNT_INFO_URL: False,
         }
 
         def fetch_mock(request, callback, **kwargs):
@@ -104,16 +105,27 @@ class LoginTest(BaseTest):
                     "oauth_token_secret={0}&oauth_token={1}&uid={2}".format(
                     oauth_access_token_secret, oauth_access_token, uid))
                 resp = HTTPResponse(request=request, code=200, buffer=output)
+            elif _DROPBOX_ACCOUNT_INFO_URL in request.url:
+                fetch_mock_called[_DROPBOX_ACCOUNT_INFO_URL] = True
+                ret_body = json.dumps({
+                    "referral_link": "https://www.dropbox.com/referrals/NTExMDMzMjU4OQ",
+                    "display_name": first_name + ' ' + last_name,
+                    "uid": uid,
+                    "country": "RU",
+                    "quota_info": {
+                        "shared": 275506,
+                        "quota": 6174015488,
+                        "normal": 702636082},
+                    "email": email,
+                })
+                output.write(ret_body)
+                resp = HTTPResponse(request=request, code=200, buffer=output)
             else:  # Unexpected url
                 resp = None
                 self.assertEqual(True, False)
             callback(resp)
         m_fetch.side_effect = fetch_mock
         m_get_current_user.return_value = username
-        ## TODO remove mock 'get_account_info'. Add mock of url fetch
-        m_get_account_info.return_value = {
-            'display_name': " ".join([first_name, last_name]),
-            'email': email}
 
         # prepare database
         self.db_save({'username': username})
@@ -134,6 +146,7 @@ class LoginTest(BaseTest):
             headers={'Set-Cookie': oauth_cookie})
         # check, access token is received and saved
         self.assertEqual(fetch_mock_called[_OAUTH_ACCESS_TOKEN_URL], True)
+        self.assertEqual(fetch_mock_called[_DROPBOX_ACCOUNT_INFO_URL], True)
         self.assertEqual(resp.code, 302)
         self.assertEqual(self.reverse_url('home'), resp.headers['Location'])
         user = self.db_find_one({'username': username})
