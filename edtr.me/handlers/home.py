@@ -42,7 +42,7 @@ class HomeHandler(BaseHandler, DropboxMixin):
                     token['access_token']['key'],
                     token['access_token']['secret'], ])
 
-                user.set_dropbox_account_info()
+                yield gen.Task(user.set_dropbox_account_info)
 
                 yield motor.Op(self.db.accounts.save, to_python(user))
                 self.redirect(self.reverse_url("home"))
