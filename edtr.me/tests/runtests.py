@@ -46,4 +46,9 @@ if __name__ == '__main__':
     assert settings
     tornado.options.parse_command_line()
 
+    if options.socketio:
+        TEST_MODULES += [
+            'tests.dbox_socketio_test',
+        ]
+
     tornado.testing.main(**kwargs)

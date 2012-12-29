@@ -14,6 +14,7 @@ define("port", default=8888, help="run on the given port", type=int)
 define("config", default=None, help="tornado config file")
 define('flagfile', default='config.flags', help="dropbox key and secret")
 define("debug", default=False, help="debug mode")
+define("socketio", default=False, help="enable socketio interface")
 # These don't have defaults; see README for details.
 define('dropbox_consumer_key')
 define('dropbox_consumer_secret')

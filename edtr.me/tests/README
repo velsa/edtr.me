@@ -1,4 +1,7 @@
 To run all tests:
 python -m tests.runtests
 
+To run all tests including socketio:
+python -m tests.runtests --socketio=True
+
 If new test module is created, then it must be put in runtests TEST_MODULES

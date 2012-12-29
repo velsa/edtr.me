@@ -1,6 +1,7 @@
 tornado>=2.4.1
-Jinja2
-greenlet
+Jinja2==2.6
+greenlet==0.4.0
 -e git+git://github.com/ajdavis/mongo-python-driver.git@motor#egg=motor
-django
+Django==1.4.2
 git+https://github.com/st4lk/schematics.git@empty_required
+TornadIO2==0.0.4

@@ -29,6 +29,14 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
     def get_app(self):
         return app
 
+    def get_http_server(self):
+        if options.socketio:
+            from tornadio2 import server
+            return server.SocketServer(self._app, io_loop=self.io_loop,
+                auto_start=False, **self.get_httpserver_options())
+        else:
+            return super(BaseTest, self).get_http_server()
+
     def get_new_ioloop(self):
         return IOLoop.instance()
 
