@@ -16,8 +16,6 @@ class EdtrmeApp(tornado.web.Application):
         db = motor.MotorConnection(**mongo_addr).open_sync()[mongo_db]
         db.accounts.ensure_index("username", unique=True)
         super(EdtrmeApp, self).__init__(url_patterns, db=db, *args, **dict(settings, **kwargs))
-        # tornado.web.Application.__init__(
-        #     self, url_patterns, db=db, *args, **dict(settings, **kwargs))
 
 
 def main():

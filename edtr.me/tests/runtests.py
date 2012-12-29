@@ -3,6 +3,8 @@
 from __future__ import absolute_import, division, with_statement
 import sys
 import unittest
+from tornado.options import options
+import settings  # only options.define to be runned
 
 TEST_MODULES = [
     'tests.auth_test',
@@ -39,4 +41,9 @@ if __name__ == '__main__':
         # suppresses this behavior, although this looks like an implementation
         # detail.  http://bugs.python.org/issue15626
         kwargs['warnings'] = False
+
+    # Enable possibility to customize global options for tests
+    assert settings
+    tornado.options.parse_command_line()
+
     tornado.testing.main(**kwargs)
