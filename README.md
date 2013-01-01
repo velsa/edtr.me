@@ -51,7 +51,7 @@ Contains all model definitions
 
 ### edtr.me/static
 
-A subfolder each for CSS, Javascript and images.
+Subfolders for CSS, Javascript and images.
 
 ### edtr.me/templates
 
@@ -90,3 +90,4 @@ global configuration. For now, it works.
 #### edtr.me/urls.py
 
 Contains all url_patterns and their handlers
+
