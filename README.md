@@ -5,10 +5,11 @@ edtr.me
 
 - `pip install -r requirements.txt`
 - `cp config.flags.sample config.flags`
-- *specify `dropbox_consumer_key`, `dropbox_consumer_secret`, `dropbox_access_type` in config.flags. You can find these at [http://www.dropbox.com/developers/apps](http://www.dropbox.com/developers/apps)*
-- `python app.py`
-- *or for debug mode* 
-- `python app.py --debug=True`
+- Specify `dropbox_consumer_key`, `dropbox_consumer_secret`, `dropbox_access_type` in config.flags. You can find these at [http://www.dropbox.com/developers/apps](http://www.dropbox.com/developers/apps). Access type should be either `'dropbox'` or `'app_folder'`
+- Download and install mongodb from [here](http://www.mongodb.org/downloads). On Mac OS with [Homebrew](http://mxcl.github.com/homebrew/) you can simply run `brew install mongodb`
+- Run `mongod`. It will automatically bind to port `27017` with simple web UI on [localhost:28017](localhost:28017)
+- Run `python app.py` *or for debug mode* `python app.py --debug=True`
+- Access the site on [localhost:8888](localhost:8888)
 
 ## Description
 Web based editor for perfectionists - http://edtr.me

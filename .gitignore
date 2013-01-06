@@ -37,3 +37,5 @@ src/
 *.sublime-workspace
 TODO.txt
 *.TODO
+.ropeproject
+

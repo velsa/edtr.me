@@ -60,11 +60,14 @@ MONGO_DB = "edtrme"
 SUPPORTED_EXTS = ('.md', '.txt')
 
 # Log settings
-if "win" in sys.platform:
+# "win" conflicts with "darwin" on MacOS
+#if "win" in sys.platform:
+if os.name != "posix":
     LOG_FILE = 'd:/temp/logs/edtrme.log'
 else:
     #TBD
-    LOG_FILE = '/var/log/edtrme.log'
+    #LOG_FILE = '/var/log/edtrme.log'
+    LOG_FILE = '/tmp/edtrme.log'
 
 # See PEP 391 and logconfig for formatting help.  Each section of LOGGERS
 # will get merged into the corresponding section of log_settings.py.

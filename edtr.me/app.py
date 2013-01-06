@@ -8,12 +8,11 @@ import motor
 from settings import settings, mongo_address, MONGO_DB
 from urls import url_patterns
 
-
 class EdtrmeApp(tornado.web.Application):
     def __init__(self, *args, **kwargs):
         mongo_addr = kwargs.get('mongo_addr', mongo_address)
         mongo_db = kwargs.get('mongo_db', MONGO_DB)
-        db = motor.MotorConnection(**mongo_addr).open_sync()[mongo_db]
+        db = motor.MotorClient(**mongo_addr).open_sync()[mongo_db]
         db.accounts.ensure_index("username", unique=True)
         super(EdtrmeApp, self).__init__(
             url_patterns, db=db, *args, **dict(settings, **kwargs))
