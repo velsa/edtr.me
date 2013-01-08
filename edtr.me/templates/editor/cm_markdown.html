@@ -1,9 +1,11 @@
+<!--
+    CodeMirror with toolbar and buttons for Markdown editing
+-->
+
+<!-- Toolbar -->
 <div class="row">
-    <!--
-        CodeMirror with toolbar and buttons
-    -->
     <div id="cme_toolbar" class="span9">
-        <div id="editor_toolbar" class="btn-toolbar well" style="display: none; ">
+        <div id="editor_toolbar" class="btn-toolbar well">
 
             <div class="btn-group">
                 <a class="btn btn-default btn-small has_tooltip_below" id="tbb_header"
@@ -111,44 +113,31 @@
 </div><!--/row-->
 
 
-<!--
-<div id="cme_wide_toggle">
-    <button class="btn-small" href="#">&nbsp;</button>
-</div>
--->
-
-
-<div class="row" style="margin-left: 0px; margin-top: 12px;">
-    <textarea class="span9" id="md_textarea" rows="35" disabled="true">
-
-
-
-
-
-
-
-
-
-        Please select file on the left
-
-        or create a new one
+<!-- Editing area -->
+<div class="row" id="codemirror_textarea_div">
+    <textarea class="span9" id="codemirror_textarea" rows="35" disabled="true">
     </textarea>
 </div><!--/row-->
 
 
+<!-- Buttons below  -->
 <div id="cme_buttonbar" class="row span9" style="margin-left: 0px;" >
     <button id="btn_save"
             title="Save to Dropbox"
-            class="btn btn-success btn-small" href="#"
-            style="display: none; ">
+            class="btn btn-success btn-small has_tooltip" href="#">
         <i class="icon-ok-sign icon-white"></i>
         <span id="btn_save_text">Save</span>
     </button>
     <button id="btn_preview"
             title="Preview HTML in new window"
-            class="btn btn-info btn-small has_tooltip pull-right" href="#"
-            style="display: none; ">
+            class="btn btn-info btn-small has_tooltip" href="#">
         <i class="icon-eye-open icon-white"></i>
         Preview...
     </button>
-</div><!--/row-->
+    <button id="btn_preview"
+            title="Publish HTML to your website"
+            class="btn btn-info btn-small has_tooltip pull-right" href="#">
+        <i class="icon-eye-open icon-white"></i>
+        Publish...
+    </button>
+</div><!-- cme_buttonbar -->

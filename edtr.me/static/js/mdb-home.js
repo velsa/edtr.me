@@ -11,14 +11,14 @@ $(document).ready(function() {
         $.cookie('mdb_modal_action', "add_file");
         $.cookie('mdb_modal_file_code', $.cookie('mdb_current_dir_dbpath'));
         $.cookie('mdb_modal_default_filename', "index.md");
-        show_file_modal();
+        modalDialog.show_file_modal();
     });
     // Add New SubDir
     $("#action_add_subdir").click(function() {
         $.cookie('mdb_modal_action', "add_subdir");
         $.cookie('mdb_modal_file_code', $.cookie('mdb_current_dir_dbpath'));
         $.cookie('mdb_modal_default_filename', "");
-        show_file_modal();
+        modalDialog.show_file_modal();
     });
     // Rename file/subdir
     $("#action_rename").click(function() {
@@ -34,7 +34,7 @@ $(document).ready(function() {
             var basename = path_parts[path_parts.length-1];
             $.cookie('mdb_modal_file_code', basename);
             $.cookie('mdb_modal_default_filename', "");
-            show_file_modal();
+            modalDialog.show_file_modal();
         }
     });
     // Delete file/subdir
@@ -48,7 +48,7 @@ $(document).ready(function() {
                 $.cookie('mdb_modal_action', "remove_file");
             }
             $.cookie('mdb_modal_file_code', $.cookie('mdb_current_dbpath'));
-            show_file_modal();
+            modalDialog.show_file_modal();
         }
     });
 
@@ -58,7 +58,7 @@ $(document).ready(function() {
     $('.rotate-on-click').hover(function () {
         //$(this).removeClass("icon-black");
         //$(this).addClass("icon-white");
-        if (!is_sync_rotating) {
+        if (!syncIcon.is_sync_rotating) {
             $(this).css('border','1px solid darkgrey');
         }
     }, function () {
@@ -67,14 +67,14 @@ $(document).ready(function() {
             $(this).css('border','none');
         });
     $('.rotate-on-click').click(function () {
-        if (!is_sync_rotating) {
+        if (!syncIcon.is_sync_rotating) {
             // Ask django to refresh dropbox data
-            update_db_tree(false);
+            edtrTree.update_db_tree(false);
         }
     });
 
     // Show tree on page load
-    update_db_tree(true);
+    edtrTree.update_db_tree(true);
 
     /*
     show_info("<b>Goodbye.</b> Come back again...");
@@ -83,4 +83,5 @@ $(document).ready(function() {
      show_notification("<b>Hello there !</b> Nice to see you here :)");
      show_success("<b>Wow ! Great !</b> Everything worked as expected !");
     */
+   edtrTree.open_editor();
 });

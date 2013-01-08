@@ -38,4 +38,5 @@ src/
 TODO.txt
 *.TODO
 .ropeproject
+.DS_Store
 

@@ -4,198 +4,16 @@
 
 {% block extra_head %}
     {{ super() }}
-    <!-- JQuery TreeView -->
+    <!-- JQuery TreeView
     <link rel="stylesheet" href="{{ static_url('treeview/jquery.treeview.css') }}" type="text/css" />
+    -->
 
     <!-- CodeMirror -->
     <link rel="stylesheet" href="{{ static_url('codemirror/lib/codemirror.css') }}">
     <link rel="stylesheet" href="{{ static_url('codemirror/theme/eclipse.css') }}">
 
-    <!-- bootstrap customizations -->
-    <style type="text/css">
-        body {
-            font-family: Verdana, helvetica, arial, sans-serif;
-            background: #fff;
-        }
-        /*
-        *   Left sidebar
-        */
-        #db_tree_div {
-            height: 445px;
-            overflow: auto;
-            margin-bottom: 0;
-        }
-        ul.nav.nav-list {
-            min-height: 525px;
-        }
-        .nav-list {
-            padding-left: 4px;
-            padding-right: 4px;
-            margin-bottom: 0;
-        }
-        .tree-node-selected {
-            border-style: dotted;
-            border-width: 2px;
-            border-color: #B0C4DE;
-                /*
-                #8b0000
-                ;
-                */
-        }
-        /*
-        *   Message bar
-        */
-        #messages_bar {
-            /*
-            margin-bottom: 8px;
-            padding-bottom: 0;
-            */
-            display:        block;
-            position:       absolute;
-            top:            38px;
-            left:           360px;
-            right:          40px;
-            /*padding:        2px 10px 2px 20px;*/
-            margin:         0;
-            padding:        0;
-        }
-        .message-container {
-            display:        none;
-            margin:         5px;
-            padding:        5px;
-            position:       relative;
-            z-index:        100;
-        }
-        .message-container .close {
-            right: 0;
-        }
-        .message-container-text {
-            text-align:     center;
-            margin:         0;
-        }
-       /*
-        *   Image carousel
-        *   TODO: align image vertically (HOW ??!!)
-        */
-        .carousel {
-            min-height: 530px;
-            padding:    10px;
-        }
-        .carousel-inner {
-        }
-        .carousel .item {
-            width: 110%;
-            margin-left: -5%;
-        }
-        .carousel .item img {
-            max-width: 90%;
-            border-width: 1px;
-            border-color: red;
-            border-style: dotted;
-            max-height: 530px;
-            margin: auto;
-        }
-        /*
-        *   Right bar: toolbar, editor and buttons
-        */
-        .btn-toolbar {
-            padding-top: 4px;
-            padding-bottom: 0;
-            padding-left: 5px;
-            padding-right: 5px;
-            margin-top: 0;
-        }
-        i.icon-search.icon-black {
-            margin-top: 3px;
-            margin-left: 10px;
-        }
-        #md_textarea {
-            font-family:    monospace;
-            height:         545px;
-            font-size:      24px;
-            margin-top:     -15px;
-        }
-        #btn_save {
-            width: 120px;
-        }
-        #btn_preview {
-            width: 180px;
-        }
-
-        /*
-         * CodeMirror
-         */
-        .CodeMirror-wrap {
-            margin-top:         -20px;
-            margin-bottom:      5px;
-            margin-left:        0;
-            border:             2px solid lightBlue;
-        }
-        CodeMirror-wrap pre {
-            word-break: break-all;
-        }
-        .CodeMirror-scroll {
-            height:             510px;
-        }
-        .CodeMirror-gutter {
-            width: 3em;
-        }
-        span.CodeMirror-matchhighlight {
-            background: #e9e9e9;
-        }
-        .CodeMirror-focused span.CodeMirror-matchhighlight {
-            background: #e7e4ff; !important
-        }
-        .CodeMirror-fullscreen {
-            content:"Press Esc to Exit Full Screen Mode";
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999;
-            margin: 0;
-            padding: 0;
-            border: 0px solid #BBBBBB;
-            opacity: 1;
-        }
-        /*
-        *   Modal dialogs
-        */
-        code {
-            font-size: 14px;
-        }
-        .controls {
-            margin-left: 30px;
-            margin-right: 30px;
-        }
-        .radio {
-            vertical-align: text-top;
-            margin-left: 30px;
-            margin-right: 50px;
-            margin-bottom: 10px;
-        }
-        .modal-shifted-code {
-            position: absolute;
-            left: 270px;
-            font-weight: bold;
-            color: green;
-        }
-        .modal-filename-input, .add-on {
-            font-size: 14px;
-            padding-top: 4px;
-            padding-bottom: 4px;
-            margin-left: 30px;
-            width: 370px;
-            font-family: "Courier New";
-        }
-        .modal-filename-input-error {
-            margin-left: 30px;
-            color: red;
-            font-weight: bold;
-        }
-    </style>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ static_url('css/style.css') }}">
 {% endblock %} <!-- extra_head -->
 
 {% block body_before_container %}
@@ -205,11 +23,12 @@
 {% block body_container %}
     {{ super() }}
     <!--
-        Modals
+        Modal dialogs
     -->
     <div id="modal_placeholder"></div>
+
     <!--
-        Messages bar for errors and info
+        Bar for messages, errors and info
     -->
     <div id="messages_bar"></div>
 
@@ -225,7 +44,8 @@
                 <ul class="nav nav-list">
                     <form class="form-search" _lpchecked="1">
                         <i class="icon-search icon-black"></i>
-                        <input type="text" class="input-large search-query" placeholder="Find in files…"/>
+                        <input type="text" class="input-large search-query" 
+                            placeholder="Find in files…"/>
                         <!--<button type="submit" class="btn">Go</button>-->
                     </form>
                     <li class="nav-header" style="height: 30px;">
@@ -265,7 +85,8 @@
                                     </ul>
                                 </li>
                                 <li>
-                                    <img src="{{ static_url('images/refresh-static.gif') }}" alt="()"
+                                    <img src="{{ static_url('images/refresh-static.gif') }}" 
+                                        alt="()"
                                         class="pull-right rotate-on-click"
                                         style="cursor:pointer; margin-top: 8px; margin-left: 20px;">
                                 </li>
@@ -282,8 +103,15 @@
         <!--
             Content area
         -->
-        <div id="content_area" class="span8 offset4" style="margin-left: 20px;">
-            {% include "content/default.html" %}
+        <div id="editor_area" class="span8 offset4" style="margin-left: 20px;">
+            {% include "editor/cm_stub.html" %}
+        </div><!--/span-->
+
+        <!--
+            Modal dialogs (hidden until called)
+        -->
+        <div id="modal_dialogs" style="display:none">
+            {% include "editor/modals.html" %}
         </div><!--/span-->
 
     </div><!--/row-->
@@ -292,10 +120,14 @@
 
 {% block extra_body_js %}
     {{ super() }}
-    <!-- jQuery TreeView JS -->
-    <script type="text/javascript" src="{{ static_url('treeview/jquery.treeview.js') }}"></script>
-
     <!-- jQuery plugins -->
+
+    <!-- jQuery TreeView JS
+    <script type="text/javascript" src="{{ static_url('treeview/jquery.treeview.js') }}"></script>
+     -->
+
+    <!-- JQuery JSTree -->
+    <script src="{{ static_url('jstree/jquery.jstree.js') }}"></script>
 
     <!-- CodeMirror -->
     <script src="{{ static_url('codemirror/lib/codemirror.js') }}"></script>

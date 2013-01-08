@@ -1,10 +1,11 @@
-from tornado.web import url
 from tornado.options import options
-from handlers.home import HomeHandler
-from handlers.fake import FakeHandler
+from tornado.web import url
+
 from handlers.accounts import (LoginHandler, RegisterHandler,
     UserNameAvailabilityHandler, LogoutHandler)
 from handlers.api.v01.dropbox import UpdateDropboxTree, DropboxGetPath
+from handlers.fake import FakeHandler, GetEditorHandler
+from handlers.home import HomeHandler
 
 
 url_patterns = [
@@ -20,6 +21,9 @@ url_patterns = [
 
     url(r'/async/update_db_tree/', UpdateDropboxTree, name="update_db_tree"),  # TODO remove it. Use /api/0.1/dropbox/get_path/
     url(r'/api/0.1/dropbox/get_path/', DropboxGetPath, name="dropbox_get_path"),
+
+    url(r'/get_editor(.*)', GetEditorHandler, name="get_editor"),
+
 ]
 
 
