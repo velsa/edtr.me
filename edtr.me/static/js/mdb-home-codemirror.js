@@ -138,10 +138,12 @@ function edtrCodemirror(content_type, content) {
             // TODO: Idea: when smth is selected, use underscore header styling
         }
         // Check if we need to remove the bold markup
-        var cur = $this.cm_editor.getCursor(true);
-        var line = $this.cm_editor.getLine(cur['line']);
-        var new_header = "";
-        var cur_shift;
+        var cur = $this.cm_editor.getCursor(true),
+            line = $this.cm_editor.getLine(cur['line']),
+            new_header = "",
+            space_after_left_header = "",
+            space_before_right_header = "",
+            cur_shift;
         for (var i=0; i < 7; i++) 
             if (line[i] != '#') break;
         if (i < 6) {
@@ -154,8 +156,16 @@ function edtrCodemirror(content_type, content) {
         //console.log(new_header);
         var sub_line = line.substr(i);
         if (sub_line[0] != ' ' && sub_line[0] != '\t')
-            new_header += ' ';
-        var new_line = new_header + sub_line;
+            space_after_left_header = ' ';
+        for (var i=sub_line.length-1; i >= 0; i--)
+            if (sub_line[i] != '#') break;
+        sub_line = sub_line.substr(0, i+1);
+        if (sub_line[i] != ' ' && sub_line[i] != '\t')
+            space_before_right_header = ' ';
+        var new_line =  new_header + space_after_left_header + 
+                        sub_line + 
+                        space_before_right_header + new_header;
+
         $this.cm_editor.setLine(cur['line'], new_line);
         $this.cm_editor.setCursor(cur['line'], cur['ch']+cur_shift);
         $this.cm_editor.focus();
@@ -477,7 +487,7 @@ function edtrCodemirror(content_type, content) {
 
         // Add bootstrap class to codemirror so it will behave
         // correctly on resizes
-        $('.CodeMirror-wrap').addClass('span9');
+        //$('.CodeMirror-wrap').addClass('span9');
     } else {
         // TODO: do we need to do anything else if editor is of the same type ?
     }

@@ -35,12 +35,12 @@
     <!--
         Main view
     -->
-    <div class="row">
-        <div id="left_sidebar" class="span4" style="margin-left: -20px;">
-            <div class="well sidebar-nav">
-                <!--
-                    Left navigation sidebar
-                -->
+    <div id = "main_view" class="row">
+        <!--
+            Left navigation sidebar
+        -->
+        <div id="left_sidebar" class="mainViewPane" style="">
+            <div class="well sidebar-nav"> <!-- well effect -->
                 <ul class="nav nav-list">
                     <form class="form-search" _lpchecked="1">
                         <i class="icon-search icon-black"></i>
@@ -97,13 +97,13 @@
                         <!-- Dropbox TreeView will be inserted here with Ajax -->
                     </li>
                 </ul>
-            </div><!--/.well -->
+            </div><!--/well -->
         </div><!--/span-->
 
         <!--
             Content area
         -->
-        <div id="editor_area" class="span8 offset4" style="margin-left: 20px;">
+        <div id="editor_area" class="span9 mainViewPane" style="">
             {% include "editor/cm_stub.html" %}
         </div><!--/span-->
 

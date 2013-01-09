@@ -2,16 +2,40 @@
 *   Bootstrap customizations
 */
 body {
-    font-family: Verdana, helvetica, arial, sans-serif;
+    /*font-family: Verdana, helvetica, arial, sans-serif;
     background: #fff;
+    */
 }
+
+.container {
+    margin-left:    20px;
+}
+
+/*
+*   Main view includes #left_sidebar, #editor_area and #preview_area
+*/
+#main_view {
+    min-height:     450px;
+    width:          1400px;
+}
+#main_view .mainViewPane {
+    height:         100%;
+    float:          left;
+}
+
 /*
 *   Left sidebar
 */
+#left_sidebar {
+    min-width:          320px;
+    width:              320px;
+    margin-left:        20px;
+    overflow:           hidden;
+}
 #db_tree_div {
-    height: 445px;
-    overflow: auto;
-    margin-bottom: 0;
+    height:         450px;
+    overflow:       auto;
+    margin-bottom:  0;
 }
 ul.nav.nav-list {
     min-height: 525px;
@@ -25,67 +49,24 @@ ul.nav.nav-list {
     border-style: dotted;
     border-width: 2px;
     border-color: #B0C4DE;
-        /*
-        #8b0000
-        ;
-        */
 }
+
 /*
-*   Message bars
+*   Draggable splitter
 */
-#messages_bar {
-    /*
-    margin-bottom: 8px;
-    padding-bottom: 0;
-    */
-    display:        block;
-    position:       absolute;
-    top:            38px;
-    left:           360px;
-    right:          40px;
-    /*padding:        2px 10px 2px 20px;*/
-    margin:         0;
-    padding:        0;
+#splitter {
+    background-color:   #DDD;
+    width:              20px;    
+    cursor:             col-resize;
 }
-.message-container {
-    display:        none;
-    margin:         5px;
-    padding:        5px;
-    position:       relative;
-    z-index:        100;
-}
-.message-container .close {
-    right: 0;
-}
-.message-container-text {
-    text-align:     center;
-    margin:         0;
-}
+
+
 /*
-*   Image carousel
-*   TODO: align image vertically (HOW ??!!)
+*   Editor area includes toolbar, editor and buttons below it
 */
-.carousel {
-    min-height: 530px;
-    padding:    10px;
+#editor_area {
+    overflow:           hidden;
 }
-.carousel-inner {
-}
-.carousel .item {
-    width: 110%;
-    margin-left: -5%;
-}
-.carousel .item img {
-    max-width: 90%;
-    border-width: 1px;
-    border-color: red;
-    border-style: dotted;
-    max-height: 530px;
-    margin: auto;
-}
-/*
-*   Right bar: toolbar, editor and buttons
-*/
 .btn-toolbar {
     padding-top: 4px;
     padding-bottom: 0;
@@ -120,20 +101,23 @@ i.icon-search.icon-black {
     width: 180px;
 }
 
+
+
 /*
  * CodeMirror
  */
 .CodeMirror-wrap {
     margin-top:         -20px;
-    margin-bottom:      5px;
+    margin-bottom:      4px;
     margin-left:        0;
     border:             2px solid lightBlue;
+    padding:            2px;
 }
 CodeMirror-wrap pre {
     word-break: break-all;
 }
 .CodeMirror-scroll {
-    height:             510px;
+    height:             480px;
 }
 .CodeMirror-gutter {
     width: 3em;
@@ -158,6 +142,64 @@ span.CodeMirror-matchhighlight {
     border: 0px solid #BBBBBB;
     opacity: 1;
 }
+
+
+
+/*
+*   Message bars
+*/
+#messages_bar {
+    /*
+    margin-bottom: 8px;
+    padding-bottom: 0;
+    */
+    display:        block;
+    position:       absolute;
+    top:            38px;
+    left:           360px;
+    right:          40px;
+    /*padding:        2px 10px 2px 20px;*/
+    margin:         0;
+    padding:        0;
+}
+.message-container {
+    display:        none;
+    margin:         5px;
+    padding:        5px;
+    position:       relative;
+    z-index:        100;
+}
+.message-container .close {
+    right: 0;
+}
+.message-container-text {
+    text-align:     center;
+    margin:         0;
+}
+
+/*
+*   Image carousel
+*   TODO: align image vertically (HOW ??!!)
+*/
+.carousel {
+    min-height: 530px;
+    padding:    10px;
+}
+.carousel-inner {
+}
+.carousel .item {
+    width: 110%;
+    margin-left: -5%;
+}
+.carousel .item img {
+    max-width: 90%;
+    border-width: 1px;
+    border-color: red;
+    border-style: dotted;
+    max-height: 530px;
+    margin: auto;
+}
+
 /*
 *   Modal dialogs
 */
