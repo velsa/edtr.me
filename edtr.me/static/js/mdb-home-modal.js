@@ -16,7 +16,7 @@ var modalDialog = {
             var filename = $('.modal-filename-input').val();
 
             // Empty filename is not allowed
-            if (filename == "")
+            if (filename === "")
                 return false;
 
             // Check for invalid characters in filename
@@ -30,9 +30,9 @@ var modalDialog = {
             this.filename_with_correct_ext = filename;
             if ($('.modal-filename-input-add-on')[0]) {
                 ext = edtrHelper.get_filename_ext(filename);
-                if (ext != null) {
+                if (ext !== null) {
                     $(".modal-filename-input-add-on").hide();
-                    if (ext == "") {
+                    if (ext === "") {
                         return false;
                     }
                 } else {
@@ -76,7 +76,7 @@ var modalDialog = {
         //             return false
         //         }
                 $("#modal_placeholder").empty()
-                    .prepend($("#modal_"+$.cookie('mdb_modal_action')).clone())
+                    .prepend($("#modal_"+$.cookie('mdb_modal_action')).clone());
                 // Setup date radio buttons
                 var d = new Date();
                 var date = d.getFullYear()+"_"+
@@ -137,7 +137,7 @@ var modalDialog = {
                                 messagesBar.show_error(data['message']);
                             } else {
                                 // Wait for result from server
-                                serverComm.get_server_result(data['task_id'], 
+                                serverComm.get_server_result(data.task_id,
                                     modal_result_success, modal_result_error);
                             }
                         }).error(function(data) {
@@ -164,7 +164,7 @@ var modalDialog = {
             function(response, status, xhr) {
                 if (status == "error") {
                     messagesBar.show_error(response);
-                    return false
+                    return false;
                 }
                 // Form submission
                 $('.modal-submit-button').click(function() {
@@ -176,4 +176,4 @@ var modalDialog = {
                 $('.modal').modal({backdrop: true});
             });
     }
-}
+};

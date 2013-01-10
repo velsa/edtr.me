@@ -39,7 +39,7 @@
         <!--
             Left navigation sidebar
         -->
-        <div id="left_sidebar" class="mainViewPane" style="">
+        <div id="left_sidebar" class="span3 mainViewPane">
             <div class="well sidebar-nav"> <!-- well effect -->
                 <ul class="nav nav-list">
                     <form class="form-search" _lpchecked="1">
@@ -87,8 +87,7 @@
                                 <li>
                                     <img src="{{ static_url('images/refresh-static.gif') }}" 
                                         alt="()"
-                                        class="pull-right rotate-on-click"
-                                        style="cursor:pointer; margin-top: 8px; margin-left: 20px;">
+                                        class="rotate-on-click">
                                 </li>
                             </ul>
                     </li>
@@ -103,7 +102,7 @@
         <!--
             Content area
         -->
-        <div id="editor_area" class="span9 mainViewPane" style="">
+        <div id="editor_area" class="span9 mainViewPane">
             {% include "editor/cm_stub.html" %}
         </div><!--/span-->
 
@@ -113,7 +112,15 @@
         <div id="modal_dialogs" style="display:none">
             {% include "editor/modals.html" %}
         </div><!--/span-->
+    </div><!--/row-->
 
+    <!--
+        Preview pane
+    -->
+    <div id="preview_container" class="row">
+        <div class="preview-area span12">
+            {% include "preview/preview_stub.html" %}
+        </div><!--/span-->        
     </div><!--/row-->
 {% endblock %} <!-- extra_body_html -->
 

@@ -11,7 +11,7 @@ if (typeof String.prototype.startsWith != 'function') {
 if (!Array.prototype.push) {
     Array.prototype.push = function(elem) {
         this[this.length]=elem;
-    }
+    };
 }
 
 //
@@ -76,4 +76,4 @@ var edtrHelper = {
         else
             return null;
     }
-}
+};

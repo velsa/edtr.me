@@ -38,7 +38,8 @@ class LoginHandler(BaseHandler):
     @gen.engine
     def post(self):
         username = self.get_argument("username", None)
-        result = yield motor.Op(self.db.accounts.find_one, {"username": username})
+        result = yield motor.Op(self.db.accounts.find_one,
+                {"username": username})
         if result:
             usr = UserModel(**result)
             password = self.get_argument("password", None)
@@ -90,7 +91,8 @@ class RegisterHandler(BaseHandler):
                 self.redirect(self.reverse_url("home"))
                 return
             except DuplicateKeyError:
-                self.context['errors']['username'].append("Already taken. Sorry.")
+                self.context['errors']['username']. \
+                    append("Already taken. Sorry.")
         else:
             for err in result.value:
                 self.context['errors'][err.name].append(err.message)
@@ -103,7 +105,8 @@ class UserNameAvailabilityHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.engine
     def get(self, username):
-        result = yield motor.Op(self.db.accounts.find_one, {"username": username})
+        result = yield motor.Op(self.db.accounts.find_one,
+                {"username": username})
         self.set_header("Content-Type", "text/plain")
         if result:
             self.write('error')

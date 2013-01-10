@@ -39,17 +39,14 @@ var messagesBar = {
     // If timeout is 0 - user must manually close the message
     // If timeout > 0 - message will disappear automagically after timeout ms
     show_message:       function(html_message, alert_class, timeout) {
-        // If dom element not set, use hardcoded value
-        //if (!this.dom_elem) this.dom_elem = $('#messages_bar');
-
         // Create message in dom
         this.dom_elem.append(
-            '<div class="message-container alert '+alert_class+' fade in">'
-                +'<a class="close" href="#">×</a>'
-                +'<p class="message-container-text">'
-                    +html_message
-                +'</p>'
-            +'</div>');
+            '<div class="message-container alert '+alert_class+' fade in">'+
+                '<a class="close" href="#">&#10006;</a>'+
+                '<p class="message-container-text">'+
+                    html_message+
+                '</p>'+
+            '</div>');
         // Show it in container
         var container = this.dom_elem.children('.message-container').last();
         container.fadeIn(this.fadein_time, 'linear', function() {
@@ -65,7 +62,7 @@ var messagesBar = {
             container.remove();
         }));
     }
-}
+};
 
 //
 // Sync icon
@@ -99,7 +96,7 @@ var syncIcon = {
         this.icon.css('cursor', 'pointer')
             .attr("src", this.static_img);
     }
-}
+};
 
 //
 // Get server result and call appropriate callbacks
@@ -143,10 +140,10 @@ var serverComm = {
                         this.get_server_result(task_id, callback_ok, callback_error);
                     }, this.timer_interval);
                 } else { // Unrecognized result ?!
-                    messagesBar.show_internal_error("serverComm.get_server_result", 
+                    messagesBar.show_internal_error("serverComm.get_server_result",
                         "Unrecognized result: "+data['result']);
                 }
             }
-        })
+        });
     }
-}
+};

@@ -1,9 +1,9 @@
 // IMPORTANT:
 // replace CodeMirrors isWordChar() with this function
 // for smarter word detection (includes markdown tags)
-var isWordChar = function ( ch ) {
-    return /[\w\*\.:#/+\-`~]/.test(ch) || ch.toUpperCase() != ch.toLowerCase();
-}
+// var isWordChar = function ( ch ) {
+//     return '/[\w\*\.:#/+\-`~]/'.test(ch) || ch.toUpperCase() != ch.toLowerCase();
+// }
 
 // Class definition
 function edtrCodemirror(content_type, content) {
@@ -11,16 +11,16 @@ function edtrCodemirror(content_type, content) {
     this.is_codemirror_hidden=       true;
     this.is_codemirror_saved=        true;
     this.is_codemirror_wide=         false;
-    this.tab_character=              "\t"; 
+    this.tab_character=              "\t";
     this.tab_spaces=                 "   ";
     this.list_character=             "-";
     this.cm_editor=                  null;
     this.dom_elem=                   null;
     this.content_type=               null;
     this.saved_state=               -1; // 0 - not saved, 1 - saving, 2 - saved
-    // store pointer to ourselves to be able 
+    // store pointer to ourselves to be able
     // to access object from callbacks
-    var $this=                      this; 
+    var $this=                      this;
 
 
     //
@@ -103,6 +103,7 @@ function edtrCodemirror(content_type, content) {
             // Check if we need to remove the bold markup
             var sel = $this.cm_editor.getSelection();
             if (sel.substring(0, mlen) == markup) {
+                console.log(sel,mlen,markup);
                 sel = sel.substring(mlen);
                 if (sel.substr(sel.length-mlen, mlen) == markup) {
                     sel = sel.substring(0, sel.length-mlen);
@@ -115,18 +116,19 @@ function edtrCodemirror(content_type, content) {
             $this.cm_editor.replaceRange(markup+$this.cm_editor.getSelection()+markup,
                 $this.cm_editor.getCursor(true));
             var pos = $this.cm_editor.getCursor(true);
-            $this.cm_editor.setCursor( pos['line'], pos['ch']-mlen);
+            $this.cm_editor.setCursor( pos.line, pos.ch-mlen);
             //console.log("POS "+ pos['ch']);
         }
         $this.cm_editor.focus();
     };
 
     // Bold, Italic and Code toolbar icons
+    // TODO: bold and italic should be set via settings
     this.toggle_bold = function() {
         $this.toggle_markup("**");
     };
     this.toggle_italic = function() {
-        $this.toggle_markup("*");
+        $this.toggle_markup("_");
     };
     this.toggle_code = function() {
         $this.toggle_markup("`");
@@ -139,12 +141,12 @@ function edtrCodemirror(content_type, content) {
         }
         // Check if we need to remove the bold markup
         var cur = $this.cm_editor.getCursor(true),
-            line = $this.cm_editor.getLine(cur['line']),
+            line = $this.cm_editor.getLine(cur.line),
             new_header = "",
             space_after_left_header = "",
             space_before_right_header = "",
             cur_shift;
-        for (var i=0; i < 7; i++) 
+        for (var i=0; i < 7; i++)
             if (line[i] != '#') break;
         if (i < 6) {
             for (var k=0; k<=i; k++)
@@ -157,17 +159,17 @@ function edtrCodemirror(content_type, content) {
         var sub_line = line.substr(i);
         if (sub_line[0] != ' ' && sub_line[0] != '\t')
             space_after_left_header = ' ';
-        for (var i=sub_line.length-1; i >= 0; i--)
+        for (i=sub_line.length-1; i >= 0; i--)
             if (sub_line[i] != '#') break;
         sub_line = sub_line.substr(0, i+1);
         if (sub_line[i] != ' ' && sub_line[i] != '\t')
             space_before_right_header = ' ';
-        var new_line =  new_header + space_after_left_header + 
-                        sub_line + 
+        var new_line =  new_header + space_after_left_header +
+                        sub_line +
                         space_before_right_header + new_header;
 
-        $this.cm_editor.setLine(cur['line'], new_line);
-        $this.cm_editor.setCursor(cur['line'], cur['ch']+cur_shift);
+        $this.cm_editor.setLine(cur.line, new_line);
+        $this.cm_editor.setCursor(cur.line, cur.ch+cur_shift);
         $this.cm_editor.focus();
     };
 
@@ -281,7 +283,7 @@ function edtrCodemirror(content_type, content) {
         var img_char = is_img ? '!': '';
         $this.cm_editor.replaceSelection(img_char+'[]('+sel+')');
         var pos = $this.cm_editor.getCursor(true);
-        $this.cm_editor.setCursor( pos['line'], pos['ch']+step);
+        $this.cm_editor.setCursor( pos.line, pos.ch+step);
         $this.cm_editor.focus();
     };
 
@@ -326,7 +328,7 @@ function edtrCodemirror(content_type, content) {
             // See if we have an empty list bullet or blockquote tag
             // Also make sure that new line text is empty
             if (/^[*\-+>] $/.test(prev_indented) &&
-                $this.cm_editor.getLine(cur.line).length == 0) {
+                $this.cm_editor.getLine(cur.line).length === 0) {
                 // In such case we consider $this to be the end of
                 // a list or blockquote and remove the last tag
                 $this.cm_editor.setCursor(cur.line-1, 0);
@@ -344,7 +346,7 @@ function edtrCodemirror(content_type, content) {
                     CodeMirror.commands.killLine($this.cm_editor);
                     $this.cm_editor.removeLine(cur.line);
                 } else {
-                    $this.cm_editor.replaceSelection((parseInt(prev_num)+1)+". ", "end");
+                    $this.cm_editor.replaceSelection((parseInt(prev_num, 10)+1)+". ", "end");
                 }
             }
         }
@@ -357,7 +359,7 @@ function edtrCodemirror(content_type, content) {
         if (info.markerText)
             $this.cm_editor.clearMarker(n);
         else
-            $this.cm_editor.setMarker(n, "<span style=\"color: #add8e6;\">●</span> %N%");
+            $this.cm_editor.setMarker(n, "<span style=\"color: #add8e6;\">&gt;</span> %N%");
     };
 
     // TODO: Use this to open clicked urls (Ctrl-Click)
@@ -394,12 +396,12 @@ function edtrCodemirror(content_type, content) {
             db_path: $.cookie('mdb_current_dbpath'),
             content: text
         }, function(data) {
-            if (data['status'] != 'success') {
+            if (data.status != 'success') {
                 // Serious error
-                $this.save_failed(data['message']);
+                $this.save_failed(data.message);
             } else {
                 // Wait for result from server
-                serverComm.get_server_result(data['task_id'], 
+                serverComm.get_server_result(data.task_id,
                     $this.saved_ok, $this.save_failed);
             }
         }).error(function(data) {
@@ -446,7 +448,7 @@ function edtrCodemirror(content_type, content) {
                 pollInterval:       300,
                 undoDepth:          500,
                 theme:              "default",
-                indentUnit:         4, //tab_character.length,
+                indentUnit:         4, //tab_chanightracter.length,
                 tabSize:            4, // should be the same !
                 indentWithTabs:     true,
 
@@ -466,7 +468,7 @@ function edtrCodemirror(content_type, content) {
                     "Shift-Tab":    this.shift_tab,
                     "Enter":        this.custom_new_line,
                     // Markdown
-                    "Ctrl-H":       this.rotate_header,
+                    "Meta-H":       this.rotate_header,
                     "Ctrl-B":       this.toggle_bold,
                     "Ctrl-I":       this.toggle_italic,
                     "Ctrl-K":       this.toggle_code,
@@ -530,7 +532,7 @@ function edtrCodemirror(content_type, content) {
     this.cm_editor.focus();
 
 
-};
+}
 
 //var toggle_left = "&lt;&lt;";
 //var toggle_right = "&gt;&gt;";
@@ -553,4 +555,4 @@ edtrCodemirror.prototype.set_saved_state = function(saved) {
         $('#btn_save_text').text("Save");
         $('#btn_save').addClass("btn-success").removeAttr('disabled');
     }
-}
+};

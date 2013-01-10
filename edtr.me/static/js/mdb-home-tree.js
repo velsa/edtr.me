@@ -27,14 +27,14 @@ var edtrTree = {
 
         // Get new data from server
         $.get('/get_db_tree/', function(data) {
-            if (data['status'] != 'success') {
+            if (data.status != 'success') {
                 syncIcon.stop_sync_rotation();
-                messagesBar.show_error(data['message']);
+                messagesBar.show_error(data.message);
                 return false;
             }
 
             // Refresh treeview
-            this.dom_db_tree.html(data['tree_view']);
+            this.dom_db_tree.html(data.tree_view);
 
             // Activate JS logic in treeview
             this.dom_ul_tree.treeview({
@@ -75,7 +75,7 @@ var edtrTree = {
             syncIcon.stop_sync_rotation();
 
             // Notify user about new and updated files
-            this.blink_changes_in_tree(eval(data['changes_list']));
+            this.blink_changes_in_tree(eval(data.changes_list));
         }).error(function(data) {
                 syncIcon.stop_sync_rotation();
                 messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
@@ -103,13 +103,13 @@ var edtrTree = {
         }
         // Get new data from server
         $.get('/async/update_db_tree/', function(data) {
-            if (data['status'] != 'success') {
+            if (data.status != 'success') {
                 syncIcon.stop_sync_rotation();
-                messagesBar.show_error(data['message']);
+                messagesBar.show_error(data.message);
                 return false;
             }
             // Wait for result from server
-            serverComm.get_server_result(data['task_id'], 
+            serverComm.get_server_result(data.task_id, 
                 this.db_tree_update_success, this.db_tree_update_failed);
         });
     },
@@ -195,7 +195,7 @@ var edtrTree = {
             var parts=$.cookie('mdb_current_dbpath').split("/");
             parts[parts.length-1]="";
             path = parts.join("/");
-            if (path == "") path = "/";
+            if (path === "") path = "/";
             $.cookie('mdb_current_dir_dbpath', path);
             $.cookie('mdb_current_is_folder', "false");
             // Check extension
@@ -221,7 +221,7 @@ var edtrTree = {
         // 'css', 'html', 'js', depending on file extension
         var file_type = 'markdown';
         var editor_html = null;
-        $.get("/get_editor", 
+        $.get("/get_editor",
         {
             content_type: file_type
         }, function(data, textStatus, jqXHR) {
@@ -248,7 +248,7 @@ var edtrTree = {
                     // Insert editor HTML code (toolbar, textarea, buttons) into content div
                     // TODO: remove previous codemirror and all bindings (?)
                     if (edtrCodemirror.content_type !== file_type) {
-                        $("#editor_area").html(editor_html);
+                        $("#editor_area").empty().prepend(editor_html);
                     } else {
                         // TODO: do we need to do anything else if editor is of the same type ?
                     }
@@ -271,10 +271,10 @@ var edtrTree = {
             is_folder: $.cookie('mdb_current_is_folder'),
             dir_path: $.cookie('mdb_current_dir_dbpath')
         }, function(data) {
-            if (data['status'] != 'success') {
-                messagesBar.show_error(data['message']);
+            if (data.status != 'success') {
+                messagesBar.show_error(data.message);
             } else {
-                $('#content_area').html(data['html']);
+                $('#content_area').html(data.html);
                 // Every time image slides
                 $('#img_carousel').on('slid', function() {
                     // We update the selection in tree view
@@ -292,12 +292,12 @@ var edtrTree = {
     //
     blink_changes_in_tree: function(changes_list) {
         // Blink changed files and dirs
-        var it1 = { opacity: .3 };
+        var it1 = { opacity: 0.3 };
         var it2 = { opacity: 1 };
         var dur = 400;
-        var isEven = function(num){ return (num%2 == 0) ? true : false; };
+        var isEven = function(num){ return (num%2 === 0) ? true : false; };
         var iter_anim = function(elem, i) {
-            if (i != 0) {
+            if (i !== 0) {
                 if (isEven(i)) {
                     elem.animate(it1, dur, iter_anim(elem, i-1));
                     elem.addClass("hover");
@@ -320,4 +320,4 @@ var edtrTree = {
         //$(this).css({'font-weight': "bold", 'background-color': "#eb9fb9" });
         //iter_anim($('span[data-dbpath="/t.md"]'), 5);
     }
-}
+};

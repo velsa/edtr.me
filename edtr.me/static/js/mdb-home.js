@@ -76,6 +76,17 @@ $(document).ready(function() {
     // Show tree on page load
     edtrTree.update_db_tree(true);
 
+    // Align elements on page accordingly
+    var editor_area = $('#editor_area'),
+        left_sidebar = $('#left_sidebar');
+    // editor_area.css({
+    //     left:   (left_sidebar.offset()).left+20,
+    //     width:  $(window).width-left_sidebar.width()-240
+    // });
+    messagesBar.dom_elem.css({
+        left:   (editor_area.offset()).left-5,
+        width:  editor_area.width()+10
+    });
     /*
     show_info("<b>Goodbye.</b> Come back again...");
     show_warning("<b>Ah oh</b> Something is wrong. But we will fix it...");
