@@ -87,6 +87,20 @@ $(document).ready(function() {
         left:   (editor_area.offset()).left-5,
         width:  editor_area.width()+10
     });
+
+    // TODO: doesn't work ?!
+    left_sidebar.resizable({
+        handles:    'e', // east, means only right side is draggable
+        minWidth:   '270',
+        maxWidth:   '400',
+        resize: function() {
+            var remainingSpace = $(this).parent().width() - $(this).outerWidth();
+            var divTwo = $('#editor_area');
+            var divTwoWidth = remainingSpace - (divTwo.outerWidth() - divTwo.width());
+            divTwo.css('width', divTwoWidth + 'px');
+        }
+    });
+
     /*
     show_info("<b>Goodbye.</b> Come back again...");
     show_warning("<b>Ah oh</b> Something is wrong. But we will fix it...");

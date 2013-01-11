@@ -7,26 +7,27 @@
 
 // Class definition
 function edtrCodemirror(content_type, content) {
-    this.is_codemirror_fullscreen=   false;
-    this.is_codemirror_hidden=       true;
-    this.is_codemirror_saved=        true;
-    this.is_codemirror_wide=         false;
-    this.tab_character=              "\t";
-    this.tab_spaces=                 "   ";
-    this.list_character=             "-";
-    this.cm_editor=                  null;
-    this.dom_elem=                   null;
-    this.content_type=               null;
-    this.saved_state=               -1; // 0 - not saved, 1 - saving, 2 - saved
+    this.is_codemirror_fullscreen=      false;
+    this.is_codemirror_hidden=          true;
+    this.is_codemirror_saved=           true;
+    this.is_codemirror_wide=            false;
+    this.tab_character=                 "\t";
+    this.tab_spaces=                    "   ";
+    this.list_character=                "-";
+    this.cm_editor=                     null;
+    this.dom_elem=                      null;
+    this.preview_elem=                  null;
+    this.content_type=                  null;
+    this.saved_state=                   -1; // 0 - not saved, 1 - saving, 2 - saved
+    
     // store pointer to ourselves to be able
     // to access object from callbacks
-    var $this=                      this;
-
+    var $this=this;
 
     //
-    // CALLBACKS (must be defined BEFORE binding !)
+    // CALLBACKS (must be defined BEFORE usage !)
     //
-
+    
     this.hide_codemirror = function() {
         $this.is_codemirror_hidden = true;
         $this.set_saved_state("SAVED");
@@ -91,6 +92,7 @@ function edtrCodemirror(content_type, content) {
         if ($this.saved_state == 2) {
             $this.set_saved_state("NOT SAVED");
         }
+        $this.preview_elem.html(marked($this.cm_editor.getValue()));
         //console.log("changed");
     };
 
@@ -423,6 +425,7 @@ function edtrCodemirror(content_type, content) {
     // TODO: do we need to remove previous codemirror's bindings ?
     if (this.content_type !== content_type) {
         this.dom_elem = $("#codemirror_textarea");
+        this.preview_elem = $(".preview-area");
         //console.log(this.dom_elem);
         this.content_type = content_type;
 
@@ -486,6 +489,15 @@ function edtrCodemirror(content_type, content) {
 
         // Hides original text area, just in case
         this.dom_elem.hide();
+
+        // Set default options for marked
+        marked.setOptions({
+          gfm:              true,
+          tables:           true,
+          breaks:           false,
+          pedantic:         false,
+          sanitize:         true
+        });
 
         // Add bootstrap class to codemirror so it will behave
         // correctly on resizes

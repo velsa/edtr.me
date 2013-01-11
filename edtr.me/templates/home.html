@@ -18,10 +18,6 @@
 
 {% block body_before_container %}
     {{ super() }}
-{% endblock %}
-
-{% block body_container %}
-    {{ super() }}
     <!--
         Modal dialogs
     -->
@@ -31,15 +27,24 @@
         Bar for messages, errors and info
     -->
     <div id="messages_bar"></div>
+    <!--
+        Modal dialogs (hidden until called)
+    -->
+    <div id="modal_dialogs" style="display:none">
+        {% include "editor/modals.html" %}
+    </div><!--/span-->
+{% endblock %}
 
+{% block body_container %}
+    {{ super() }}
     <!--
         Main view
     -->
-    <div id = "main_view" class="row">
+    <div id = "main_view" class="row-fluid">
         <!--
             Left navigation sidebar
         -->
-        <div id="left_sidebar" class="span3 mainViewPane">
+        <div id="left_sidebar" class="span3">
             <div class="well sidebar-nav"> <!-- well effect -->
                 <ul class="nav nav-list">
                     <form class="form-search" _lpchecked="1">
@@ -102,25 +107,23 @@
         <!--
             Content area
         -->
-        <div id="editor_area" class="span9 mainViewPane">
+        <div id="editor_area" class="span9">
             {% include "editor/cm_stub.html" %}
         </div><!--/span-->
-
-        <!--
-            Modal dialogs (hidden until called)
-        -->
-        <div id="modal_dialogs" style="display:none">
-            {% include "editor/modals.html" %}
-        </div><!--/span-->
-    </div><!--/row-->
+    </div>  <!-- main view -->
 
     <!--
         Preview pane
     -->
-    <div id="preview_container" class="row">
+    <div class="preview-container row-fluid">
         <div class="preview-area span12">
-            {% include "preview/preview_stub.html" %}
-        </div><!--/span-->        
+            <pre class="preview-area-stub">
+
+                Realtime preview will be available here 
+
+                when you select file on the left or create a new one
+            </pre>
+        </div>
     </div><!--/row-->
 {% endblock %} <!-- extra_body_html -->
 
@@ -129,6 +132,9 @@
     {{ super() }}
     <!-- jQuery plugins -->
 
+    <!-- JQuery UI -->
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+    
     <!-- jQuery TreeView JS
     <script type="text/javascript" src="{{ static_url('treeview/jquery.treeview.js') }}"></script>
      -->
@@ -145,10 +151,12 @@
     <script src="{{ static_url('codemirror/lib/util/searchcursor.js') }}"></script>
     <script src="{{ static_url('codemirror/lib/util/match-highlighter.js') }}"></script>
 
-    <!-- Misc plugins -->
+    <!-- Marked -->
+    <script src="{{ static_url('marked/lib/marked.js') }}"></script>
 
     <!-- Our own code (order is important !) -->
     <script src="{{ static_url('js/mdb-home-utils.js') }}"></script>
+    <script src="{{ static_url('js/edtr-markdown.js') }}"></script>
     <script src="{{ static_url('js/mdb-home-codemirror.js') }}"></script>
     <script src="{{ static_url('js/mdb-home-tree.js') }}"></script>
     <script src="{{ static_url('js/mdb-home-modal.js') }}"></script>

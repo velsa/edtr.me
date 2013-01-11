@@ -3,113 +3,110 @@
 -->
 
 <!-- Toolbar -->
-<div class="">
-    <div id="cme_toolbar">
-        <div id="editor_toolbar" class="btn-toolbar well">
-
-            <div class="btn-group">
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_header"
-                   title="Header (1-6): <b>Ctrl-H</b>" href="#">
-                    <!--
-                    <b>H</b>
-                    -->
-                    <i class="icon-text-height icon-black"></i>
-                </a>
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_bold"
-                   title="Toggle Bold: <b>Ctrl-B</b>" href="#">
-                    <!--
-                    <b>B</b>
-                    -->
-                    <i class="icon-bold icon-black"></i>
-                </a>
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_italic"
-                   title="Toggle Italic: <b>Ctrl-I</b>" href="#">
-                    <!--
-                    <b><i>I</i></b>
-                    -->
-                    <i class="icon-italic icon-black"></i>
-                </a>
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_code"
-                   title="Toggle Code: <b>Ctrl-K</b>" href="#">
-                    <i class="icon-barcode icon-black"></i>
-                </a>
-            </div><!--/btn-group-->
-
-            <div class="btn-group">
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_ulist"
-                   title="Unordered List: <b>Ctrl-U</b>" href="#">
-                    <i class="icon-th-list icon-black"></i>
-                </a>
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_olist"
-                   title="Ordered List: <b>Ctrl-O</b>" href="#">
-                    <i class="icon-list-alt icon-black"></i>
-                </a>
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_quote"
-                   title="Quote: <b>Ctrl-Q</b>" href="#">
-                    <i class="icon-chevron-right icon-black"></i>
-                </a>
-            </div><!--/btn-group-->
-
-            <div class="btn-group">
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_divider"
-                   title="Divider (Horizontal Rule): <b>Ctrl-D</b>" href="#">
-                    <i class="icon-minus icon-black"></i>
-                </a>
-            </div><!--/btn-group-->
-
-            <div class="btn-group">
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_image_url"
-                   title="Insert Image: <b>Ctrl-G</b>" href="#">
-                    <i class="icon-picture icon-black"></i>
-                </a>
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_url"
-                   title="Insert URL: <b>Ctrl-L</b>" href="#">
-                    <i class="icon-magnet icon-black"></i>
-                </a>
-            </div><!--/btn-group-->
-
-            <div class="btn-group">
-                <a class="btn dropdown-toggle" data-toggle="dropdown"
-                   title="Custom tags. You can add/remove those in Settings" href="#">
-                    <!--
-                    &nbsp;<i class="icon-font icon-black"></i>&nbsp;
-                    -->
-                    T
-                    <span class="caret"></span>
-                </a>
-                <ul class="dropdown-menu" style="max-width: 350px;">
-                    <li><a id="tbb_style1" href="#">
-                        <b>&lt;mycap&gt;</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Enlarge letter
-                    </a></li>
-                    <li><a id="tbb_style2" href="#">
-                        <b>&lt;mycolor&gt;</b> &nbsp;&nbsp;&nbsp; Custom color
-                    </a></li>
-                    <li class="divider"></li>
-                    <li><a id="tbb_style3" href="#">
-                        <b>&lt;myback&gt;</b> &nbsp;&nbsp;&nbsp; Custom background
-                    </a></li>
-                </ul>
-            </div><!--/btn-group-->
-
-            <div id="tbb_right_group" class="btn-group pull-right">
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_width"
-                   title="Toggle Width: <b>Ctrl-F11</b>" href="#">
-                    <i class="icon-resize-horizontal icon-black"></i>
-                </a>
-                <a class="btn btn-default btn-small has_tooltip_below" id="tbb_fullscreen"
-                   title="Fullscreen: <b>Ctrl-Shift-F11</b>" href="#">
-                    <i class="icon-resize-full icon-black"></i>
-                </a>
+<div id="cme_toolbar">
+    <div id="editor_toolbar" class="btn-toolbar well">
+        <div class="btn-group">
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_header"
+               title="Header (1-6): <b>Ctrl-H</b>" href="#">
                 <!--
-               <i class="icon-search icon-black "></i>
-               <input type="text" class="span2 search-query"
-                      id="text_search" data-items="4" data-provide="typeahead"
-                      placeholder="Search in text…"/>
+                <b>H</b>
                 -->
-            </div><!--/btn-group-->
-        </div><!--/btn-toolbar-->
-    </div><!--/span-->
-</div><!--/row-->
+                <i class="icon-text-height icon-black"></i>
+            </a>
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_bold"
+               title="Toggle Bold: <b>Ctrl-B</b>" href="#">
+                <!--
+                <b>B</b>
+                -->
+                <i class="icon-bold icon-black"></i>
+            </a>
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_italic"
+               title="Toggle Italic: <b>Ctrl-I</b>" href="#">
+                <!--
+                <b><i>I</i></b>
+                -->
+                <i class="icon-italic icon-black"></i>
+            </a>
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_code"
+               title="Toggle Code: <b>Ctrl-K</b>" href="#">
+                <i class="icon-barcode icon-black"></i>
+            </a>
+        </div><!--/btn-group-->
+
+        <div class="btn-group">
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_ulist"
+               title="Unordered List: <b>Ctrl-U</b>" href="#">
+                <i class="icon-th-list icon-black"></i>
+            </a>
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_olist"
+               title="Ordered List: <b>Ctrl-O</b>" href="#">
+                <i class="icon-list-alt icon-black"></i>
+            </a>
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_quote"
+               title="Quote: <b>Ctrl-Q</b>" href="#">
+                <i class="icon-chevron-right icon-black"></i>
+            </a>
+        </div><!--/btn-group-->
+
+        <div class="btn-group">
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_divider"
+               title="Divider (Horizontal Rule): <b>Ctrl-D</b>" href="#">
+                <i class="icon-minus icon-black"></i>
+            </a>
+        </div><!--/btn-group-->
+
+        <div class="btn-group">
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_image_url"
+               title="Insert Image: <b>Ctrl-G</b>" href="#">
+                <i class="icon-picture icon-black"></i>
+            </a>
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_url"
+               title="Insert URL: <b>Ctrl-L</b>" href="#">
+                <i class="icon-magnet icon-black"></i>
+            </a>
+        </div><!--/btn-group-->
+
+        <div class="btn-group">
+            <a class="btn dropdown-toggle" data-toggle="dropdown"
+               title="Custom tags. You can add/remove those in Settings" href="#">
+                <!--
+                &nbsp;<i class="icon-font icon-black"></i>&nbsp;
+                -->
+                T
+                <span class="caret"></span>
+            </a>
+            <ul class="dropdown-menu" style="max-width: 350px;">
+                <li><a id="tbb_style1" href="#">
+                    <b>&lt;mycap&gt;</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Enlarge letter
+                </a></li>
+                <li><a id="tbb_style2" href="#">
+                    <b>&lt;mycolor&gt;</b> &nbsp;&nbsp;&nbsp; Custom color
+                </a></li>
+                <li class="divider"></li>
+                <li><a id="tbb_style3" href="#">
+                    <b>&lt;myback&gt;</b> &nbsp;&nbsp;&nbsp; Custom background
+                </a></li>
+            </ul>
+        </div><!--/btn-group-->
+
+        <div id="tbb_right_group" class="btn-group pull-right">
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_width"
+               title="Toggle Width: <b>Ctrl-F11</b>" href="#">
+                <i class="icon-resize-horizontal icon-black"></i>
+            </a>
+            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_fullscreen"
+               title="Fullscreen: <b>Ctrl-Shift-F11</b>" href="#">
+                <i class="icon-fullscreen icon-black"></i>
+            </a>
+            <!--
+           <i class="icon-search icon-black "></i>
+           <input type="text" class="span2 search-query"
+                  id="text_search" data-items="4" data-provide="typeahead"
+                  placeholder="Search in text…"/>
+            -->
+        </div><!--/btn-group-->
+    </div><!--/btn-toolbar-->
+</div><!--/cme_toolbar-->
 
 
 <!-- Editing area -->
@@ -121,7 +118,7 @@
 
 <!-- Buttons below  -->
 <div class="row">
-    <div id="cme_buttonbar" class="span9" style="margin-left: 30px;" >
+    <div id="cme_buttonbar" style="margin-left: 30px;" >
         <button id="btn_save"
                 title="Save to Dropbox"
                 class="btn btn-success btn-small has_tooltip" href="#">
@@ -134,10 +131,10 @@
             <i class="icon-eye-open icon-white"></i>
             Preview...
         </button>
-        <button id="btn_preview"
+        <button id="btn_publish"
                 title="Publish HTML to your website"
-                class="btn btn-info btn-small has_tooltip pull-right" href="#">
-            <i class="icon-eye-open icon-white"></i>
+                class="btn btn-primary btn-small has_tooltip pull-right" href="#">
+            <i class="icon-globe icon-white"></i>
             Publish...
         </button>
     </div><!-- cme_buttonbar -->
