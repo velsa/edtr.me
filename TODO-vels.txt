@@ -1,0 +1,12 @@
+UI:
+- left sidebar should be fixed size (?) and content area should be resizable and shouldn't jump
+- bottom preview should be resizable and hidable and movable to top
+- fullscreen editing
+- themes
+
+JS:
+- dropbox tree with icons
+- marked: add code highlighting (see example on their github page)
+- auto-scroll preview to the current cursor position in editor. For that, create filter in marked, which adds line number from markdown to html as anchor with name == line number. Then scroll to this anchor like here: http://jsfiddle.net/BjpWB/4/
+- 
+

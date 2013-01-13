@@ -14,25 +14,12 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ static_url('css/style.css') }}">
+    <link rel="stylesheet" href="{{ static_url('css/md_preview/default.css') }}">
+
 {% endblock %} <!-- extra_head -->
 
 {% block body_before_container %}
     {{ super() }}
-    <!--
-        Modal dialogs
-    -->
-    <div id="modal_placeholder"></div>
-
-    <!--
-        Bar for messages, errors and info
-    -->
-    <div id="messages_bar"></div>
-    <!--
-        Modal dialogs (hidden until called)
-    -->
-    <div id="modal_dialogs" style="display:none">
-        {% include "editor/modals.html" %}
-    </div><!--/span-->
 {% endblock %}
 
 {% block body_container %}
@@ -105,12 +92,24 @@
         </div><!--/span-->
 
         <!--
+            Vertical splitter between sidebar and editor area
+        -->
+        <div class="vertical-splitter">
+        </div>
+
+        <!--
             Content area
         -->
         <div id="editor_area" class="span9">
             {% include "editor/cm_stub.html" %}
-        </div><!--/span-->
+        </div>
     </div>  <!-- main view -->
+
+    <!--
+        Horizontal splitter between sidebar/editor and preview area
+    -->
+    <div class="horizontal-splitter row-fluid">
+    </div>
 
     <!--
         Preview pane
@@ -125,6 +124,19 @@
             </pre>
         </div>
     </div><!--/row-->
+
+
+    <!--
+        Modal dialogs
+    -->
+    <div id="modal_placeholder"></div>
+    <div id="modal_dialogs" style="display:none">
+        {% include "editor/modals.html" %}
+    </div>
+    <!--
+        Bar for messages, errors and info
+    -->
+    <div id="messages_bar"></div>
 {% endblock %} <!-- extra_body_html -->
 
 
@@ -151,12 +163,11 @@
     <script src="{{ static_url('codemirror/lib/util/searchcursor.js') }}"></script>
     <script src="{{ static_url('codemirror/lib/util/match-highlighter.js') }}"></script>
 
-    <!-- Marked -->
-    <script src="{{ static_url('marked/lib/marked.js') }}"></script>
+    <!-- Marked (hacked for live preview) -->
+    <script src="{{ static_url('js/marked-vels.js') }}"></script>
 
     <!-- Our own code (order is important !) -->
     <script src="{{ static_url('js/mdb-home-utils.js') }}"></script>
-    <script src="{{ static_url('js/edtr-markdown.js') }}"></script>
     <script src="{{ static_url('js/mdb-home-codemirror.js') }}"></script>
     <script src="{{ static_url('js/mdb-home-tree.js') }}"></script>
     <script src="{{ static_url('js/mdb-home-modal.js') }}"></script>

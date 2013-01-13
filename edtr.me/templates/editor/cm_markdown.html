@@ -2,65 +2,67 @@
     CodeMirror with toolbar and buttons for Markdown editing
 -->
 
-<!-- Toolbar -->
-<div id="cme_toolbar">
-    <div id="editor_toolbar" class="btn-toolbar well">
+<!-- 
+    Toolbar 
+-->
+<div id="cme-toolbar-container">
+    <div class="cme-toolbar btn-toolbar well">
         <div class="btn-group">
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_header"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_header"
                title="Header (1-6): <b>Ctrl-H</b>" href="#">
                 <!--
                 <b>H</b>
                 -->
                 <i class="icon-text-height icon-black"></i>
             </a>
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_bold"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_bold"
                title="Toggle Bold: <b>Ctrl-B</b>" href="#">
                 <!--
                 <b>B</b>
                 -->
                 <i class="icon-bold icon-black"></i>
             </a>
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_italic"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_italic"
                title="Toggle Italic: <b>Ctrl-I</b>" href="#">
                 <!--
                 <b><i>I</i></b>
                 -->
                 <i class="icon-italic icon-black"></i>
             </a>
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_code"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_code"
                title="Toggle Code: <b>Ctrl-K</b>" href="#">
                 <i class="icon-barcode icon-black"></i>
             </a>
         </div><!--/btn-group-->
 
         <div class="btn-group">
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_ulist"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_ulist"
                title="Unordered List: <b>Ctrl-U</b>" href="#">
                 <i class="icon-th-list icon-black"></i>
             </a>
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_olist"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_olist"
                title="Ordered List: <b>Ctrl-O</b>" href="#">
                 <i class="icon-list-alt icon-black"></i>
             </a>
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_quote"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_quote"
                title="Quote: <b>Ctrl-Q</b>" href="#">
                 <i class="icon-chevron-right icon-black"></i>
             </a>
         </div><!--/btn-group-->
 
         <div class="btn-group">
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_divider"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_divider"
                title="Divider (Horizontal Rule): <b>Ctrl-D</b>" href="#">
                 <i class="icon-minus icon-black"></i>
             </a>
         </div><!--/btn-group-->
 
         <div class="btn-group">
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_image_url"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_image_url"
                title="Insert Image: <b>Ctrl-G</b>" href="#">
                 <i class="icon-picture icon-black"></i>
             </a>
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_url"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_url"
                title="Insert URL: <b>Ctrl-L</b>" href="#">
                 <i class="icon-magnet icon-black"></i>
             </a>
@@ -90,11 +92,11 @@
         </div><!--/btn-group-->
 
         <div id="tbb_right_group" class="btn-group pull-right">
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_width"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_width"
                title="Toggle Width: <b>Ctrl-F11</b>" href="#">
                 <i class="icon-resize-horizontal icon-black"></i>
             </a>
-            <a class="btn btn-default btn-small has_tooltip_below" id="tbb_fullscreen"
+            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_fullscreen"
                title="Fullscreen: <b>Ctrl-Shift-F11</b>" href="#">
                 <i class="icon-fullscreen icon-black"></i>
             </a>
@@ -106,36 +108,40 @@
             -->
         </div><!--/btn-group-->
     </div><!--/btn-toolbar-->
-</div><!--/cme_toolbar-->
+</div><!--/cme-toolbar-container-->
 
 
-<!-- Editing area -->
-<div class="row" id="codemirror_textarea_div">
-    <textarea class="span9" id="codemirror_textarea" rows="35" disabled="true">
+<!-- 
+    Editing area 
+-->
+<div class="row cme-textarea-container">
+    <textarea class="cme-textarea span9" rows="35" disabled="true">
     </textarea>
 </div><!--/row-->
 
 
-<!-- Buttons below  -->
+<!-- 
+    Buttons below  
+-->
 <div class="row">
-    <div id="cme_buttonbar" style="margin-left: 30px;" >
+    <div class="cme-buttonbar" style="margin-left: 30px;" >
         <button id="btn_save"
                 title="Save to Dropbox"
-                class="btn btn-success btn-small has_tooltip" href="#">
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
             <i class="icon-ok-sign icon-white"></i>
             <span id="btn_save_text">Save</span>
         </button>
         <button id="btn_preview"
                 title="Preview HTML in new window"
-                class="btn btn-info btn-small has_tooltip" href="#">
+                class="btn btn-info btn-small cme-button-tooltip" href="#">
             <i class="icon-eye-open icon-white"></i>
             Preview...
         </button>
         <button id="btn_publish"
                 title="Publish HTML to your website"
-                class="btn btn-primary btn-small has_tooltip pull-right" href="#">
+                class="btn btn-primary btn-small cme-button-tooltip pull-right" href="#">
             <i class="icon-globe icon-white"></i>
             Publish...
         </button>
-    </div><!-- cme_buttonbar -->
+    </div><!-- cme-buttonbar -->
 </div>

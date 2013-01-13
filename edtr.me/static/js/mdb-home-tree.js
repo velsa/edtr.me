@@ -248,7 +248,8 @@ var edtrTree = {
                     // Insert editor HTML code (toolbar, textarea, buttons) into content div
                     // TODO: remove previous codemirror and all bindings (?)
                     if (edtrCodemirror.content_type !== file_type) {
-                        $("#editor_area").empty().prepend(editor_html);
+                        $("#editor_area").html(editor_html);
+                        //empty().prepend(editor_html);
                     } else {
                         // TODO: do we need to do anything else if editor is of the same type ?
                     }

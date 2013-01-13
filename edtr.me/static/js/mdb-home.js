@@ -89,17 +89,17 @@ $(document).ready(function() {
     });
 
     // TODO: doesn't work ?!
-    left_sidebar.resizable({
-        handles:    'e', // east, means only right side is draggable
-        minWidth:   '270',
-        maxWidth:   '400',
-        resize: function() {
-            var remainingSpace = $(this).parent().width() - $(this).outerWidth();
-            var divTwo = $('#editor_area');
-            var divTwoWidth = remainingSpace - (divTwo.outerWidth() - divTwo.width());
-            divTwo.css('width', divTwoWidth + 'px');
-        }
-    });
+    // editor_area.resizable({
+    //     handles:    'w', // east, means only right side is draggable
+    //     minWidth:   '570',
+    //     maxWidth:   '1400',
+    //     resize: function() {
+    //         var remainingSpace = $(this).parent().width() - $(this).outerWidth();
+    //         var divTwo = $('#left_sidebar');
+    //         var divTwoWidth = remainingSpace - (divTwo.outerWidth() - divTwo.width());
+    //         divTwo.css('width', divTwoWidth + 'px');
+    //     }
+    // });
 
     /*
     show_info("<b>Goodbye.</b> Come back again...");

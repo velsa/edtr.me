@@ -24,13 +24,13 @@ div.container-fluid {
 *   Main view includes #left_sidebar, #editor_area and #preview_area
 */
 #main_view {
+    /*
+    width:              960px;
     margin-bottom:      8px;
+    */
     min-height:         450px;
     display:            inline-block;
     overflow:           hidden;
-    /*
-    width:              960px;
-    */
 }
 
 /*
@@ -39,11 +39,11 @@ div.container-fluid {
 #left_sidebar {
     /*
     width:              320px;
-    margin-left:        20px;
     overflow:           hidden;
+    margin-right:       20px;
     */
-    min-width:          270px;
     width:              30%;
+    min-width:          270px;
     float:              left;
 }
 .search-query {
@@ -79,13 +79,19 @@ ul.nav.nav-list {
     border-color:       #B0C4DE;
 }
 
+
 /*
-*   Draggable splitter
+*   Vertical splitter (clickable, but not dragable)
 */
-#splitter {
-    background-color:   #DDD;
-    width:              20px;    
+.vertical-splitter {
+    background-color:   #D0E4FE;
+    width:              4px;
+    height:             483px;  /* SETS HEIGHT FOR MAIN VIEW ! */
+    margin:             0 2px;
     cursor:             col-resize;
+    float:              left;
+    border-width:       1px;
+    border-color:       #B0C4DE;
 }
 
 
@@ -96,22 +102,25 @@ ul.nav.nav-list {
     /*
     max-width:          65%;
     */
-    margin-left:        8px;
+    margin-left:        0; /*8px;*/
     min-width:          500px;
-    width:              69%;
+    width:              68%;
     overflow-x:         scroll;
     float:              left;
+    font-weight:        normal;
 }
-.btn-toolbar {
-    padding-top:        4px;
-    padding-bottom:     8px;
-    padding-left:       5px;
-    padding-right:      5px;
+.cme-toolbar.btn-toolbar {
+    padding:            4px 5px 8px 5px;
     margin-top:         0;
 }
-.dropdown-toggle {
-    padding:            3px 8px 1px 8px;;
+.btn.cme-toolbar-tooltip {
+    padding-bottom:     6px;
+    padding-top:        6px;
+    margin-bottom:      4px;
 }
+.cme-toolbar .dropdown-toggle {
+    padding:            3px 8px 3px 8px;;
+    margin-top:         -5px;}
 .stub-editor {
     width:              98%;  /* prevents right border cutting */
 }
@@ -121,11 +130,11 @@ ul.nav.nav-list {
     height:             534px;
     font-size:          24px;
 }
-#codemirror_textarea_div {
+.cme-textarea-container {
     width:              100%;
     margin-left:        0; 
     margin-top:         12px;    
-}
+ }
 
 #btn_save {
     width:              120px;
@@ -135,24 +144,40 @@ ul.nav.nav-list {
 }
 
 /*
+*   Horiontal splitter (clickable and dragable)
+*/
+.horizontal-splitter {
+    background-color:   #D0E4FE;
+    height:             4px;
+    width:              100%;
+    margin:             2px 0;
+    cursor:             row-resize;
+    float:              left;
+    border-width:       1px;
+    border-color:       #B0C4DE;
+}
+
+/*
  * Preview area
  */
 .preview-container {
     /*
     background-color:   #f7f7f7;    
      */
+    position:           relative;
     font-family:        monospace;
-    width:              99%;
+    width:              97%;
     height:             190px;
     padding:            4px;
     border:             2px solid lightBlue;
     border-style:       dotted;
     border-width:       4px;
-    padding:            0;
-    overflow:           scroll;
+    padding:            4px 12px;
+    overflow-y:         scroll;
 }
 /* Real preview */
 .preview-area {
+    clear:              both;
     font-weight:        normal;
 }
 /* Stub */

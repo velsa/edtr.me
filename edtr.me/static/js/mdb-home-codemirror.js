@@ -32,7 +32,7 @@ function edtrCodemirror(content_type, content) {
         $this.is_codemirror_hidden = true;
         $this.set_saved_state("SAVED");
         //$('#cme_wide_toggle').html("&nbsp;");
-        $("#editor_toolbar, .CodeMirror, .cme_buttonbar").hide();
+        $(".cme-toolbar, .CodeMirror, .cme-buttonbar").hide();
         $this.dom_elem.show().attr("disabled", "true");
     };
 
@@ -43,14 +43,14 @@ function edtrCodemirror(content_type, content) {
             $this.is_codemirror_wide = true;
             //$('#cme_wide_toggle').html(toggle_right);
             $("#left_sidebar").hide();
-            $('.CodeMirror-wrap, #cme_buttonbar, #cme_toolbar').
+            $('.CodeMirror-wrap, .cme-buttonbar, .cme-toolbar-container').
                 removeClass('span9').addClass('span12');
             $this.cm_editor.focus();
         } else {
             $this.is_codemirror_wide = false;
             //$('#cme_wide_toggle').html(toggle_left);
             $("#left_sidebar").show();
-            $('.CodeMirror-wrap, #cme_buttonbar, #cme_toolbar').
+            $('.CodeMirror-wrap, .cme-buttonbar, .cme-toolbar-container').
                 removeClass('span12').addClass('span9');
             $this.cm_editor.focus();
         }
@@ -82,18 +82,6 @@ function edtrCodemirror(content_type, content) {
             $this.cm_editor.refresh();
         }
         $this.is_codemirror_fullscreen = false;
-    };
-
-    //
-    // Text in CodeMirror changed
-    //
-    // This function will be called VERY OFTEN !
-    this.onCMChange = function() {
-        if ($this.saved_state == 2) {
-            $this.set_saved_state("NOT SAVED");
-        }
-        $this.preview_elem.html(marked($this.cm_editor.getValue()));
-        //console.log("changed");
     };
 
     //
@@ -364,10 +352,79 @@ function edtrCodemirror(content_type, content) {
             $this.cm_editor.setMarker(n, "<span style=\"color: #add8e6;\">&gt;</span> %N%");
     };
 
+    //
+    // Scroll preview-container to corresponding anchor
+    //
+    this.scrollToAnchor = function() {
+        var line_num = $this.cm_editor.getCursor(true).line+1;
+        if ($this.cur_line !== line_num) {
+            $this.cur_line = line_num;
+            var i,
+                anchor_num=0,
+                prev_anchor_num=0,
+                next=0,
+                ratio=0,
+                preview_offset = $this.aTags.first().position().top,
+                aTag=null;
+            // Find anchor, corresponding to line_num
+            for (i=0; i < $this.aTags.size(); i++) {
+                anchor_num = parseInt($this.aTags.get(i).name, 10);
+                if (anchor_num == line_num) {
+                    break;
+                }
+                if (anchor_num > line_num){
+                    if (i > 0) {
+                        // Scroll in between the two anchors
+                        ratio = (line_num-prev_anchor_num)/(anchor_num-prev_anchor_num);
+                        preview_offset -= Math.abs($this.aTags.slice(i).position().top -
+                            $this.aTags.slice(i-1).position().top) * ratio;
+                        --i;
+                    }
+                    break;
+                }
+                prev_anchor_num = anchor_num;
+            }
+            // The anchor to scroll to
+            aTag = $this.aTags.slice(i);
+            if (aTag !== null && aTag.length) {
+                var new_pos;
+                new_pos = Math.max(0,
+                        Math.abs(aTag.position().top-preview_offset) - 20);
+                if (new_pos !== $this.preview_pos) {
+                    $this.preview_pos = new_pos;
+                    $this.preview_container.scrollTop(new_pos);
+                }
+            }
+        }
+    };
+
+    //
+    // Text in CodeMirror changed
+    //
+    // This function will be called VERY OFTEN !
+    this.onCMChange = function() {
+        if ($this.saved_state == 2) {
+            $this.set_saved_state("NOT SAVED");
+        }
+        // Update preview on timer
+        if (!$this.is_timer) {
+            $this.is_timer = true;
+            setTimeout(function() {
+                // Generate preview
+                $this.preview_elem.html(marked($this.cm_editor.getValue()));
+                // Get anchors from generated preview
+                $this.aTags = $this.preview_elem.find("a.marked-anchor");
+                $this.scrollToAnchor();
+                $this.is_timer = false;
+            }, 300);
+        }
+    };
+
     // TODO: Use this to open clicked urls (Ctrl-Click)
     this.cursor_activity = function() {
         //console.log("cursor");
         $this.cm_editor.matchHighlight("CodeMirror-matchhighlight");
+        $this.scrollToAnchor();
     };
 
     //
@@ -421,15 +478,25 @@ function edtrCodemirror(content_type, content) {
         return false;
     }
     
-    // If content_type changed it means that home-tree has replaced editor's HTML
+    // If content_type changed it means that home-tree has replaced
+    // editor's HTML and preview-container
     // TODO: do we need to remove previous codemirror's bindings ?
     if (this.content_type !== content_type) {
-        this.dom_elem = $("#codemirror_textarea");
+        this.dom_elem = $(".cme-textarea");
         this.preview_elem = $(".preview-area");
         //console.log(this.dom_elem);
         this.content_type = content_type;
 
+        this.preview_container = $(".preview-container");
+
+        // Timer for updating preview
+        this.is_timer = false;
+        if (this.timerID !== undefined && this.timerID)
+            clearTimeout(this.timerID);
+        this.timerID = null;
+
         // tab_character and tab_spaces for padding
+        
         // TODO: Get those from folder/general settings
         // tab_character = "\t";
         // tab_spaces = "";
@@ -536,9 +603,9 @@ function edtrCodemirror(content_type, content) {
     $('#btn_save').on("click", this.save_codemirror);
 
     // TOOLTIPS for toolbar
-    $(".has_tooltip_below").tooltip({ placement: "bottom", delay: { show: 1000, hide: 300 } });
+    $(".cme-toolbar-tooltip").tooltip({ placement: "top", delay: { show: 1000, hide: 300 } });
     // And buttons
-    $(".has_tooltip").tooltip({ delay: { show: 800, hide: 300 } });
+    $(".cme-button-tooltip").tooltip({ delay: { show: 800, hide: 300 } });
 
     this.cm_editor.setValue(content);//search_words.join("\n"));
     this.cm_editor.focus();
