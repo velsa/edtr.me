@@ -17,10 +17,18 @@ class DummyRequest(object):
 class SocketIoTest(BaseTest):
 
     @patch.object(SocketConnection, 'send')
-    def test_socketio(self, m_send):
+    def test_on_message(self, m_send):
         request = DummyRequest()
         session = EdtrRouter.create_session(request)
         message = 'test message'
         session.raw_message(proto.message(None, message))
         self.assertEqual(m_send.called, True)
         print m_send.assert_called_with(message + "from server")
+
+    @patch.object(SocketConnection, 'emit')
+    def test_event_get_path(self, m_emit):
+        request = DummyRequest()
+        session = EdtrRouter.create_session(request)
+        path = '/'
+        session.raw_message(proto.event(None, 'get_path', None, path=path))
+        m_emit.assert_called_with('get_path', path)
