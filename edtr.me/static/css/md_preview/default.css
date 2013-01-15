@@ -1,13 +1,21 @@
+/* Real preview */
 .preview-area {
-    font-family:                "Helvetica Neue", Helvetica, Arial, sans-serif;
+    clear:              both;
+    font-family:                Helvetica, arial, freesans, clean, sans-serif;
     -webkit-font-smoothing:     antialiased;
-    padding:            0 5px;
+    background-color:   #ffffff;
+    font-weight:        normal;
+    padding:            0;
     margin:             0 2px;
-    font-size:          13px;
-    line-height:        1.4;
+    font-size:          15px;
+    line-height:        1.6;
+    margin-left:        auto;
+    margin-right:       auto;
+    width:              80%;
+    height:             100%;
 }
 .preview-area li {
-    line-height:        1.7;    
+    line-height:        1.6;    
 }
 .preview-area code {
     color:              #070707;

@@ -1,0 +1,58 @@
+<div class="well sidebar-nav"> <!-- well effect -->
+    <ul class="nav nav-list">
+<!--         
+        <form class="form-search" _lpchecked="1">
+            <i class="icon-search icon-black"></i>
+            <input type="text" class="input-large search-query" 
+                placeholder="Find in files…"/>
+        </form>
+ -->        
+        <li class="nav-header" style="height: 30px;">
+            <ul class="nav nav-tabs">
+                <li class="active">
+                    <a href="#">Files in Dropbox:</a>
+                </li>
+                <li class="dropdown" style="text-transform: none;">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                        Actions<b class="caret"></b>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a data-toggle="modal" id="action_add_file" href="#">
+                                <i class="icon-file icon-black"></i>
+                                New File...
+                            </a>
+                        </li>
+                        <li>
+                            <a data-toggle="modal" id="action_add_subdir" href="#">
+                                <i class="icon-folder-close icon-black"></i>
+                                New Subdir...
+                            </a>
+                        </li>
+                        <li>
+                            <a data-toggle="modal" id="action_rename" href="#">
+                                <i class="icon-pencil icon-black"></i>
+                                Rename...
+                            </a>
+                        </li>
+                        <li>
+                            <a data-toggle="modal" id="action_delete" href="#">
+                                <i class="icon-trash icon-black"></i>
+                                Delete...
+                            </a>
+                        </li>
+                    </ul>
+                </li>
+                <li id="rotate-on-click-li">
+                    <img src="{{ static_url('images/refresh-static.gif') }}" 
+                        alt="()"
+                        class="rotate-on-click">
+                </li>
+            </ul>
+        </li>
+        <li id="ul_tree_control" ></li>
+        <li id="db_tree">
+            <!-- Dropbox TreeView will be inserted here with Ajax -->
+        </li>
+    </ul>
+</div><!--/well -->

@@ -6,14 +6,17 @@ var edtrTree = {
     // TODO: get those from user settings !
     editable_exts:      [ 'md', 'txt', 'html', 'css', 'js'  ],
     image_exts:         [ 'gif', 'jpg', 'jpeg', 'png', 'bmp' ],
-    edtr_editor:        null,
-    dom_db_tree:        $('#db_tree'),
-    dom_ul_tree:        $('#ul_tree'),
 
+    init:                   function (tree_elem) {
+        // Just in case we decide to use instances
+        $this_edtr_tree = this;
+        $this_edtr_tree.dom_db_tree = $('#db_tree');
+        $this_edtr_tree.dom_ul_tree = $('#ul_tree');
+    },
     // Callbacks, which are called by get_server_result()
     db_tree_update_success: function(message) {
         messagesBar.show_notification(message);
-        this.show_db_tree();
+        $this_edtr_tree.show_db_tree();
     },
     db_tree_update_failed:  function(message) {
         syncIcon.stop_sync_rotation();
@@ -34,10 +37,10 @@ var edtrTree = {
             }
 
             // Refresh treeview
-            this.dom_db_tree.html(data.tree_view);
+            $this_edtr_tree.dom_db_tree.html(data.tree_view);
 
             // Activate JS logic in treeview
-            this.dom_ul_tree.treeview({
+            $this_edtr_tree.dom_ul_tree.treeview({
                 animated: "fast",
                 collapsed: true,
                 // TODO: Tree control doesn't work ?
@@ -46,9 +49,9 @@ var edtrTree = {
 
             // Update hover handlers for tree elements
             // (which highlight tree nodes)
-            this.dom_ul_tree.on('mouseover', '.file, .folder', function() {
+            $this_edtr_tree.dom_ul_tree.on('mouseover', '.file, .folder', function() {
                 $(this).addClass("hover"); });
-            this.dom_ul_tree.on('mouseleave', '.file, .folder', function () {
+            $this_edtr_tree.dom_ul_tree.on('mouseleave', '.file, .folder', function () {
                 $(this).removeClass("hover");
                 //return false;
             });
@@ -68,14 +71,14 @@ var edtrTree = {
              */
 
             // Update LEFT Mouse Click handlers for tree elements
-            this.dom_ul_tree.on('click', '.file, .folder', function(e) {
-                this.dom_db_tree_on_click(e, $(this));
+            $this_edtr_tree.dom_ul_tree.on('click', '.file, .folder', function(e) {
+                $this_edtr_tree.dom_db_tree_on_click(e, $(this));
             });
 
             syncIcon.stop_sync_rotation();
 
             // Notify user about new and updated files
-            this.blink_changes_in_tree(eval(data.changes_list));
+            $this_edtr_tree.blink_changes_in_tree(eval(data.changes_list));
         }).error(function(data) {
                 syncIcon.stop_sync_rotation();
                 messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
@@ -99,7 +102,7 @@ var edtrTree = {
 
         // Show text while updating
         if (hide_tree) {
-            this.dom_db_tree.html("<br/><h4 style='text-align: center; background: white'>Syncing with Dropbox...</h4>");
+            $this_edtr_tree.dom_db_tree.html("<br/><h4 style='text-align: center; background: white'>Syncing with Dropbox...</h4>");
         }
         // Get new data from server
         $.get('/async/update_db_tree/', function(data) {
@@ -109,8 +112,8 @@ var edtrTree = {
                 return false;
             }
             // Wait for result from server
-            serverComm.get_server_result(data.task_id, 
-                this.db_tree_update_success, this.db_tree_update_failed);
+            serverComm.get_server_result(data.task_id,
+                $this_edtr_tree.db_tree_update_success, $this_edtr_tree.db_tree_update_failed);
         });
     },
 
@@ -118,7 +121,7 @@ var edtrTree = {
     highlight_db_tree_item_by_db_path:  function(db_path) {
         $('.file').each(function() {
             if ($(this).data("dbpath") == db_path) {
-                this.highlight_db_tree_item($(this));
+                $this_edtr_tree.highlight_db_tree_item($(this));
             }
         });
     },
@@ -143,34 +146,34 @@ var edtrTree = {
     db_tree_on_click:       function(e, elem) {
         // Ctrl-Click inserts db_path to clicked node into editor
         if (e && (e.ctrlKey || e.metaKey) ) {
-            if (!this.edtr_editor.is_codemirror_hidden) {
+            if (!$this_edtr_tree.edtr_editor.is_codemirror_hidden) {
                 // TODO: this should be a codemirror method
-                this.edtr_editor.replaceSelection(elem.data('dbpath'));
-                this.edtr_editor.focus();
+                $this_edtr_tree.edtr_editor.replaceSelection(elem.data('dbpath'));
+                $this_edtr_tree.edtr_editor.focus();
                 return false;
             }
         }
 
         // If codemirror is opened and text in it was not saved
         // ask confirmation from user to close it
-        if (!this.edtr_editor.is_codemirror_saved) {
+        if (!$this_edtr_tree.edtr_editor.is_codemirror_saved) {
             // Confirmation dialog
             $.cookie('mdb_modal_action', "save_continue_lose");
             modalDialog.show_confirm_modal(function(button_id) {
                 if (button_id == "scl_save") {
-                    this.edtr_editor.save_codemirror();
+                    $this_edtr_tree.edtr_editor.save_codemirror();
                 } else if (button_id == "scl_lose") {
-                    this.db_tree_select(elem);
+                    $this_edtr_tree.db_tree_select(elem);
                 }
             });
         } else {
-            this.db_tree_select(elem);
+            $this_edtr_tree.db_tree_select(elem);
         }
     },
 
     db_tree_select:         function(elem) {
         // First - set correct highlight
-        this.highlight_db_tree_item(elem);
+        $this_edtr_tree.highlight_db_tree_item(elem);
 
         // Save cookies for other JS methods
         $.cookie('mdb_source_url', elem.data("src"));
@@ -201,11 +204,11 @@ var edtrTree = {
             // Check extension
             var ext = edtrHelper.get_filename_ext($.cookie('mdb_current_dbpath')).toLowerCase();
             if ($.inArray(ext, editable_exts) > -1) {
-                this.open_editor();
+                $this_edtr_tree.open_editor();
             } else if ($.inArray(ext, image_exts) > -1) {
-                this.show_img_gallery();
+                $this_edtr_tree.show_img_gallery();
             } else {
-                this.edtr_editor.hide_codemirror();
+                $this_edtr_tree.edtr_editor.hide_codemirror();
             }
         }
         //return false;
@@ -253,7 +256,7 @@ var edtrTree = {
                     } else {
                         // TODO: do we need to do anything else if editor is of the same type ?
                     }
-                    this.edtr_editor = new edtrCodemirror(file_type, data);
+                    $this_edtr_tree.edtr_editor = new edtrCodemirror(file_type, data);
                 });
             }
         ).error(function(data) {
@@ -280,7 +283,7 @@ var edtrTree = {
                 $('#img_carousel').on('slid', function() {
                     // We update the selection in tree view
                     var db_path = $('.carousel .active').data("dbpath");
-                    this.highlight_db_tree_item_by_db_path(db_path);
+                    $this_edtr_tree.highlight_db_tree_item_by_db_path(db_path);
                 });
             }
         }).error(function(data) {

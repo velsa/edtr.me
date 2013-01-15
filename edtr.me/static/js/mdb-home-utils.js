@@ -4,12 +4,17 @@
 var messagesBar = {
     fadein_time:    800,
     fadeout_time:   600,
-    dom_elem:       $('#messages_bar'),
 
     init:    function( dom_elem ) {
         this.dom_elem = dom_elem;
     },
 
+    update_dimensions: function (elem) {
+        this.dom_elem.css({
+                    left:   (elem.offset()).left-5,
+                    width:  elem.width()+10
+        });
+    },
     // Shows error on red background
     show_error:         function(html_message) {
         this.show_message(html_message, 'alert-error', 0);
@@ -69,12 +74,29 @@ var messagesBar = {
 //
 var syncIcon = {
     is_sync_rotating:   false,
-    icon:               $('.rotate-on-click'),
+    icon:               null,
     animating_img:      "/static/images/refresh-anim.gif",
     static_img:         "/static/images/refresh-static.gif",
 
-    init:                   function( dom_elem ) {
+    init:                   function( dom_elem, on_click_callback ) {
         this.icon = dom_elem;
+        this.icon
+        .on("hover", function () {
+                //$(this).removeClass("icon-black");
+                //$(this).addClass("icon-white");
+                if (!this.is_sync_rotating) {
+                    $(this).css('border','1px solid darkgrey');
+                }
+            }, function () {
+                //$(this).removeClass("icon-white");
+                //$(this).addClass("icon-black");
+                $(this).css('border','none');
+        })
+        .on("click", function () {
+            if (!this.is_sync_rotating) {
+                on_click_callback();
+            }
+        });
     },
 
     // Start icon rotation
@@ -97,6 +119,59 @@ var syncIcon = {
             .attr("src", this.static_img);
     }
 };
+
+
+var edtrSplitters = {
+    $this_edtr_splitters:       null,
+
+    //
+    // Setup splitter drag events
+    //
+    init: function(on_drag_end_callback) {
+        this.left_sidebar = $('#left_sidebar');
+        this.v_splitter = $(".vertical-splitter");
+        this.h_splitter = $(".horizontal-splitter");
+        this.editor_area = $('#editor_area');
+        this.preview_container = $('.preview-container');
+        this.margin = this.left_sidebar.offset().left;
+        this.v_splitter_width = this.v_splitter.width();
+        this.is_dragging = false;
+        
+        $this_edtr_splitters = this;
+
+        this.v_splitter
+        .on("mousedown", function(e) {
+            e.preventDefault(); // disable text selection during drag
+            $(window).on("mousemove", function(e) {
+                $this_edtr_splitters.is_dragging = true;
+                //console.log(left_sidebar.width());
+                $this_edtr_splitters.prev_width = $this_edtr_splitters.left_sidebar.width();
+                $this_edtr_splitters.left_sidebar.width(e.clientX - $this_edtr_splitters.margin);
+            });
+            $(window).on("mouseup", function(e) {
+                var was_dragging = $this_edtr_splitters.is_dragging;
+                $this_edtr_splitters.is_dragging = false;
+                $(window).off("mousemove");
+                $(window).off("mouseup");
+                if (!was_dragging) { // was clicking
+                    console.log("just a click");
+                } else {
+                    on_drag_end_callback();
+                }
+            });
+        })
+        .on("dblclick", function(e) {
+            $this_edtr_splitters.toggle_side_bar();
+        });
+    },
+
+    toggle_side_bar: function() { $this_edtr_splitters.left_sidebar.toggle(); },
+    hide_editor: function() { $this_edtr_splitters.editor_area.hide(); },
+    show_editor: function() { $this_edtr_splitters.editor_area.show(); },
+    hide_preview: function() { $this_edtr_splitters.preview_container.hide(); },
+    show_preview: function() { $this_edtr_splitters.preview_container.show(); }
+};
+
 
 //
 // Get server result and call appropriate callbacks

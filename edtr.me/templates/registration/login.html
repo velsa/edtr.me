@@ -2,6 +2,31 @@
 
 {% block extra_title %}Login{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#login').attr('disabled', 'disabled');
+            $('#id_username').focus();
+
+            var check_login = function() {
+                if ($('#id_username').val() != "" && $('#id_password').val() != "") {
+                    $('#login').removeAttr('disabled');
+                }
+                else {
+                    $('#login').attr('disabled', 'disabled');
+                }
+            };
+            $('#id_username, #id_password').keyup(check_login);
+            $('#id_username, #id_password').change(check_login);
+
+            $('.close').click(function() {
+               $('.alert').hide();
+            });
+        });
+    </script>
+{% endblock %}
+
 {% block body_before_container %}
 {% endblock %} <!-- body_before_container -->
 
@@ -63,26 +88,3 @@
     </div>
 {% endblock %}
 
-{% block extra_body_js %}
-    <script type="text/javascript">
-        $(document).ready(function(){
-            $('#login').attr('disabled', 'disabled');
-            $('#id_username').focus();
-
-            var check_login = function() {
-                if ($('#id_username').val() != "" && $('#id_password').val() != "") {
-                    $('#login').removeAttr('disabled');
-                }
-                else {
-                    $('#login').attr('disabled', 'disabled');
-                }
-            };
-            $('#id_username, #id_password').keyup(check_login);
-            $('#id_username, #id_password').change(check_login);
-
-            $('.close').click(function() {
-               $('.alert').hide();
-            });
-        });
-    </script>
-{% endblock %}

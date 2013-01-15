@@ -880,7 +880,7 @@ Parser.prototype.parseText = function() {
                 this.token.lines.toString() + 
                 "' class='marked-anchor'" + 
                 "/>\n";
-      console.log('TOK: ', anchor);      
+      //console.log('TOK: ', anchor);      
     }
     body = anchor + '\n' + this.inline.output(this.next().text);
     //body += '\n' + this.next().text;
@@ -904,7 +904,7 @@ Parser.prototype.tok = function() {
               this.token.lines.toString() + 
               "' class='marked-anchor'" + 
               "/>\n";
-    console.log('TOK: ', anchor);      
+    //console.log('TOK: ', anchor);      
   }
 
   switch (this.token.type) {

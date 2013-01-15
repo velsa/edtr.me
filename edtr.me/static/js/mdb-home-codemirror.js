@@ -7,23 +7,6 @@
 
 // Class definition
 function edtrCodemirror(content_type, content) {
-    this.is_codemirror_fullscreen=      false;
-    this.is_codemirror_hidden=          true;
-    this.is_codemirror_saved=           true;
-    this.is_codemirror_wide=            false;
-    this.tab_character=                 "\t";
-    this.tab_spaces=                    "   ";
-    this.list_character=                "-";
-    this.cm_editor=                     null;
-    this.dom_elem=                      null;
-    this.preview_elem=                  null;
-    this.content_type=                  null;
-    this.saved_state=                   -1; // 0 - not saved, 1 - saving, 2 - saved
-    
-    // store pointer to ourselves to be able
-    // to access object from callbacks
-    var $this=this;
-
     //
     // CALLBACKS (must be defined BEFORE usage !)
     //
@@ -32,28 +15,15 @@ function edtrCodemirror(content_type, content) {
         $this.is_codemirror_hidden = true;
         $this.set_saved_state("SAVED");
         //$('#cme_wide_toggle').html("&nbsp;");
-        $(".cme-toolbar, .CodeMirror, .cme-buttonbar").hide();
+        edtrSplitters.hide_editor();
         $this.dom_elem.show().attr("disabled", "true");
     };
 
     this.toggle_width = function() {
         if ($this.is_codemirror_hidden)
             return;
-        if (!$this.is_codemirror_wide) {
-            $this.is_codemirror_wide = true;
-            //$('#cme_wide_toggle').html(toggle_right);
-            $("#left_sidebar").hide();
-            $('.CodeMirror-wrap, .cme-buttonbar, .cme-toolbar-container').
-                removeClass('span9').addClass('span12');
-            $this.cm_editor.focus();
-        } else {
-            $this.is_codemirror_wide = false;
-            //$('#cme_wide_toggle').html(toggle_left);
-            $("#left_sidebar").show();
-            $('.CodeMirror-wrap, .cme-buttonbar, .cme-toolbar-container').
-                removeClass('span12').addClass('span9');
-            $this.cm_editor.focus();
-        }
+        edtrSplitters.toggle_sidebar();
+        this.is_codemirror_wide = !this.is_codemirror_wide;
     };
 
     this.toggle_fullscreen = function() {
@@ -87,13 +57,19 @@ function edtrCodemirror(content_type, content) {
     //
     // TOOLBAR
     //
+
+    // Bold, Italic and Code toolbar icons
+    // TODO: bold and italic should be set via settings
+    this.toggle_bold = function() { $this.toggle_markup("**"); };
+    this.toggle_italic = function() { $this.toggle_markup("_"); };
+    this.toggle_code = function() { $this.toggle_markup("`"); };
     this.toggle_markup = function(markup) {
         var mlen = markup.length;
         if ($this.cm_editor.somethingSelected()) {
             // Check if we need to remove the bold markup
             var sel = $this.cm_editor.getSelection();
             if (sel.substring(0, mlen) == markup) {
-                console.log(sel,mlen,markup);
+                //console.log(sel,mlen,markup);
                 sel = sel.substring(mlen);
                 if (sel.substr(sel.length-mlen, mlen) == markup) {
                     sel = sel.substring(0, sel.length-mlen);
@@ -103,25 +79,14 @@ function edtrCodemirror(content_type, content) {
                 $this.cm_editor.replaceSelection(markup+$this.cm_editor.getSelection()+markup);
             }
         } else {
+            // Simply insert markup and place cursor int the middle
             $this.cm_editor.replaceRange(markup+$this.cm_editor.getSelection()+markup,
-                $this.cm_editor.getCursor(true));
-            var pos = $this.cm_editor.getCursor(true);
-            $this.cm_editor.setCursor( pos.line, pos.ch-mlen);
+                $this.cm_editor.getCursor("start"));
+            var pos = $this.cm_editor.getCursor("start");
+            $this.cm_editor.setCursor(pos.line, pos.ch - mlen);
             //console.log("POS "+ pos['ch']);
         }
         $this.cm_editor.focus();
-    };
-
-    // Bold, Italic and Code toolbar icons
-    // TODO: bold and italic should be set via settings
-    this.toggle_bold = function() {
-        $this.toggle_markup("**");
-    };
-    this.toggle_italic = function() {
-        $this.toggle_markup("_");
-    };
-    this.toggle_code = function() {
-        $this.toggle_markup("`");
     };
 
     // Rotate Header
@@ -159,7 +124,7 @@ function edtrCodemirror(content_type, content) {
                         space_before_right_header + new_header;
 
         $this.cm_editor.setLine(cur.line, new_line);
-        $this.cm_editor.setCursor(cur.line, cur.ch+cur_shift);
+        $this.cm_editor.setCursor(cur.line, cur.ch + cur_shift);
         $this.cm_editor.focus();
     };
 
@@ -173,9 +138,9 @@ function edtrCodemirror(content_type, content) {
                     if (/^\s*[*\-+]\s+/.test(lines[i]))
                         lines[i] = lines[i].replace(/^(\s*)([*\-+]\s+)(.*)$/,"$1$3");
                     else if (/^\s*[0-9]+\.\s+/.test(lines[i]))
-                        lines[i] = lines[i].replace(/^(\s*)([0-9]+\.\s+)(.*)$/,"$1"+list_character+" $3");
+                        lines[i] = lines[i].replace(/^(\s*)([0-9]+\.\s+)(.*)$/,"$1"+$this.list_character+" $3");
                     else
-                        lines[i] = lines[i].replace(/^(\s*)(.*)$/,"$1"+list_character+" $2");
+                        lines[i] = lines[i].replace(/^(\s*)(.*)$/,"$1"+$this.list_character+" $2");
                 }
             }
             $this.cm_editor.replaceSelection(lines.join("\n"));
@@ -183,9 +148,9 @@ function edtrCodemirror(content_type, content) {
             var cur = $this.cm_editor.getCursor(true);
             var line = $this.cm_editor.getLine(cur.line);
             if (!line)
-                $this.cm_editor.setLine(cur.line, list_character + ' ');
+                $this.cm_editor.setLine(cur.line, $this.list_character + ' ');
             else
-                $this.cm_editor.setLine(cur.line, line + '\n' + list_character + ' ');
+                $this.cm_editor.setLine(cur.line, line + '\n' + $this.list_character + ' ');
         }
     };
 
@@ -284,16 +249,16 @@ function edtrCodemirror(content_type, content) {
         } else {
             var cur = $this.cm_editor.getCursor();
             var line = $this.cm_editor.getLine(cur.line);
-            var pad_str = tab_character;
+            var pad_str = $this.tab_character;
             if (cur.ch) {
                 // Calculate pos in line with respect to tab characters
                 var ins_pos = 0;
                 for (var i=0; i < cur.ch; i++)
-                    if (line[i] == '\t') ins_pos += tab_spaces.length;
+                    if (line[i] == '\t') ins_pos += $this.tab_spaces.length;
                     else ins_pos++;
-                var pad_spaces = tab_spaces.length - (ins_pos % tab_spaces.length);
-                if (pad_spaces != tab_spaces.length)
-                    pad_str = tab_spaces.substr(0, pad_spaces);
+                var pad_spaces = $this.tab_spaces.length - (ins_pos % $this.tab_spaces.length);
+                if (pad_spaces != $this.tab_spaces.length)
+                    pad_str = $this.tab_spaces.substr(0, pad_spaces);
             }
             var new_line = line.substring(0, cur.ch)+pad_str+line.substring(cur.ch);
             $this.cm_editor.setLine(cur.line, new_line);
@@ -322,7 +287,7 @@ function edtrCodemirror(content_type, content) {
                 // In such case we consider $this to be the end of
                 // a list or blockquote and remove the last tag
                 $this.cm_editor.setCursor(cur.line-1, 0);
-                CodeMirror.commands.killLine($this.cm_editor);
+                //CodeMirror.commands.killLine($this.cm_editor);
                 $this.cm_editor.removeLine(cur.line);
             } else {
                 $this.cm_editor.replaceSelection(prev_indented[0]+" ", "end");
@@ -333,7 +298,7 @@ function edtrCodemirror(content_type, content) {
                 var prev_num = prev_indented.match(/^[0-9]+/);
                 if (/^[0-9]+\. $/.test(prev_indented)) {
                     $this.cm_editor.setCursor(cur.line-1, 0);
-                    CodeMirror.commands.killLine($this.cm_editor);
+                    //CodeMirror.commands.killLine($this.cm_editor);
                     $this.cm_editor.removeLine(cur.line);
                 } else {
                     $this.cm_editor.replaceSelection((parseInt(prev_num, 10)+1)+". ", "end");
@@ -342,20 +307,56 @@ function edtrCodemirror(content_type, content) {
         }
     };
 
-    // TODO: bind Ctrl-M to set/remove markers on gutter
-    // TODO: and Shift-Ctrl-M to jump over markers
-    this.gutter_clicked = function(cm, n) {
-        var info = $this.cm_editor.lineInfo(n);
-        if (info.markerText)
-            $this.cm_editor.clearMarker(n);
-        else
-            $this.cm_editor.setMarker(n, "<span style=\"color: #add8e6;\">&gt;</span> %N%");
+
+
+    //
+    // EDITOR BUTTONS
+    //
+    // PREVIEW BUTTON: Preview HTML
+    this.preview_codemirror = function () {
+        console.log($.cookie('mdb_preview_url'));
+        window.open($.cookie('mdb_preview_url')+
+            "?reload="+(new Date()).getTime(), '');
+        //return false;
     };
+
+    // Callbacks, which are called by get_server_result()
+    this.save_failed = function(message) {
+        $this.set_saved_state("NOT SAVED");
+        messagesBar.show_error(message);
+    };
+    this.saved_ok = function(message) {
+        $this.set_saved_state("SAVED");
+        messagesBar.show_notification(message);
+    };
+    // SAVE BUTTON: Save Markdown to Dropbox
+    this.save_codemirror = function () {
+        var text = cm_editor.getValue();
+        $this.set_saved_state("SAVING");
+        $.post("/async/save/", {
+            db_path: $.cookie('mdb_current_dbpath'),
+            content: text
+        }, function(data) {
+            if (data.status != 'success') {
+                // Serious error
+                $this.save_failed(data.message);
+            } else {
+                // Wait for result from server
+                serverComm.get_server_result(data.task_id,
+                    $this.saved_ok, $this.save_failed);
+            }
+        }).error(function(data) {
+                messagesBar.show_error("Can't communicate with server ! Please refresh the page.");
+            });
+        //return false;
+    };
+
+
 
     //
     // Scroll preview-container to corresponding anchor
     //
-    this.scrollToAnchor = function() {
+    this.scroll_to_anchor = function() {
         var line_num = $this.cm_editor.getCursor(true).line+1;
         if ($this.cur_line !== line_num) {
             $this.cur_line = line_num;
@@ -402,7 +403,8 @@ function edtrCodemirror(content_type, content) {
     // Text in CodeMirror changed
     //
     // This function will be called VERY OFTEN !
-    this.onCMChange = function() {
+    this.on_change = function(inst, change_obj) {
+        //console.log($this.saved_state);
         if ($this.saved_state == 2) {
             $this.set_saved_state("NOT SAVED");
         }
@@ -414,64 +416,49 @@ function edtrCodemirror(content_type, content) {
                 $this.preview_elem.html(marked($this.cm_editor.getValue()));
                 // Get anchors from generated preview
                 $this.aTags = $this.preview_elem.find("a.marked-anchor");
-                $this.scrollToAnchor();
+                $this.scroll_to_anchor();
                 $this.is_timer = false;
-            }, 300);
+            }, 100);
         }
     };
 
+
     // TODO: Use this to open clicked urls (Ctrl-Click)
-    this.cursor_activity = function() {
+    this.on_cursor_activity = function(inst) {
         //console.log("cursor");
         $this.cm_editor.matchHighlight("CodeMirror-matchhighlight");
-        $this.scrollToAnchor();
+        $this.scroll_to_anchor();
     };
 
-    //
-    // EDITOR BUTTONS
-    //
-    // PREVIEW BUTTON: Preview HTML
-    this.preview_codemirror = function () {
-        console.log($.cookie('mdb_preview_url'));
-        window.open($.cookie('mdb_preview_url')+
-            "?reload="+(new Date()).getTime(), '');
-        //return false;
-    };
-
-    // Callbacks, which are called by get_server_result()
-    this.save_failed = function(message) {
-        $this.set_saved_state("NOT SAVED");
-        messagesBar.show_error(message);
-    };
-    this.saved_ok = function(message) {
-        $this.set_saved_state("SAVED");
-        messagesBar.show_notification(message);
-    };
-    // SAVE BUTTON: Save Markdown to Dropbox
-    this.save_codemirror = function () {
-        var text = cm_editor.getValue();
-        $this.set_saved_state("SAVING");
-        $.post("/async/save/", {
-            db_path: $.cookie('mdb_current_dbpath'),
-            content: text
-        }, function(data) {
-            if (data.status != 'success') {
-                // Serious error
-                $this.save_failed(data.message);
-            } else {
-                // Wait for result from server
-                serverComm.get_server_result(data.task_id,
-                    $this.saved_ok, $this.save_failed);
-            }
-        }).error(function(data) {
-                messagesBar.show_error("Can't communicate with server ! Please refresh the page.");
-            });
-        //return false;
+    // TODO: bind Ctrl-M to set/remove markers on gutter
+    // TODO: and Shift-Ctrl-M to jump over markers
+    this.on_gutter_clicked = function(inst, n) {
+        var info = $this.cm_editor.lineInfo(n);
+        if (info.markerText)
+            $this.cm_editor.clearMarker(n);
+        else
+            $this.cm_editor.setMarker(n, "<span style=\"color: #add8e6;\">&gt;</span> %N%");
     };
 
     //
     // INITIALIZATION (constructor)
     //
+    this.is_codemirror_fullscreen=      false;
+    this.is_codemirror_hidden=          true;
+    this.is_codemirror_saved=           true;
+    this.is_codemirror_wide=            false;
+    this.tab_character=                 "\t";
+    this.tab_spaces=                    Array(4).join(" "); // should equal to tab_character
+    this.list_character=                "-";
+    this.cm_editor=                     null;
+    this.dom_elem=                      null;
+    this.preview_elem=                  null;
+    this.content_type=                  null;
+    this.saved_state=                   -1; // 0 - not saved, 1 - saving, 2 - saved
+    
+    // store pointer to ourselves to be able
+    // to access object from callbacks
+    var $this=this;
 
     if (content_type !== "markdown") {
         messagesBar.show_error("ERROR: content "+content_type+" is not supported");
@@ -502,57 +489,59 @@ function edtrCodemirror(content_type, content) {
         // tab_spaces = "";
         // list_character = "-";
         //for (var i=0; i<4; i++) tab_spaces += " ";
-        this.cm_editor = CodeMirror.fromTextArea(
-            this.dom_elem.get(0),
-            {
-                // TODO: all settings should accord to content_type
-                mode:               "gfm",
-                onChange:           this.onCMChange,
+        var cm_settings = {
+            // TODO: all settings should accord to content_type
+            mode:               "markdown", // "gfm" breaks google chrome ?!
 
-                // TODO: Get those from folder/general settings
-                gutter:             true,
-                fixedGutter:        true,
-                lineNumbers:        true,
-                lineWrapping:       true,
-                matchBrackets:      true,
-                pollInterval:       300,
-                undoDepth:          500,
-                theme:              "default",
-                indentUnit:         4, //tab_chanightracter.length,
-                tabSize:            4, // should be the same !
-                indentWithTabs:     true,
+            // TODO: Get those from folder/general settings
+            // gutter:             true,
+            // fixedGutter:        true,
+            lineNumbers:        true,
+            lineWrapping:       true,
+            matchBrackets:      true,
+            pollInterval:       300,
+            undoDepth:          500,
+            theme:              "default",
+            indentUnit:         this.tab_spaces,
+            tabSize:            this.tab_spaces, // should be the same !
+            indentWithTabs:     true,
+            electricChars:      false,
 
-                onGutterClick:      this.gutter_clicked,
-                onCursorActivity:   this.cursor_activity,
+            // TODO = find Mac equivalents
+            extraKeys: {
+                // General
+                "Ctrl-F11":     this.toggle_width,
+                //"F11":          toggle_fullscreen,  TODO = fix layout for fullscreen
+                "Esc":          this.out_of_fullscreen,
+                // File
+                "Ctrl-S":       this.save_codemirror,
+                // Edit
+                "Tab":          this.tab,
+                "Shift-Tab":    this.shift_tab,
+                //"Enter":        this.custom_new_line,
+                // Markdown
+                "Meta-H":       this.rotate_header,
+                "Ctrl-B":       this.toggle_bold,
+                "Ctrl-I":       this.toggle_italic,
+                "Ctrl-K":       this.toggle_code,
 
-                // TODO = find Mac equivalents
-                extraKeys: {
-                    // General
-                    "Ctrl-F11":     this.toggle_width,
-                    //"F11":          toggle_fullscreen,  TODO = fix layout for fullscreen
-                    "Esc":          this.out_of_fullscreen,
-                    // File
-                    "Ctrl-S":       this.save_codemirror,
-                    // Edit
-                    "Tab":          this.tab,
-                    "Shift-Tab":    this.shift_tab,
-                    "Enter":        this.custom_new_line,
-                    // Markdown
-                    "Meta-H":       this.rotate_header,
-                    "Ctrl-B":       this.toggle_bold,
-                    "Ctrl-I":       this.toggle_italic,
-                    "Ctrl-K":       this.toggle_code,
+                "Ctrl-U":       this.unordered_list,
+                "Ctrl-O":       this.ordered_list,
+                "Ctrl-Q":       this.blockquote,
 
-                    "Ctrl-U":       this.unordered_list,
-                    "Ctrl-O":       this.ordered_list,
-                    "Ctrl-Q":       this.blockquote,
+                "Ctrl-D":       this.divider_hr,
 
-                    "Ctrl-D":       this.divider_hr,
+                "Ctrl-G":       this.insert_image_url,
+                "Ctrl-L":       this.insert_url
+            }
+        };
 
-                    "Ctrl-G":       this.insert_image_url,
-                    "Ctrl-L":       this.insert_url
-                }
-            });
+        this.cm_editor = CodeMirror.fromTextArea(this.dom_elem.get(0), cm_settings);
+
+        // .ON events
+        this.cm_editor.on("change", this.on_change);
+        this.cm_editor.on("cursorActivity", this.on_cursor_activity);
+        // onGutterClick:      this.on_gutter_clicked,
 
         // Hides original text area, just in case
         this.dom_elem.hide();
@@ -603,14 +592,15 @@ function edtrCodemirror(content_type, content) {
     $('#btn_save').on("click", this.save_codemirror);
 
     // TOOLTIPS for toolbar
-    $(".cme-toolbar-tooltip").tooltip({ placement: "top", delay: { show: 1000, hide: 300 } });
+    // THOSE DON'T WORK BECAUSE #editor_area is overflow: hidden
+    //$(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
     // And buttons
-    $(".cme-button-tooltip").tooltip({ delay: { show: 800, hide: 300 } });
+    //$(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
 
     this.cm_editor.setValue(content);//search_words.join("\n"));
     this.cm_editor.focus();
 
-
+    return this.cm_editor;
 }
 
 //var toggle_left = "&lt;&lt;";

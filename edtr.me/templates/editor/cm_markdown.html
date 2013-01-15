@@ -114,34 +114,33 @@
 <!-- 
     Editing area 
 -->
-<div class="row cme-textarea-container">
-    <textarea class="cme-textarea span9" rows="35" disabled="true">
+<div class="cme-textarea-container">
+    <textarea class="cme-textarea" rows="35" disabled="true">
     </textarea>
-</div><!--/row-->
-
+</div>
 
 <!-- 
     Buttons below  
 -->
-<div class="row">
-    <div class="cme-buttonbar" style="margin-left: 30px;" >
+<div class="cme-buttonbar-container well">
+    <div class="cme-buttonbar">
         <button id="btn_save"
-                title="Save to Dropbox"
+                title="Save to Dropbox (in .draft folder)"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
             <i class="icon-ok-sign icon-white"></i>
-            <span id="btn_save_text">Save</span>
+            <span id="btn_save_text">Save draft</span>
         </button>
         <button id="btn_preview"
-                title="Preview HTML in new window"
+                title="Open page preview in new window"
                 class="btn btn-info btn-small cme-button-tooltip" href="#">
             <i class="icon-eye-open icon-white"></i>
             Preview...
         </button>
         <button id="btn_publish"
-                title="Publish HTML to your website"
+                title="Publish HTML to your website (also saves file to Dropbox)"
                 class="btn btn-primary btn-small cme-button-tooltip pull-right" href="#">
             <i class="icon-globe icon-white"></i>
-            Publish...
+            Publish
         </button>
     </div><!-- cme-buttonbar -->
 </div>

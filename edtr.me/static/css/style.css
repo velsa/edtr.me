@@ -5,21 +5,43 @@ body {
     /*font-family: Verdana, helvetica, arial, sans-serif;
     background: #fff;
     */
-    padding-top:        0px;
+    padding-top:        0;
     padding-bottom:     40px;
+    margin-bottom:      0;
 }
-a.brand {
+.main-container {
+    height:             100%;
+}
+.main-container {
+    margin-left:        10px;
+    margin-right:       10px;
+    height:             auto;
+    min-height:         100%;
+}
+.brand {
     font-variant:       small-caps;
 }
-div.container-fluid {
-    font-weight:        bold;
+
+.sticky-footer {
+    position:           absolute;
+    bottom:             0;
+    top:                532px;  /* must be recalculated on resize */
+    right:              10px;  /* must be equal to container margins */
+    left:               10px;
+    height:             auto;
+    margin-bottom:      44px;
 }
-.container {
-    margin-left:        20px;
-}
+
+/*
+*   Navigation bar
+*/
 .navbar {
     margin-bottom:      8px;
 }
+.navbar-inner {
+    min-height:         32px;
+}
+
 /*
 *   Main view includes #left_sidebar, #editor_area and #preview_area
 */
@@ -27,10 +49,11 @@ div.container-fluid {
     /*
     width:              960px;
     margin-bottom:      8px;
+    display:            inline-block;  /* extends editor beyond browser
     */
+    min-width:          830px;
     min-height:         450px;
-    display:            inline-block;
-    overflow:           hidden;
+    height:             478px; /* must be recalculated on resize */
 }
 
 /*
@@ -41,18 +64,26 @@ div.container-fluid {
     width:              320px;
     overflow:           hidden;
     margin-right:       20px;
+    padding-right:       20px;
     */
-    width:              30%;
+    width:              330px;
     min-width:          270px;
+    max-width:          350px;
+    height:             100%;
     float:              left;
 }
-.search-query {
-    width:              230px;
+.form-search {
+    padding:            4px 0 0 4px;
+    margin-bottom:      0;
 }
 .sidebar-nav {
     margin-bottom:      0;
-    padding:            8px 2px 18px 2px;
-    height:             456px; /* SETS HEIGHT FOR MAIN VIEW ! */
+    padding:            0 2px 0 2px;
+    height:             100%;
+}
+#rotate-on-click-li {
+    float:              right;
+    margin-right:       4px;
 }
 .rotate-on-click {
     cursor:             pointer;
@@ -64,9 +95,6 @@ div.container-fluid {
     height:             100%;
     overflow:           auto;
     margin-bottom:      0;
-}
-ul.nav.nav-list {
-    min-height:         525px;
 }
 .nav-list {
     padding-left:       2px;
@@ -84,9 +112,9 @@ ul.nav.nav-list {
 *   Vertical splitter (clickable, but not dragable)
 */
 .vertical-splitter {
-    background-color:   #D0E4FE;
+    background-color:   #B0C4DE;
     width:              4px;
-    height:             483px;  /* SETS HEIGHT FOR MAIN VIEW ! */
+    height:             100%;
     margin:             0 2px;
     cursor:             col-resize;
     float:              left;
@@ -99,18 +127,16 @@ ul.nav.nav-list {
 *   Editor area includes toolbar, editor and buttons below it
 */
 #editor_area {
-    /*
-    max-width:          65%;
-    */
-    margin-left:        0; /*8px;*/
-    min-width:          500px;
-    width:              68%;
-    overflow-x:         scroll;
-    float:              left;
+    min-width:          550px;
+    width:              auto;
+    overflow:           hidden; /* prevents jquery tooltips from displaying :(  */
     font-weight:        normal;
 }
+#cme-toolbar-container {
+    height:             44px;
+}
 .cme-toolbar.btn-toolbar {
-    padding:            4px 5px 8px 5px;
+    padding:            4px 5px 2px 5px;
     margin-top:         0;
 }
 .btn.cme-toolbar-tooltip {
@@ -120,7 +146,7 @@ ul.nav.nav-list {
 }
 .cme-toolbar .dropdown-toggle {
     padding:            3px 8px 3px 8px;;
-    margin-top:         -5px;}
+    margin-top:         -4px;}
 .stub-editor {
     width:              98%;  /* prevents right border cutting */
 }
@@ -132,10 +158,14 @@ ul.nav.nav-list {
 }
 .cme-textarea-container {
     width:              100%;
+    height:             402px;  /* must be recalculated on resize */
     margin-left:        0; 
     margin-top:         12px;    
- }
-
+}
+.cme-buttonbar-container {
+    padding:            9px 5px 5px 5px;
+    margin-bottom:      0;
+}
 #btn_save {
     width:              120px;
 }
@@ -147,10 +177,10 @@ ul.nav.nav-list {
 *   Horiontal splitter (clickable and dragable)
 */
 .horizontal-splitter {
-    background-color:   #D0E4FE;
+    background-color:   #B0C4DE;
     height:             4px;
     width:              100%;
-    margin:             2px 0;
+    margin:             2px 0 4px 0;
     cursor:             row-resize;
     float:              left;
     border-width:       1px;
@@ -166,8 +196,8 @@ ul.nav.nav-list {
      */
     position:           relative;
     font-family:        monospace;
-    width:              97%;
-    height:             190px;
+    height:             99%; /* 100% brings vertical scrollbar in firefox */
+    min-height:         90px;
     padding:            4px;
     border:             2px solid lightBlue;
     border-style:       dotted;
@@ -175,34 +205,41 @@ ul.nav.nav-list {
     padding:            4px 12px;
     overflow-y:         scroll;
 }
-/* Real preview */
-.preview-area {
-    clear:              both;
-    font-weight:        normal;
-}
 /* Stub */
 .preview-area-stub {
+    margin:             0;
+    padding:            0;
+    width:              100%;
+    height:             100%;
     font-size:          18px;
     height:             98%;
     padding:            0;
 }
+
+
 /*
  * CodeMirror
  */
-.CodeMirror-wrap {
-    margin-top:         -20px;
+.CodeMirror {
+/*    
     margin-bottom:      4px;
-    margin-left:        0;
-    border:             2px solid lightBlue;
     padding:            3px 0;
-    background-color:   #f7f7f7; /* breaks codemirror theme support */
-}
-CodeMirror-wrap pre {
-    word-break:         break-all;
-}
-.CodeMirror-scroll {
-    height:             410px;   /* SETS HEIGHT FOR MAIN VIEW ! */
+*/
+    margin-top:         -20px;
+    margin-left:        0;
+    height:             100%;
+    width:              auto;
     background-color:   white;  /* breaks codemirror theme support */
+    font-weight:        normal;
+    font-family:        Menlo, Monaco, monospace;
+    font-size:          14px;
+    line-height:        1.5;
+    border:             2px solid lightBlue;
+}
+@-moz-document url-prefix() {
+.CodeMirror {
+    width:              100%;
+}
 }
 .CodeMirror-gutter {
     width:              3em;

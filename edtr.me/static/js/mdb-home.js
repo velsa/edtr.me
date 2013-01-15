@@ -52,54 +52,29 @@ $(document).ready(function() {
         }
     });
 
+
     //
     // Refresh icon
     //
-    $('.rotate-on-click').hover(function () {
-        //$(this).removeClass("icon-black");
-        //$(this).addClass("icon-white");
-        if (!syncIcon.is_sync_rotating) {
-            $(this).css('border','1px solid darkgrey');
-        }
-    }, function () {
-            //$(this).removeClass("icon-white");
-            //$(this).addClass("icon-black");
-            $(this).css('border','none');
-        });
-    $('.rotate-on-click').click(function () {
-        if (!syncIcon.is_sync_rotating) {
-            // Ask django to refresh dropbox data
-            edtrTree.update_db_tree(false);
-        }
+    syncIcon.init($('.rotate-on-click'), function() {
+        // Called when icon is clicked
+        // Ask server to refresh dropbox data
+        edtrTree.update_db_tree(false);
     });
+
+    // Vertical and horizontal splitter hooks
+    edtrSplitters.init(function() {
+        // Called when drag has finished
+        // TODO: do the same on browser window resize
+        messagesBar.update_dimensions($('#editor_area'));
+    });
+
+    messagesBar.init($('#messages_bar'));
+    messagesBar.update_dimensions($('#editor_area'));
 
     // Show tree on page load
+    edtrTree.init();
     edtrTree.update_db_tree(true);
-
-    // Align elements on page accordingly
-    var editor_area = $('#editor_area'),
-        left_sidebar = $('#left_sidebar');
-    // editor_area.css({
-    //     left:   (left_sidebar.offset()).left+20,
-    //     width:  $(window).width-left_sidebar.width()-240
-    // });
-    messagesBar.dom_elem.css({
-        left:   (editor_area.offset()).left-5,
-        width:  editor_area.width()+10
-    });
-
-    // TODO: doesn't work ?!
-    // editor_area.resizable({
-    //     handles:    'w', // east, means only right side is draggable
-    //     minWidth:   '570',
-    //     maxWidth:   '1400',
-    //     resize: function() {
-    //         var remainingSpace = $(this).parent().width() - $(this).outerWidth();
-    //         var divTwo = $('#left_sidebar');
-    //         var divTwoWidth = remainingSpace - (divTwo.outerWidth() - divTwo.width());
-    //         divTwo.css('width', divTwoWidth + 'px');
-    //     }
-    // });
 
     /*
     show_info("<b>Goodbye.</b> Come back again...");
