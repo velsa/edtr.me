@@ -1,6 +1,8 @@
 from tornadio2 import SocketConnection, event
 from tornado.web import decode_signed_value
+from tornado import gen
 import settings
+import motor
 
 
 class EdtrConnection(SocketConnection):
@@ -13,6 +15,12 @@ class EdtrConnection(SocketConnection):
     Also, here are some examples:
     https://github.com/mrjoes/tornadio2/tree/master/examples
     """
+
+    @property
+    def db(self):
+        if not hasattr(self, '_db'):
+            self._db = self.application.settings['db']
+        return self._db
 
     ## TODO: find a way to send _xsrf as parameter and compare it with cookie
     def on_open(self, info):
@@ -29,5 +37,12 @@ class EdtrConnection(SocketConnection):
         self.send(message + "from server")
 
     @event
+    # @gen.engine
     def get_path(self, path):
+        yield motor.Op(
+            self.db.accounts.find_one, {"username": 'stalk'})
+        # self.stop(result)
+        # result = self.wait()
+        # print "result", result
+
         self.emit('get_path', path)
