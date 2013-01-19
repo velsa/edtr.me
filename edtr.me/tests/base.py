@@ -1,4 +1,5 @@
 import Cookie
+from datetime import timedelta
 from tornado.testing import AsyncHTTPTestCase, LogTrapTestCase
 from tornado.options import options
 from tornado.ioloop import IOLoop
@@ -77,3 +78,12 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
             self.stop(result)
         async_op()
         return self.wait()
+
+    def sleep(self, seconds):
+        @gen.engine
+        def async_op():
+            timeout = yield gen.Task(
+                self.io_loop.add_timeout, timedelta(seconds=seconds))
+            self.stop(timeout)
+        async_op()
+        self.wait()

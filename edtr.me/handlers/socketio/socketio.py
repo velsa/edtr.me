@@ -1,8 +1,14 @@
 from tornadio2 import SocketConnection, event
-from tornado.web import decode_signed_value
+from tornado.web import decode_signed_value, HTTPError
 from tornado import gen
-import settings
+from settings import settings
 import motor
+
+
+class SocketError:
+    NO_COOKIE = "User is not found in cookies"
+    BAD_SESSION = "Invalid user Session"
+    XSRF = "xsrf is missing or invalid"
 
 
 class EdtrConnection(SocketConnection):
@@ -22,16 +28,29 @@ class EdtrConnection(SocketConnection):
             self._db = self.application.settings['db']
         return self._db
 
-    ## TODO: find a way to send _xsrf as parameter and compare it with cookie
-    def on_open(self, info):
-        user_cookie = info.get_cookie('user').value
-        user = decode_signed_value(
-            settings.settings["cookie_secret"],
-           "user",
-           user_cookie,
-           max_age_days=settings.settings['cookie_expires'])
-        print "user", user
-        print "_xsrf", info.get_cookie('_xsrf').value
+    @gen.engine
+    def on_open(self, request):
+        """
+        Checking for user session and xsrf.
+        To open socket, client must include into url xsrf value from cookie:
+        io.connect('http://example.com?xsrf=' + xsrf_from_cookie')
+        """
+        # check user session
+        user_cookie = request.get_cookie('user')
+        if not user_cookie:
+            raise HTTPError(401, SocketError.NO_COOKIE)
+        user_cookie = user_cookie.value
+        username = decode_signed_value(settings["cookie_secret"],
+            "user", user_cookie, max_age_days=settings['cookie_expires'])
+        result = yield motor.Op(
+            self.db.accounts.find_one, {"username": username})
+        if not result:
+            raise HTTPError(401, SocketError.BAD_SESSION)
+
+        # # check xsrf
+        xsrf_arg = request.arguments.get('xsrf', None)
+        if not xsrf_arg or request.get_cookie('_xsrf').value != xsrf_arg:
+            raise HTTPError(401, SocketError.XSRF)
 
     def on_message(self, message):
         self.send(message + "from server")
@@ -39,10 +58,4 @@ class EdtrConnection(SocketConnection):
     @event
     @gen.engine
     def get_path(self, path):
-        result = yield motor.Op(
-            self.db.accounts.find_one, {"username": 'stalk'})
-        # self.stop(result)
-        # result = self.wait()
-        print "result", result
-
         self.emit('get_path', path)
