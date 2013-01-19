@@ -8,6 +8,7 @@ import motor
 from settings import settings, mongo_address, MONGO_DB
 from urls import url_patterns
 
+
 class EdtrmeApp(tornado.web.Application):
     def __init__(self, *args, **kwargs):
         mongo_addr = kwargs.get('mongo_addr', mongo_address)
@@ -21,7 +22,9 @@ class EdtrmeApp(tornado.web.Application):
 def main():
     if options.socketio:
         from tornadio2 import server
+        from handlers.socketio.socketio import EdtrConnection
         app = EdtrmeApp(socket_io_port=options.port)
+        EdtrConnection.application = app
         server.SocketServer(app)
     else:
         app = EdtrmeApp()

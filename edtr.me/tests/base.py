@@ -14,6 +14,10 @@ app = EdtrmeApp(mongo_db=MONGO_TEST_DB)
 reverse_url = app.reverse_url
 db = app.settings['db']
 
+if options.socketio:
+    from handlers.socketio.socketio import EdtrConnection
+    EdtrConnection.application = app
+
 
 class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
 
