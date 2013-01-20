@@ -60,56 +60,58 @@
     {{ super() }}
 {% endblock %}
 
-{% block extra_main_container %}
+{% block body_container %}
     {{ super() }}
-    <!--
-        Helper divs
-    -->
-    <!-- Modal dialogs -->
-    <div id="modal_placeholder"></div>
-    <div id="modal_dialogs" style="display:none">
-        {% include "editor/modals.html" %}
-    </div>
-    <!-- Bar for messages, errors and info -->
-    <div id="messages_bar"></div>
-
-    <!--
-        Main view
-    -->
-    <div class="main-view-container">
-        <div class="main-view-left">
-            <!-- Left navigation sidebar -->
-            <div class="left-sidebar well">
-                {% include "sidebar/sb_default.html" %}
-            </div>
-            <!-- Vertical splitter between sidebar and editor area -->
-            <div class="left-splitter">
-            </div>
-        </div>   <!-- .main-view-left -->
-        <div class="main-view-right">
-            {% include "editor/stub.html" %}
-        </div>  <!-- .main-view-right -->
-        <!-- Vertical splitter on the right side of editor area -->
-        <div class="right-splitter">
+    <div class="main-container">
+        <!--
+            Helper divs
+        -->
+        <!-- Modal dialogs -->
+        <div id="modal_placeholder"></div>
+        <div id="modal_dialogs" style="display:none">
+            {% include "editor/modals.html" %}
         </div>
-    </div>  <!-- .main-view-container -->
-{% endblock %} <!-- extra_main_container -->
+        <!-- Bar for messages, errors and info -->
+        <div id="messages_bar"></div>
 
-{% block extra_footer %}
-    {{ super() }}
-    <!-- Horizontal splitter between main-view-container and extra footer -->
-    <div class="bottom-splitter">
-    </div>
-    <!--
-        Preview pane - by including it into footer , we stick it to bottom 
-    -->
-    <div class="preview-container">
-        <div class="preview-area">
-            <pre class="preview-area-stub">
-    Realtime preview will be available here 
+        <!--
+            Main view
+        -->
+        <div class="main-view-container">
+            <div class="main-view-left">
+                <!-- Left navigation sidebar -->
+                <div class="left-sidebar well">
+                    {% include "sidebar/sb_default.html" %}
+                </div>
+                <!-- Vertical splitter between sidebar and editor area -->
+                <div class="left-splitter">
+                </div>
+            </div>   <!-- .main-view-left -->
+            <div class="main-view-right">
+                {% include "editor/stub.html" %}
+            </div>  <!-- .main-view-right -->
+            <!-- Vertical splitter on the right side of editor area -->
+            <div class="right-splitter">
+            </div>
+        </div>  <!-- .main-view-container -->
+        <div class="sticky-footer"> 
+            {% block extra_footer %}
+            {% endblock %}
+            <!-- Horizontal splitter between main-view-container and extra footer -->
+            <div class="bottom-splitter">
+            </div>
+            <!--
+                Preview pane - by including it into footer , we stick it to bottom 
+            -->
+            <div class="preview-container">
+                <div class="preview-area">
+                    <pre class="preview-area-stub">
+            Realtime preview will be available here 
 
-    when you select file on the left or create a new one
-            </pre>
-        </div>
-    </div><!--/row-->
-{% endblock %} <!-- extra_footer -->
+            when you select file on the left or create a new one
+                    </pre>
+                </div>
+            </div><!--/row-->
+        </div> <!-- sticky-footer -->
+    </div><!-- main-container -->
+{% endblock %} <!-- body_container -->

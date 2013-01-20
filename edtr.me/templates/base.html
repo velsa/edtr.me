@@ -53,14 +53,7 @@
     {% block body_before_container %}
     {% endblock %}
 
-    <div class="main-container">
-        {% block extra_main_container %}
-        {% endblock %}
-        <div class="sticky-footer"> 
-            {% block extra_footer %}
-            {% endblock %}
-        </div> <!-- sticky-footer -->
-    </div><!-- main-container -->
-
+    {% block body_container %}
+    {% endblock %}
 </body>
 </html>
