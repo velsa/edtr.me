@@ -1,8 +1,10 @@
 from tornadio2 import SocketConnection, event
 from tornado.web import decode_signed_value, HTTPError
 from tornado import gen
-from settings import settings
+from django.utils import simplejson as json
 import motor
+from settings import settings
+from workers.dropbox import get_tree
 
 
 class SocketError:
@@ -27,6 +29,9 @@ class EdtrConnection(SocketConnection):
         if not hasattr(self, '_db'):
             self._db = self.application.settings['db']
         return self._db
+
+    def emit_as_json(self, name, data):
+        self.emit(name, json.dumps(data))
 
     @gen.engine
     def on_open(self, request):
@@ -57,5 +62,10 @@ class EdtrConnection(SocketConnection):
 
     @event
     @gen.engine
-    def get_tree(self, path):
-        self.emit('get_tree', path)
+    def get_tree(self):
+        tree = get_tree()
+        output = {
+            'status': 'success',
+            'tree': tree,
+        }
+        self.emit_as_json('get_tree', output)

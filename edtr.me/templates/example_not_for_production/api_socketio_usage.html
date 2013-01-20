@@ -24,9 +24,12 @@
     $('#btn_debug').click(function(){
         $.post('/api/0.1/dropbox/get_tree/',
             {"_xsrf": getCookie("_xsrf")},
-            function(data) {
+            function(response) {
                 console.log("_______update_db_tree_________");
-                console.log(data);
+                for (f in response){
+                    console.log(f+":")
+                    console.log(response[f])
+                }
                 console.log("_______ update_db_tree end_________");
             })
     })
@@ -45,15 +48,19 @@
         });
 
         // Event response
-        s.on('get_tree', function(data) {
+        s.on('get_tree', function(response) {
             console.log("__SOCKET_IO__")
-            console.log(data)
+            var response = JSON.parse(response)
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
             console.log("__SOCKET_IO__ end")
         });
 
         // Start event
         $('#btn_debug_socketio').click(function() {
-            s.emit('get_tree', '/');
+            s.emit('get_tree');
             return false;
         });
     });
