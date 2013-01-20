@@ -47,8 +47,8 @@ class EdtrConnection(SocketConnection):
         if not result:
             raise HTTPError(401, SocketError.BAD_SESSION)
 
-        # # check xsrf
-        xsrf_arg = request.arguments.get('xsrf', None)
+        # check xsrf
+        xsrf_arg = request.get_argument('xsrf')
         if not xsrf_arg or request.get_cookie('_xsrf').value != xsrf_arg:
             raise HTTPError(401, SocketError.XSRF)
 
@@ -57,5 +57,5 @@ class EdtrConnection(SocketConnection):
 
     @event
     @gen.engine
-    def get_path(self, path):
-        self.emit('get_path', path)
+    def get_tree(self, path):
+        self.emit('get_tree', path)

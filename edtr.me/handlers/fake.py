@@ -10,6 +10,14 @@ class FakeHandler(tornado.web.RequestHandler):
         self.write("under construction")
 
 
+class RenderTrashHtml(BaseHandler):
+    def get(self, tmpl):
+        if "api_socketio_usage" in tmpl:
+            self.render("example_not_for_production/api_socketio_usage.html")
+        else:
+            self.write("tmpl not found")
+
+
 class GetEditorHandler(BaseHandler):
     """Fake handler for serving correct web editor code to browser
     """

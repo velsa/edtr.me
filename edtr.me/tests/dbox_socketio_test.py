@@ -5,7 +5,7 @@ from tornadio2 import proto, SocketConnection
 from lib.mock import patch
 from base import BaseTest
 from urls import EdtrRouter
-from handlers.socketio.socketio import SocketError
+from handlers.socketio import SocketError
 
 SECONDS_FOR_DB = 0.5
 
@@ -14,7 +14,7 @@ class DummyRequest(object):
     def __init__(self, cookies=None, xsrf=None, ip='127.0.0.1', **kwargs):
         request_args = kwargs
         if xsrf:
-            request_args.update({'xsrf': xsrf})
+            request_args.update({'xsrf': [xsrf]})
         self.arguments = request_args
         C = Cookie.SimpleCookie()
         cookies = cookies or []
@@ -88,9 +88,9 @@ class SocketIoTest(BaseTest):
         m_send.assert_called_with(message + "from server")
 
     @patch.object(SocketConnection, 'emit')
-    def test_event_get_path(self, m_emit):
+    def test_event_get_tree(self, m_emit):
         session = EdtrRouter.create_session(self.request)
         path = '/'
-        session.raw_message(proto.event(None, 'get_path', None, path=path))
+        session.raw_message(proto.event(None, 'get_tree', None, path=path))
         self.sleep()
-        m_emit.assert_called_with('get_path', path)
+        m_emit.assert_called_with('get_tree', path)

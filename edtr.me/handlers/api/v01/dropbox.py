@@ -16,7 +16,7 @@ class DropboxHandler(BaseHandler):
         self.finish()
 
 
-class DropboxGetPath(DropboxHandler):
+class DropboxGetTree(DropboxHandler):
     """Get path metadata from dropbox.
     Save it to database.
     Return path metadata."""
@@ -25,7 +25,7 @@ class DropboxGetPath(DropboxHandler):
     @gen.engine
     @tornado.web.authenticated
     def post(self):
-        self.finish_json_request({'status': 'stub'})
+        self.finish_json_request({'status': 'stub', "message": 'stub_mess'})
 
 
 class UpdateDropboxTree(DropboxHandler):

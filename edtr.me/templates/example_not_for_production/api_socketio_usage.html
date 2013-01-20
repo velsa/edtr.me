@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block body_container %}
+    {{ super() }}
+    <button id="debug"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+        <span id="btn_debug">Debug</span>
+    </button>
+
+    <button id="debug_socketion"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+        <span id="btn_debug_socketio">Debug socketio</span>
+    </button>
+{% endblock %}
+
+{% block extra_footer %}
+    {{ super() }}
+    <!-- AJAX -->
+    <script type="text/javascript">
+    function getCookie(name) {
+        var c = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+        return c ? c[1] : undefined;
+    }
+    $('#btn_debug').click(function(){
+        $.post('/api/0.1/dropbox/get_tree/',
+            {"_xsrf": getCookie("_xsrf")},
+            function(data) {
+                console.log("_______update_db_tree_________");
+                console.log(data);
+                console.log("_______ update_db_tree end_________");
+            })
+    })
+    </script>
+
+    <!-- SOCKETIO -->
+    <script src="{{ static_url('js/socket.io.js') }}"></script>
+    <script>
+    $(function() {
+        var s = new io.connect(
+            'http://' + window.location.host + '?xsrf=' + getCookie("_xsrf"));
+
+        // Establish event handlers
+        s.on('disconnect', function() {
+            s.socket.reconnect();
+        });
+
+        // Event response
+        s.on('get_tree', function(data) {
+            console.log("__SOCKET_IO__")
+            console.log(data)
+            console.log("__SOCKET_IO__ end")
+        });
+
+        // Start event
+        $('#btn_debug_socketio').click(function() {
+            s.emit('get_tree', '/');
+            return false;
+        });
+    });
+    </script>
+{% endblock %} <!-- extra_footer -->
