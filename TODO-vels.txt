@@ -8,3 +8,6 @@ JS:
 - dropbox tree with icons
 - marked: add code highlighting (see example on their github page) 
 - codemirror hangs on gfm and on smart enter
+
+After alfa:
+- Integrate with ftp, livejournal and habrahanr for external publishing (in directory settings). Make a post on habr about it and work with feedback

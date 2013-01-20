@@ -6,6 +6,7 @@ from utils.async_dropbox import DropboxMixin
 from models.accounts import UserModel
 from schematics.serialize import to_python
 import motor
+from settings import jinja_env
 
 logger = logging.getLogger('edtr_logger')
 
@@ -52,3 +53,21 @@ class HomeHandler(BaseHandler, DropboxMixin):
                 return
 
         self.render_async("home.html", {"user": user})
+
+
+class GetEditorHandler(BaseHandler):
+    """ Handler for serving correct editor and toolbar html to browser
+    """
+    def initialize(self, **kwargs):
+        super(GetEditorHandler, self).initialize(**kwargs)
+
+    def get(self, *args, **kwargs):
+        editor_type = self.get_argument("editor_type", None)
+        editor_tmpl = "editor/cm_" + editor_type + ".html"
+        editor_tb_tmpl = "editor/cm_" + editor_type + "_tb.html"
+        context = self.get_template_namespace()
+        self.write({
+                "editor_html":      jinja_env.get_template(editor_tmpl).render(context),
+                "editor_tb_html":   jinja_env.get_template(editor_tb_tmpl).render(context)
+            })
+        self.flush()

@@ -6,17 +6,16 @@ var edtrTree = {
     // TODO: get those from user settings !
     editable_exts:      [ 'md', 'txt', 'html', 'css', 'js'  ],
     image_exts:         [ 'gif', 'jpg', 'jpeg', 'png', 'bmp' ],
+    dom_db_tree:        null,
 
     init:                   function (tree_elem) {
-        // Just in case we decide to use instances
-        $this_edtr_tree = this;
-        $this_edtr_tree.dom_db_tree = $('#db_tree');
-        $this_edtr_tree.dom_ul_tree = $('#ul_tree');
+        $this = this; // To access `this` from callbacks
+        $this.dom_db_tree = $('#db_tree');
     },
     // Callbacks, which are called by get_server_result()
     db_tree_update_success: function(message) {
         messagesBar.show_notification(message);
-        $this_edtr_tree.show_db_tree();
+        $this.show_db_tree();
     },
     db_tree_update_failed:  function(message) {
         syncIcon.stop_sync_rotation();
@@ -29,32 +28,62 @@ var edtrTree = {
         //hide_codemirror();
 
         // Get new data from server
-        $.get('/get_db_tree/', function(data) {
+        $.get('/get_dropbox_tree/', function(data) {
             if (data.status != 'success') {
                 syncIcon.stop_sync_rotation();
                 messagesBar.show_error(data.message);
                 return false;
             }
 
-            // Refresh treeview
-            $this_edtr_tree.dom_db_tree.html(data.tree_view);
-
-            // Activate JS logic in treeview
-            $this_edtr_tree.dom_ul_tree.treeview({
-                animated: "fast",
-                collapsed: true,
-                // TODO: Tree control doesn't work ?
-                control: "#ul_tree_control"
+            $("db_tree_container").jqxPanel({width: 300, height: 300 });
+            $this.dom_db_tree.jqxTree({
+                source:         data.json_tree,
+                checkboxes:     true
+            }).on('select', function (event) {
+                event.preventDefault();
+                var args = event.args;
+                var item = $this.dom_db_tree.jqxTree('getItem', args.element);
+                console.log(item.label);
             });
 
-            // Update hover handlers for tree elements
-            // (which highlight tree nodes)
-            $this_edtr_tree.dom_ul_tree.on('mouseover', '.file, .folder', function() {
-                $(this).addClass("hover"); });
-            $this_edtr_tree.dom_ul_tree.on('mouseleave', '.file, .folder', function () {
-                $(this).removeClass("hover");
-                //return false;
-            });
+            // $this.dom_db_tree.jstree({
+            //     "json_data": data.json_tree,
+            //     "themes": {
+            //         "theme":    "classic",
+            //         "dots":     false,
+            //         "icons":    true
+            //     },
+            //     "ui": {
+            //         "select_limit" : 2,
+            //         "select_multiple_modifier" : "alt",
+            //         "selected_parent_close" : "select_parent",
+            //         "initially_select" : [ "phtml_2" ]
+            //     },
+            //     "plugins" : [ "themes", "json_data", "ui" ]
+            // })
+            // .bind("select_node.jstree", function (e, data) {
+            //     //alert(data.rslt.obj.data("id"));
+            // });
+
+            // // Refresh treeview
+            // $this.dom_db_tree.html(data.tree_view);
+
+            // // Activate JS logic in treeview
+            // $this.dom_ul_tree.treeview({
+            //     animated: "fast",
+            //     collapsed: true,
+            //     // TODO: Tree control doesn't work ?
+            //     control: "#ul_tree_control"
+            // });
+
+            // // Update hover handlers for tree elements
+            // // (which highlight tree nodes)
+            // $this.dom_ul_tree.on('mouseover', '.file, .folder', function() {
+            //     $(this).addClass("hover"); });
+            // $this.dom_ul_tree.on('mouseleave', '.file, .folder', function () {
+            //     $(this).removeClass("hover");
+            //     //return false;
+            // });
 
             /* Update RIGHT Mouse Click handlers for tree elements
              $('.file, .folder').mousedown(function(e) {
@@ -71,14 +100,14 @@ var edtrTree = {
              */
 
             // Update LEFT Mouse Click handlers for tree elements
-            $this_edtr_tree.dom_ul_tree.on('click', '.file, .folder', function(e) {
-                $this_edtr_tree.dom_db_tree_on_click(e, $(this));
-            });
+            // $this.dom_ul_tree.on('click', '.file, .folder', function(e) {
+            //     $this.dom_db_tree_on_click(e, $(this));
+            // });
 
             syncIcon.stop_sync_rotation();
 
             // Notify user about new and updated files
-            $this_edtr_tree.blink_changes_in_tree(eval(data.changes_list));
+            // $this.blink_changes_in_tree(eval(data.changes_list));
         }).error(function(data) {
                 syncIcon.stop_sync_rotation();
                 messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
@@ -102,7 +131,7 @@ var edtrTree = {
 
         // Show text while updating
         if (hide_tree) {
-            $this_edtr_tree.dom_db_tree.html("<br/><h4 style='text-align: center; background: white'>Syncing with Dropbox...</h4>");
+            $this.dom_db_tree.html("<br/><h4 style='text-align: center; background: white'>Syncing with Dropbox...</h4>");
         }
         // Get new data from server
         $.get('/async/update_db_tree/', function(data) {
@@ -113,7 +142,7 @@ var edtrTree = {
             }
             // Wait for result from server
             serverComm.get_server_result(data.task_id,
-                $this_edtr_tree.db_tree_update_success, $this_edtr_tree.db_tree_update_failed);
+                $this.db_tree_update_success, $this.db_tree_update_failed);
         });
     },
 
@@ -121,7 +150,7 @@ var edtrTree = {
     highlight_db_tree_item_by_db_path:  function(db_path) {
         $('.file').each(function() {
             if ($(this).data("dbpath") == db_path) {
-                $this_edtr_tree.highlight_db_tree_item($(this));
+                $this.highlight_db_tree_item($(this));
             }
         });
     },
@@ -146,34 +175,34 @@ var edtrTree = {
     db_tree_on_click:       function(e, elem) {
         // Ctrl-Click inserts db_path to clicked node into editor
         if (e && (e.ctrlKey || e.metaKey) ) {
-            if (!$this_edtr_tree.edtr_editor.is_codemirror_hidden) {
+            if (!$this.edtr_editor.is_codemirror_hidden) {
                 // TODO: this should be a codemirror method
-                $this_edtr_tree.edtr_editor.replaceSelection(elem.data('dbpath'));
-                $this_edtr_tree.edtr_editor.focus();
+                $this.edtr_editor.replaceSelection(elem.data('dbpath'));
+                $this.edtr_editor.focus();
                 return false;
             }
         }
 
         // If codemirror is opened and text in it was not saved
         // ask confirmation from user to close it
-        if (!$this_edtr_tree.edtr_editor.is_codemirror_saved) {
+        if (!$this.edtr_editor.is_codemirror_saved) {
             // Confirmation dialog
             $.cookie('mdb_modal_action', "save_continue_lose");
             modalDialog.show_confirm_modal(function(button_id) {
                 if (button_id == "scl_save") {
-                    $this_edtr_tree.edtr_editor.save_codemirror();
+                    $this.edtr_editor.save_codemirror();
                 } else if (button_id == "scl_lose") {
-                    $this_edtr_tree.db_tree_select(elem);
+                    $this.db_tree_select(elem);
                 }
             });
         } else {
-            $this_edtr_tree.db_tree_select(elem);
+            $this.db_tree_select(elem);
         }
     },
 
     db_tree_select:         function(elem) {
         // First - set correct highlight
-        $this_edtr_tree.highlight_db_tree_item(elem);
+        $this.highlight_db_tree_item(elem);
 
         // Save cookies for other JS methods
         $.cookie('mdb_source_url', elem.data("src"));
@@ -204,11 +233,11 @@ var edtrTree = {
             // Check extension
             var ext = edtrHelper.get_filename_ext($.cookie('mdb_current_dbpath')).toLowerCase();
             if ($.inArray(ext, editable_exts) > -1) {
-                $this_edtr_tree.open_editor();
+                $this.open_editor();
             } else if ($.inArray(ext, image_exts) > -1) {
-                $this_edtr_tree.show_img_gallery();
+                $this.show_img_gallery();
             } else {
-                $this_edtr_tree.edtr_editor.hide_codemirror();
+                $this.edtr_editor.hide_codemirror();
             }
         }
         //return false;
@@ -223,12 +252,14 @@ var edtrTree = {
         // TODO: replace 'markdown' with
         // 'css', 'html', 'js', depending on file extension
         var file_type = 'markdown';
-        var editor_html = null;
+        var editor_html, editor_tb_html;
         $.get("/get_editor",
         {
-            content_type: file_type
+            editor_type: file_type
         }, function(data, textStatus, jqXHR) {
-            editor_html = data;
+            // Put data values into global vars to access them in callback
+            editor_html = data.editor_html;
+            editor_tb_html = data.editor_tb_html;
             var file_url = $.cookie('mdb_source_url');
             file_url = "/static/test.md";
             // Load file contents
@@ -251,12 +282,13 @@ var edtrTree = {
                     // Insert editor HTML code (toolbar, textarea, buttons) into content div
                     // TODO: remove previous codemirror and all bindings (?)
                     if (edtrCodemirror.content_type !== file_type) {
-                        $("#editor_area").html(editor_html);
+                        $(".main-view-right").html(editor_html);
+                        //$("#editor_toolbar").html(editor_tb_html);
                         //empty().prepend(editor_html);
                     } else {
                         // TODO: do we need to do anything else if editor is of the same type ?
                     }
-                    $this_edtr_tree.edtr_editor = new edtrCodemirror(file_type, data);
+                    $this.edtr_editor = new edtrCodemirror(file_type, data);
                 });
             }
         ).error(function(data) {
@@ -283,7 +315,7 @@ var edtrTree = {
                 $('#img_carousel').on('slid', function() {
                     // We update the selection in tree view
                     var db_path = $('.carousel .active').data("dbpath");
-                    $this_edtr_tree.highlight_db_tree_item_by_db_path(db_path);
+                    $this.highlight_db_tree_item_by_db_path(db_path);
                 });
             }
         }).error(function(data) {

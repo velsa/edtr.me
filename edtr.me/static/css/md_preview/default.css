@@ -5,14 +5,11 @@
     -webkit-font-smoothing:     antialiased;
     background-color:   #ffffff;
     font-weight:        normal;
-    padding:            0;
-    margin:             0 2px;
     font-size:          15px;
     line-height:        1.6;
     margin-left:        auto;
     margin-right:       auto;
     width:              80%;
-    height:             100%;
 }
 .preview-area li {
     line-height:        1.6;    

@@ -20,39 +20,45 @@ function edtrCodemirror(content_type, content) {
     };
 
     this.toggle_width = function() {
-        if ($this.is_codemirror_hidden)
-            return;
         edtrSplitters.toggle_sidebar();
-        this.is_codemirror_wide = !this.is_codemirror_wide;
     };
 
     this.toggle_fullscreen = function() {
-        if ($this.is_codemirror_fullscreen) {
-            $this.out_of_fullscreen();
-            return;
-        }
-        var scroller = $this.cm_editor.getScrollerElement();
-        if (scroller.className.search(/\bCodeMirror-fullscreen\b/) === -1) {
-            scroller.className += " CodeMirror-fullscreen";
-            scroller.style.height = "100%";
-            scroller.style.width = "100%";
-            $this.cm_editor.refresh();
+        if (!$this.is_codemirror_fullscreen) {
             $this.is_codemirror_fullscreen = true;
+            edtrSplitters.hide_sidebar();
+            edtrSplitters.hide_preview();
         } else {
-            $this.out_of_fullscreen();
+            $this.is_codemirror_fullscreen = false;
+            edtrSplitters.show_sidebar();
+            edtrSplitters.show_preview();
         }
+        // if ($this.is_codemirror_fullscreen) {
+        //     $this.out_of_fullscreen();
+        //     return;
+        // }
+        // var scroller = $this.cm_editor.getScrollerElement();
+        // if (scroller.className.search(/\bCodeMirror-fullscreen\b/) === -1) {
+        //     scroller.className += " CodeMirror-fullscreen";
+        //     scroller.style.height = "100%";
+        //     scroller.style.width = "100%";
+        //     $this.cm_editor.refresh();
+        //     $this.is_codemirror_fullscreen = true;
+        // } else {
+        //     $this.out_of_fullscreen();
+        // }
     };
 
-    this.out_of_fullscreen = function() {
-        var scroller = $this.cm_editor.getScrollerElement();
-        if (scroller.className.search(/\bCodeMirror-fullscreen\b/) !== -1) {
-            scroller.className = scroller.className.replace(" CodeMirror-fullscreen", "");
-            scroller.style.height = '';
-            scroller.style.width = '';
-            $this.cm_editor.refresh();
-        }
-        $this.is_codemirror_fullscreen = false;
-    };
+    // this.out_of_fullscreen = function() {
+    //     var scroller = $this.cm_editor.getScrollerElement();
+    //     if (scroller.className.search(/\bCodeMirror-fullscreen\b/) !== -1) {
+    //         scroller.className = scroller.className.replace(" CodeMirror-fullscreen", "");
+    //         scroller.style.height = '';
+    //         scroller.style.width = '';
+    //         $this.cm_editor.refresh();
+    //     }
+    //     $this.is_codemirror_fullscreen = false;
+    // };
 
     //
     // TOOLBAR
@@ -446,7 +452,6 @@ function edtrCodemirror(content_type, content) {
     this.is_codemirror_fullscreen=      false;
     this.is_codemirror_hidden=          true;
     this.is_codemirror_saved=           true;
-    this.is_codemirror_wide=            false;
     this.tab_character=                 "\t";
     this.tab_spaces=                    Array(4).join(" "); // should equal to tab_character
     this.list_character=                "-";
@@ -491,7 +496,7 @@ function edtrCodemirror(content_type, content) {
         //for (var i=0; i<4; i++) tab_spaces += " ";
         var cm_settings = {
             // TODO: all settings should accord to content_type
-            mode:               "markdown", // "gfm" breaks google chrome ?!
+            mode:               "markdown", // "gfm" is broken ?!
 
             // TODO: Get those from folder/general settings
             // gutter:             true,
@@ -502,8 +507,8 @@ function edtrCodemirror(content_type, content) {
             pollInterval:       300,
             undoDepth:          500,
             theme:              "default",
-            indentUnit:         this.tab_spaces,
-            tabSize:            this.tab_spaces, // should be the same !
+            indentUnit:         this.tab_spaces.length,
+            tabSize:            this.tab_spaces.length, // should be the same !
             indentWithTabs:     true,
             electricChars:      false,
 
@@ -518,7 +523,7 @@ function edtrCodemirror(content_type, content) {
                 // Edit
                 "Tab":          this.tab,
                 "Shift-Tab":    this.shift_tab,
-                //"Enter":        this.custom_new_line,
+                "Enter":        this.custom_new_line,
                 // Markdown
                 "Meta-H":       this.rotate_header,
                 "Ctrl-B":       this.toggle_bold,
@@ -592,10 +597,10 @@ function edtrCodemirror(content_type, content) {
     $('#btn_save').on("click", this.save_codemirror);
 
     // TOOLTIPS for toolbar
-    // THOSE DON'T WORK BECAUSE #editor_area is overflow: hidden
-    //$(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
+    // TODO: THOSE DON'T WORK BECAUSE #editor_area is overflow: hidden
+    $(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
     // And buttons
-    //$(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
+    $(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
 
     this.cm_editor.setValue(content);//search_words.join("\n"));
     this.cm_editor.focus();

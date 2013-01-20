@@ -66,15 +66,16 @@ $(document).ready(function() {
     edtrSplitters.init(function() {
         // Called when drag has finished
         // TODO: do the same on browser window resize
-        messagesBar.update_dimensions($('#editor_area'));
+        messagesBar.update_dimensions($('.main-view-right'));
     });
 
     messagesBar.init($('#messages_bar'));
-    messagesBar.update_dimensions($('#editor_area'));
+    messagesBar.update_dimensions($('.main-view-right'));
 
     // Show tree on page load
     edtrTree.init();
-    edtrTree.update_db_tree(true);
+    edtrTree.show_db_tree();
+    //edtrTree.update_db_tree(true);
 
     /*
     show_info("<b>Goodbye.</b> Come back again...");

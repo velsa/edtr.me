@@ -1057,8 +1057,9 @@ window.CodeMirror = (function() {
       var lineObj = getLine(doc, lineNo);
       var found = coordsCharInner(cm, lineObj, lineNo, x, y);
       var merged = collapsedSpanAtEnd(lineObj);
-      if (merged && found.ch == lineRight(lineObj))
-        lineNo = merged.find().to.line;
+      var mergedPos = merged && merged.find();
+      if (merged && found.ch >= mergedPos.from.ch)
+        lineNo = mergedPos.to.line;
       else
         return found;
     }
@@ -1966,7 +1967,7 @@ window.CodeMirror = (function() {
     if (!cm.options.lineWrapping) {
       checkWidthStart = lineNo(visualLine(doc, firstLine));
       doc.iter(checkWidthStart, to.line + 1, function(line) {
-        if (lineLength(doc, line) == view.maxLineLength) {
+        if (line == view.maxLine) {
           recomputeMaxLength = true;
           return true;
         }
@@ -2231,7 +2232,6 @@ window.CodeMirror = (function() {
         setScrollLeft(cm, scrollPos.scrollLeft);
         if (Math.abs(cm.view.scrollLeft - startLeft) > 1) changed = true;
       }
-      console.log(changed);
       if (!changed) return coords;
     }
   }
@@ -3288,7 +3288,7 @@ window.CodeMirror = (function() {
   TextMarker.prototype.clear = function() {
     if (this.explicitlyCleared) return;
     startOperation(this.cm);
-    var min = null, max = null;
+    var view = this.cm.view, min = null, max = null;
     for (var i = 0; i < this.lines.length; ++i) {
       var line = this.lines[i];
       var span = getMarkedSpanFor(line.markedSpans, this);
@@ -3299,6 +3299,15 @@ window.CodeMirror = (function() {
       else if (this.collapsed && !lineIsHidden(line))
         updateLineHeight(line, textHeight(this.cm.display));
     }
+    if (this.collapsed && !this.cm.options.lineWrapping) for (var i = 0; i < this.lines.length; ++i) {
+      var visual = visualLine(view.doc, this.lines[i]), len = lineLength(view.doc, visual);
+      if (len > view.maxLineLength) {
+        view.maxLine = visual;
+        view.maxLineLength = len;
+        view.maxLineChanged = true;
+      }
+    }
+
     if (min != null) regChange(this.cm, min, max + 1);
     this.lines.length = 0;
     this.explicitlyCleared = true;
@@ -3351,6 +3360,8 @@ window.CodeMirror = (function() {
 
     var curLine = from.line, size = 0, collapsedAtStart, collapsedAtEnd;
     doc.iter(curLine, to.line + 1, function(line) {
+      if (marker.collapsed && !cm.options.lineWrapping && visualLine(doc, line) == cm.view.maxLine)
+        cm.curOp.updateMaxLine = true;
       var span = {from: null, to: null, marker: marker};
       size += line.text.length;
       if (curLine == from.line) {span.from = from.ch; size -= from.ch;}
@@ -3361,9 +3372,10 @@ window.CodeMirror = (function() {
         else updateLineHeight(line, 0);
       }
       addMarkedSpan(line, span);
-      if (marker.collapsed && curLine == from.line && lineIsHidden(line))
-        updateLineHeight(line, 0);
       ++curLine;
+    });
+    if (marker.collapsed) doc.iter(from.line, to.line + 1, function(line) {
+      if (lineIsHidden(line)) updateLineHeight(line, 0);
     });
 
     if (marker.readOnly) {
@@ -3539,9 +3551,12 @@ window.CodeMirror = (function() {
         return true;
     }
   }
-  window.lineIsHidden = lineIsHidden;
   function lineIsHiddenInner(line, span) {
-    if (span.to == null || span.marker.inclusiveRight && span.to == line.text.length)
+    if (span.to == null) {
+      var end = span.marker.find().to, endLine = getLine(lineDoc(line), end.line);
+      return lineIsHiddenInner(endLine, getMarkedSpanFor(endLine.markedSpans, span.marker));
+    }
+    if (span.marker.inclusiveRight && span.to == line.text.length)
       return true;
     for (var sp, i = 0; i < line.markedSpans.length; ++i) {
       sp = line.markedSpans[i];
@@ -4082,6 +4097,11 @@ window.CodeMirror = (function() {
       }
     }
     return no;
+  }
+
+  function lineDoc(line) {
+    for (var d = line.parent; d.parent; d = d.parent) {}
+    return d;
   }
 
   function lineAtHeight(chunk, h) {

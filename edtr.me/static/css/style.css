@@ -5,81 +5,180 @@ body {
     /*font-family: Verdana, helvetica, arial, sans-serif;
     background: #fff;
     */
-    padding-top:        0;
-    padding-bottom:     40px;
-    margin-bottom:      0;
-}
-.main-container {
-    height:             100%;
-}
-.main-container {
-    margin-left:        10px;
-    margin-right:       10px;
-    height:             auto;
-    min-height:         100%;
-}
-.brand {
-    font-variant:       small-caps;
-}
-
-.sticky-footer {
-    position:           absolute;
-    bottom:             0;
-    top:                532px;  /* must be recalculated on resize */
-    right:              10px;  /* must be equal to container margins */
-    left:               10px;
-    height:             auto;
-    margin-bottom:      44px;
+   height:              100%;
 }
 
 /*
 *   Navigation bar
 */
-.navbar {
-    margin-bottom:      8px;
+.main-header {
+    margin:             0;
+    height:             40px;
 }
-.navbar-inner {
-    min-height:         32px;
+.brand {
+    font-variant:       small-caps;
+}
+
+
+/*
+*   Main container is the rest of the page (till the bottom of browser window)
+*/
+.main-container {
+    position:           absolute;
+    top:                40px;
+    bottom:             10px;
+    right:              10px;
+    left:               10px;
+    min-height:         550px;  /* must be equal to top + bottom + .main-container-view min-height + .sticky-footer min-height */
 }
 
 /*
-*   Main view includes #left_sidebar, #editor_area and #preview_area
+    Main view container includes .main-view-left and .main-view-right
 */
-#main_view {
-    /*
-    width:              960px;
-    margin-bottom:      8px;
-    display:            inline-block;  /* extends editor beyond browser
-    */
-    min-width:          830px;
-    min-height:         450px;
-    height:             478px; /* must be recalculated on resize */
+.main-view-container {
+    position:           absolute;
+    min-height:         250px;  /* must be less then .main-container min-height */
+    bottom:             300px;  /* must be equal to .sticky-footer height */
+    top:                0;
+    right:              0;
+    left:               0;
+    z-index:            50;     /* Must be higher that z-index of .sticky-footer */
 }
 
-/*
-*   Left sidebar
+/* 
+    Left side consists of sidebar and vertical splitter
 */
-#left_sidebar {
-    /*
+.main-view-left {
+    position:           absolute;
+    min-width:          300px;
+    max-width:          400px;
     width:              320px;
-    overflow:           hidden;
-    margin-right:       20px;
-    padding-right:       20px;
-    */
-    width:              330px;
-    min-width:          270px;
-    max-width:          350px;
+    top:                0;
+    left:               0;
+    bottom:             0;
+}
+/* Sidebar */
+.left-sidebar {
+    position:           absolute;
+    top:                0;
+    left:               0;
+    bottom:             0;
+    right:              12px;        /* must be equal to .left-splitter (width + right*2) */
+    margin:             0;
+    padding:            0;
+}
+/* Vertical splitter */
+.left-splitter {
+    position:           absolute;
+    width:              6px;
+    top:                0;
+    bottom:             -3px;       /* must be equal to .bottom-splitter top with minus (glues splitters together) */
+    right:              3px;        /* must be equal to .left-splitter width/2 */
+    background-color:   #B0C4DE;
+    cursor:             col-resize;
+    border-width:       1px;
+    border-color:       #B0C4DE;
+}
+
+
+/* 
+    Right side consists of toolbar, editor, button bar and another vertical splitter
+*/
+.main-view-right {
+    position:           absolute;
+    left:               320px;  /* must be equal to .main-view-left width */
+    top:                0;
+    right:              0;
+    bottom:             0;
+    min-width:          530px;  /* depends on amount of buttons on toolbar */
+}
+/* Toolbar */
+.editor-toolbar {
+    position:           absolute;
+    top:                0;
+    left:               0;
+    right:              0;
+    height:             40px;   /* must be equal to .editor-area top */
+}
+/* Container for codemirror */
+.editor-area {
+    position:           absolute;
+    top:                40px;   /* must be equal to .editor-toolbar height */
+    bottom:             45px;   /* must be equal to .editor-buttons height */
+    left:               0;
+    right:              0;
+    font-weight:        normal;
+}
+/* Buttons below codemirror */
+.editor-buttons {
+    position:           absolute;
+    height:             45px;   /* must be equal to .editor-area bottom */
+    bottom:             0;
+    left:               0;
+    right:              0;
+}
+
+/*
+    Footer area at the bottom (sticks to window's bottom)
+    Includes .bottom-splitter and .preview-container
+*/
+.sticky-footer {
+    position:           absolute;
+    min-height:         250px;
+    height:             300px;  /* must be equal to .main-view-container bottom */
+    bottom:             0;
+    right:              0;
+    left:               0;
+    z-index:            20;     /* Must be lower than z-index of .main-view-container */
+}
+
+/* Horiontal splitter (clickable and dragable) */
+.bottom-splitter {
+    position:           absolute;
+    height:             6px;
+    top:                3px;
+    left:               0;
+    right:              0;
+    background-color:   #B0C4DE;
+    cursor:             row-resize;
+    border-width:       1px;
+    border-color:       #B0C4DE;
+}
+
+/* Preview area */
+.preview-container {
+    position:           absolute;
+    top:                12px;    /* must be equal to .bottom-splitter (height + top*2) */
+    left:               0;
+    right:              0;
+    bottom:             0;
+/*
+    border:             2px solid lightBlue;
+    border-style:       dotted;
+    border-width:       4px;
+
+*/    overflow-y:         scroll;
+}
+
+/*
+    Internal elements of .main-view-left 
+ */
+/* Bottom portion of the sidebar */
+.sidebar-tree {
+    position:           absolute;
+    bottom:             5px;
+    top:                39px;
+    right:              4px;
+    left:               6px;
+    border:             1px solid #ddd;
+    overflow:           scroll;
+}
+#db_tree {
     height:             100%;
-    float:              left;
 }
 .form-search {
     padding:            4px 0 0 4px;
     margin-bottom:      0;
-}
-.sidebar-nav {
-    margin-bottom:      0;
-    padding:            0 2px 0 2px;
-    height:             100%;
 }
 #rotate-on-click-li {
     float:              right;
@@ -91,15 +190,9 @@ body {
     margin-left:        20px;
     border:             none;
 }
-#db_tree_div {
-    height:             100%;
-    overflow:           auto;
-    margin-bottom:      0;
-}
-.nav-list {
-    padding-left:       2px;
-    padding-right:      2px;
-    margin-bottom:      0;
+
+.jstree-leaf {
+    line-height:        3em;
 }
 .tree-node-selected {
     border-style:       dotted;
@@ -109,37 +202,13 @@ body {
 
 
 /*
-*   Vertical splitter (clickable, but not dragable)
-*/
-.vertical-splitter {
-    background-color:   #B0C4DE;
-    width:              4px;
-    height:             100%;
-    margin:             0 2px;
-    cursor:             col-resize;
-    float:              left;
-    border-width:       1px;
-    border-color:       #B0C4DE;
-}
-
-
-/*
-*   Editor area includes toolbar, editor and buttons below it
-*/
-#editor_area {
-    min-width:          550px;
-    width:              auto;
-    overflow:           hidden; /* prevents jquery tooltips from displaying :(  */
-    font-weight:        normal;
-}
-#cme-toolbar-container {
-    height:             44px;
-}
-.cme-toolbar.btn-toolbar {
-    padding:            4px 5px 2px 5px;
+    Internal elements of .main-view-right
+ */
+.cme-toolbar {
+    padding:            4px 5px;
     margin-top:         0;
 }
-.btn.cme-toolbar-tooltip {
+.cme-toolbar-tooltip {
     padding-bottom:     6px;
     padding-top:        6px;
     margin-bottom:      4px;
@@ -147,24 +216,10 @@ body {
 .cme-toolbar .dropdown-toggle {
     padding:            3px 8px 3px 8px;;
     margin-top:         -4px;}
-.stub-editor {
-    width:              98%;  /* prevents right border cutting */
-}
-.stub-editor > pre {
-    font-family:        monospace;
-    width:              100%;
-    height:             534px;
-    font-size:          24px;
-}
-.cme-textarea-container {
-    width:              100%;
-    height:             402px;  /* must be recalculated on resize */
-    margin-left:        0; 
-    margin-top:         12px;    
-}
-.cme-buttonbar-container {
-    padding:            9px 5px 5px 5px;
-    margin-bottom:      0;
+
+.cme-buttonbar {
+    margin-top:         0;
+    padding:            12px 5px 5px 5px;
 }
 #btn_save {
     width:              120px;
@@ -173,47 +228,25 @@ body {
     width:              180px;
 }
 
-/*
-*   Horiontal splitter (clickable and dragable)
-*/
-.horizontal-splitter {
-    background-color:   #B0C4DE;
-    height:             4px;
-    width:              100%;
-    margin:             2px 0 4px 0;
-    cursor:             row-resize;
-    float:              left;
-    border-width:       1px;
-    border-color:       #B0C4DE;
+/* Editor Stub */
+.stub-editor > pre {
+    position:           absolute;
+    bottom:             0;
+    top:                0;
+    left:               0;
+    right:              0;
+    margin:             0;
+    padding-top:        100px;
+    font-family:        monospace;
+    font-size:          24px;
 }
 
-/*
- * Preview area
- */
-.preview-container {
-    /*
-    background-color:   #f7f7f7;    
-     */
-    position:           relative;
-    font-family:        monospace;
-    height:             99%; /* 100% brings vertical scrollbar in firefox */
-    min-height:         90px;
-    padding:            4px;
-    border:             2px solid lightBlue;
-    border-style:       dotted;
-    border-width:       4px;
-    padding:            4px 12px;
-    overflow-y:         scroll;
-}
-/* Stub */
+
+/* Preview Stub */
 .preview-area-stub {
     margin:             0;
-    padding:            0;
-    width:              100%;
-    height:             100%;
+    padding:            50px;
     font-size:          18px;
-    height:             98%;
-    padding:            0;
 }
 
 
@@ -221,25 +254,13 @@ body {
  * CodeMirror
  */
 .CodeMirror {
-/*    
-    margin-bottom:      4px;
-    padding:            3px 0;
-*/
-    margin-top:         -20px;
-    margin-left:        0;
-    height:             100%;
-    width:              auto;
     background-color:   white;  /* breaks codemirror theme support */
     font-weight:        normal;
     font-family:        Menlo, Monaco, monospace;
     font-size:          14px;
     line-height:        1.5;
+    height:             100%;
     border:             2px solid lightBlue;
-}
-@-moz-document url-prefix() {
-.CodeMirror {
-    width:              100%;
-}
 }
 .CodeMirror-gutter {
     width:              3em;

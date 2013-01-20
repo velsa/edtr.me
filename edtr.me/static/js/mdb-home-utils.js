@@ -122,54 +122,143 @@ var syncIcon = {
 
 
 var edtrSplitters = {
-    $this_edtr_splitters:       null,
+    $this_es:       null,
 
     //
     // Setup splitter drag events
     //
     init: function(on_drag_end_callback) {
-        this.left_sidebar = $('#left_sidebar');
-        this.v_splitter = $(".vertical-splitter");
-        this.h_splitter = $(".horizontal-splitter");
-        this.editor_area = $('#editor_area');
-        this.preview_container = $('.preview-container');
-        this.margin = this.left_sidebar.offset().left;
-        this.v_splitter_width = this.v_splitter.width();
+        this.container_elem = $('.main-view-container');
+        this.left_elem = $('.main-view-left');
+        this.right_elem = $('.main-view-right');
+        this.bottom_elem = $('.sticky-footer');
+        this.left_sidebar = this.left_elem.children().filter(":first"); // We assume that sidebar is FIRST div !
+        this.lsb_is_visible = true;
+        this.preview_container = this.bottom_elem.children().filter(":last"); // We assume that preview is LAST div !
+        this.preview_is_visible = true;
+        this.vl_splitter = $(".left-splitter");
+        this.vr_splitter = $(".right-splitter");
+        this.h_splitter = $(".bottom-splitter");
+        this.left_min_width = parseInt(this.left_elem.css('min-width'), 10);
+        this.left_max_width = parseInt(this.left_elem.css('max-width'), 10);
+        this.bottom_min_height = parseInt(this.bottom_elem.css('min-height'), 10);
+        this.container_min_height = parseInt(this.container_elem.css('min-height'), 10);
+        this.container_shift = parseInt(this.container_elem.css('bottom'), 10) - this.container_elem.height();
         this.is_dragging = false;
         
-        $this_edtr_splitters = this;
+        $this_es = this;
 
-        this.v_splitter
+        this.vl_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
             $(window).on("mousemove", function(e) {
-                $this_edtr_splitters.is_dragging = true;
-                //console.log(left_sidebar.width());
-                $this_edtr_splitters.prev_width = $this_edtr_splitters.left_sidebar.width();
-                $this_edtr_splitters.left_sidebar.width(e.clientX - $this_edtr_splitters.margin);
+                $this_es.is_dragging = true;
+                var new_width = e.clientX;
+                if (new_width == $this_es.left_elem.width() ||
+                    new_width >= $this_es.left_max_width ||
+                    new_width <= $this_es.left_min_width)
+                    return;
+                $this_es.left_elem.width(new_width);
+                $this_es.right_elem.css({left: new_width});
             });
             $(window).on("mouseup", function(e) {
-                var was_dragging = $this_edtr_splitters.is_dragging;
-                $this_edtr_splitters.is_dragging = false;
+                var was_dragging = $this_es.is_dragging;
+                $this_es.is_dragging = false;
                 $(window).off("mousemove");
                 $(window).off("mouseup");
                 if (!was_dragging) { // was clicking
-                    console.log("just a click");
+                    //console.log("just a click");
                 } else {
                     on_drag_end_callback();
                 }
             });
         })
         .on("dblclick", function(e) {
-            $this_edtr_splitters.toggle_side_bar();
+            $this_es.toggle_sidebar();
+        });
+
+        this.h_splitter
+        .on("mousedown", function(e) {
+            e.preventDefault(); // disable text selection during drag
+            $(window).on("mousemove", function(e) {
+                $this_es.is_dragging = true;
+                var new_bottom_height = $(window).height()-e.clientY,
+                    new_container_height = $this_es.container_elem.height() -
+                        (new_bottom_height - $this_es.bottom_elem.height());
+                if (new_bottom_height == $this_es.bottom_elem.height() ||
+                    new_bottom_height <= $this_es.bottom_min_height ||
+                    new_container_height <= $this_es.container_min_height)
+                    return;
+                $this_es.bottom_elem.height(new_bottom_height);
+                $this_es.container_elem.css({bottom: new_bottom_height});
+            });
+            $(window).on("mouseup", function(e) {
+                var was_dragging = $this_es.is_dragging;
+                $this_es.is_dragging = false;
+                $(window).off("mousemove");
+                $(window).off("mouseup");
+                if (!was_dragging) { // was clicking
+                    //console.log("just a click");
+                } else {
+                    on_drag_end_callback();
+                }
+            });
+        })
+        .on("dblclick", function(e) {
+            $this_es.toggle_preview();
         });
     },
 
-    toggle_side_bar: function() { $this_edtr_splitters.left_sidebar.toggle(); },
-    hide_editor: function() { $this_edtr_splitters.editor_area.hide(); },
-    show_editor: function() { $this_edtr_splitters.editor_area.show(); },
-    hide_preview: function() { $this_edtr_splitters.preview_container.hide(); },
-    show_preview: function() { $this_edtr_splitters.preview_container.show(); }
+    toggle_sidebar: function() {
+        if ($this_es.lsb_is_visible)
+            $this_es.hide_sidebar();
+        else
+            $this_es.show_sidebar();
+    },
+    hide_sidebar: function() {
+        if ($this_es.lsb_is_visible) {
+            $this_es.lsb_is_visible = false;
+            $this_es.left_sidebar.hide();
+            $this_es.vl_splitter.css({left: 0});
+            $this_es.right_elem_left = $this_es.right_elem.css("left");
+            $this_es.right_elem.css({left: $this_es.vl_splitter.width() +
+                parseInt($this_es.vl_splitter.css('right'), 10)});
+        }
+    },
+    show_sidebar: function() {
+        if (!$this_es.lsb_is_visible) {
+            $this_es.lsb_is_visible = true;
+            $this_es.left_sidebar.show();
+            $this_es.vl_splitter.removeAttr('style');
+            $this_es.right_elem.css({left: $this_es.right_elem_left});
+        }
+    },
+    hide_editor: function() { $this_es.right_elem.hide(); },
+    show_editor: function() { $this_es.right_elem.show(); },
+    toggle_preview: function() {
+        if ($this_es.preview_is_visible)
+            $this_es.hide_preview();
+        else
+            $this_es.show_preview();
+    },
+    hide_preview: function() {
+        if ($this_es.preview_is_visible) {
+            $this_es.preview_is_visible = false;
+            $this_es.preview_container.hide();
+            $this_es.h_splitter.css({top: $this_es.bottom_elem.height() -
+                parseInt($this_es.h_splitter.css('top'), 10)});
+            $this_es.container_elem_bottom = $this_es.container_elem.css("bottom");
+            $this_es.container_elem.css({'bottom': $this_es.h_splitter.height()});
+        }
+    },
+    show_preview: function() {
+        if (!$this_es.preview_is_visible) {
+            $this_es.preview_is_visible = true;
+            $this_es.preview_container.show();
+            $this_es.h_splitter.removeAttr('style');
+            $this_es.container_elem.css({'bottom': $this_es.container_elem_bottom});
+        }
+    }
 };
 
 
