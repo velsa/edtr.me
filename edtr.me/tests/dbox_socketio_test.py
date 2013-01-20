@@ -56,7 +56,7 @@ class SocketIoTest(BaseTest):
             self.sleep()
             self.fail('Session is created without cookies')
         except HTTPError as e:
-            self.assertEqual(e.status_code, 401)
+            self.assertEqual(e.status_code, 403)
             self.assertEqual(e.log_message, SocketError.NO_COOKIE)
 
     def test_no_xsrf(self):
@@ -66,7 +66,7 @@ class SocketIoTest(BaseTest):
             self.sleep()
             self.fail('Session is created without xsrf argument')
         except HTTPError as e:
-            self.assertEqual(e.status_code, 401)
+            self.assertEqual(e.status_code, 403)
             self.assertEqual(e.log_message, SocketError.XSRF)
 
     def test_good_user_open_socket_pass(self):

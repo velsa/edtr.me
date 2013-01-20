@@ -38,19 +38,19 @@ class EdtrConnection(SocketConnection):
         # check user session
         user_cookie = request.get_cookie('user')
         if not user_cookie:
-            raise HTTPError(401, SocketError.NO_COOKIE)
+            raise HTTPError(403, SocketError.NO_COOKIE)
         user_cookie = user_cookie.value
         username = decode_signed_value(settings["cookie_secret"],
             "user", user_cookie, max_age_days=settings['cookie_expires'])
         result = yield motor.Op(
             self.db.accounts.find_one, {"username": username})
         if not result:
-            raise HTTPError(401, SocketError.BAD_SESSION)
+            raise HTTPError(403, SocketError.BAD_SESSION)
 
         # check xsrf
         xsrf_arg = request.get_argument('xsrf')
         if not xsrf_arg or request.get_cookie('_xsrf').value != xsrf_arg:
-            raise HTTPError(401, SocketError.XSRF)
+            raise HTTPError(403, SocketError.XSRF)
 
     def on_message(self, message):
         self.send(message + "from server")
