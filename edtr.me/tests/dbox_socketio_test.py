@@ -90,7 +90,6 @@ class SocketIoTest(BaseTest):
     @patch.object(SocketConnection, 'emit')
     def test_event_get_tree(self, m_emit):
         session = EdtrRouter.create_session(self.request)
-        path = '/'
-        session.raw_message(proto.event(None, 'get_tree', None, path=path))
+        session.raw_message(proto.event(None, 'get_tree', None))
         self.sleep()
-        m_emit.assert_called_with('get_tree', path)
+        m_emit.assert_called()

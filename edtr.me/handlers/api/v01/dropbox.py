@@ -5,7 +5,6 @@ import motor
 from django.utils import simplejson as json
 from handlers.base import BaseHandler
 from models.accounts import UserModel
-from utils.mdb_dropbox.tasks import process_web_sync
 from workers.dropbox import get_tree
 logger = logging.getLogger('edtr_logger')
 
@@ -57,6 +56,5 @@ class UpdateDropboxTree(DropboxHandler):
 
         # TODO user doesn't have saved token string
         # if not user['token_string']:
-        process_web_sync(user)
         ret['message'] = "<strong>Currently debug stub</strong>"
         self.finish_json_request(ret)

@@ -151,8 +151,11 @@ class LoginTest(BaseTest):
         self.assertEqual(self.reverse_url('home'), resp.headers['Location'])
         user = self.db_find_one({'username': username})
 
-        self.assertEqual(user['token_string'], '|'.join(
-            [oauth_access_token, oauth_access_token_secret]))
+        # self.assertEqual(user['token_string'], '|'.join(
+        #     [oauth_access_token, oauth_access_token_secret]))
+        self.assertEqual(user['dbox_access_token']['key'], oauth_access_token)
+        self.assertEqual(user['dbox_access_token']['secret'],
+            oauth_access_token_secret)
         self.assertEqual(user['first_name'], first_name)
         self.assertEqual(user['last_name'], last_name)
         self.assertEqual(user['email'], email)
@@ -170,7 +173,7 @@ class LoginTest(BaseTest):
             'first_name': first_name,
             'last_name': last_name,
             'email': email,
-            'token_string': 'some_token_string',
+            'dbox_access_token': {"key": "some_key", "secret": "some_secret"},
         })
 
         ### test sequence
