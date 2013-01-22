@@ -1,6 +1,8 @@
 from bson.objectid import ObjectId
 from schematics.models import Model
 from schematics.types import (StringType, EmailType, NumberType, DictType)
+from schematics.validation import validate_instance
+from schematics.serialize import to_python
 from django.utils import simplejson as json
 from utils.auth import check_password, make_password
 
@@ -27,6 +29,12 @@ class UserModel(Model):
 
     def get_dropbox_token(self):
         return self.dbox_access_token
+
+    def validate(self):
+        return validate_instance(self)
+
+    def save(self, db, callback):
+        db.accounts.save(to_python(self), callback=callback)
 
     def set_dropbox_account_info(self, api_response):
         info = json.loads(api_response.body)

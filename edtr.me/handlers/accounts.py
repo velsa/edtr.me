@@ -81,11 +81,11 @@ class RegisterHandler(BaseHandler):
         usr.username = self.get_argument("username", None)
         usr.password = password
 
-        result = validate_instance(usr)
+        result = usr.validate()
         if result.tag == 'OK':
             usr.set_password(usr.password)
             try:
-                yield motor.Op(self.db.accounts.insert, to_python(usr))
+                yield motor.Op(usr.save, self.db)
                 # user save succeeded
                 self.set_current_user(usr.username)
                 self.redirect(self.reverse_url("home"))

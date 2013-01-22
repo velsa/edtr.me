@@ -1,7 +1,6 @@
 import logging
 import tornado.web
 from tornado import gen
-from schematics.serialize import to_python
 import motor
 
 from workers.dropbox import DropboxWorkerMixin
@@ -48,7 +47,7 @@ class HomeHandler(BaseHandler, DropboxWorkerMixin):
                 response = yield gen.Wait(yield_key)
                 user.set_dropbox_account_info(response)
 
-                yield motor.Op(self.db.accounts.save, to_python(user))
+                yield motor.Op(user.save, self.db)
                 self.redirect(self.reverse_url("home"))
                 return
             else:
