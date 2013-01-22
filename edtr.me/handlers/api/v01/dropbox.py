@@ -21,18 +21,41 @@ class DropboxGetTree(DropboxHandler):
     Save it to database.
     Return path metadata."""
 
+    @gen.engine
+    def make_dump(self, user, path, root, callback):
+        needed_tree = None
+        tmp_path = root
+        tree = yield gen.Task(
+            self.dbox_get_tree,
+            user.get_dropbox_token(),
+            user.dbox_hash,
+            tmp_path
+        )
+        tree_dict = json.loads(tree.body)
+
+        for item in tree_dict['contents']:
+            if item['is_dir']:
+                yield gen.Task(self.make_dump, user, path, item['path'])
+            else:
+                pass
+
+        if path == tmp_path:
+            needed_tree = tree
+        callback(needed_tree)
+
     @tornado.web.asynchronous
     @gen.engine
     @tornado.web.authenticated
     def post(self):
-
+        path = self.get_argument("path", "/")
         user = yield gen.Task(self.get_edtr_current_user)
+        needed_tree = None
+        if user.dbox_hash is None:
+            needed_tree = yield gen.Task(self.make_dump, user, path, '/')
 
-        tree = yield gen.Task(
-            self.dbox_get_tree, user.get_dropbox_token(), "/")
         self.finish_json_request({
             'status': 'stub',
-            "tree": tree.body,
+            "tree": needed_tree.body,
         })
 
 

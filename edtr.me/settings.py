@@ -96,7 +96,7 @@ LOGGING = {
             'formatter':    'readable',
         },
         'rotating_file': {
-            'level' :       'DEBUG',
+            'level' :       'INFO',
             'formatter' :   'verbose',
             'class' :       'logging.handlers.TimedRotatingFileHandler',
             'filename' :    LOG_FILE,  # full path works

@@ -1,7 +1,9 @@
+import logging
 import tornado.auth
 import urllib
 from tornado.httpclient import AsyncHTTPClient
 from settings import settings
+logger = logging.getLogger('edtr_logger')
 
 
 class DropboxMixin(tornado.auth.OAuthMixin):
@@ -86,6 +88,7 @@ class DropboxMixin(tornado.auth.OAuthMixin):
         if args:
             url += "?" + urllib.urlencode(args)
         http = AsyncHTTPClient()
+        logger.debug("%s %s" % (method, url))
         if post_args is not None:
             http.fetch(url, method=method, body=urllib.urlencode(post_args),
                        callback=callback)

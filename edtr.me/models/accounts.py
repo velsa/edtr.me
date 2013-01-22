@@ -11,6 +11,7 @@ class UserModel(Model):
         regex="^[a-zA-Z0-9]+$")
     password = StringType(required=True, min_length=6, max_length=50)
     dbox_access_token = DictType()
+    dbox_hash = StringType()
     first_name = StringType()
     last_name = StringType()
     email = EmailType()
