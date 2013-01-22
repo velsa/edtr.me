@@ -4,14 +4,14 @@ from tornado import gen
 from schematics.serialize import to_python
 import motor
 
-from utils.async_dropbox import DropboxMixin
+from workers.dropbox import DropboxWorkerMixin
 from models.accounts import UserModel
 from handlers.base import BaseHandler
 
 logger = logging.getLogger('edtr_logger')
 
 
-class HomeHandler(BaseHandler, DropboxMixin):
+class HomeHandler(BaseHandler, DropboxWorkerMixin):
     """Handler for home page. If user is authenticated, then redirect him
     to his control page. Else, show information data and suggest to sign in.
     """

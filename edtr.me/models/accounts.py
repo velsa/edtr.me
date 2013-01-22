@@ -24,6 +24,9 @@ class UserModel(Model):
     def set_dropbox_token(self, api_token):
         self.dbox_access_token = api_token['access_token']
 
+    def get_dropbox_token(self):
+        return self.dbox_access_token
+
     def set_dropbox_account_info(self, api_response):
         info = json.loads(api_response.body)
         if 'display_name' in info:

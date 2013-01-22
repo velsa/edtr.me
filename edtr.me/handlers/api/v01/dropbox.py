@@ -5,11 +5,11 @@ import motor
 from django.utils import simplejson as json
 from handlers.base import BaseHandler
 from models.accounts import UserModel
-from workers.dropbox import get_tree
+from workers.dropbox import DropboxWorkerMixin
 logger = logging.getLogger('edtr_logger')
 
 
-class DropboxHandler(BaseHandler):
+class DropboxHandler(BaseHandler, DropboxWorkerMixin):
     def finish_json_request(self, ret):
         self.set_header("Content-Type",  'application/json')
         self.write(json.dumps(ret))
@@ -26,10 +26,13 @@ class DropboxGetTree(DropboxHandler):
     @tornado.web.authenticated
     def post(self):
 
-        tree = get_tree()
+        user = yield gen.Task(self.get_edtr_current_user)
+
+        tree = yield gen.Task(
+            self.dbox_get_tree, user.get_dropbox_token(), "/")
         self.finish_json_request({
             'status': 'stub',
-            "tree": tree,
+            "tree": tree.body,
         })
 
 

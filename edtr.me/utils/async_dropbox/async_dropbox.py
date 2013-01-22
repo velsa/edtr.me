@@ -94,8 +94,8 @@ class DropboxMixin(tornado.auth.OAuthMixin):
 
     def _oauth_consumer_token(self):
         return dict(
-            key=self.settings["dropbox_consumer_key"],
-            secret=self.settings["dropbox_consumer_secret"],
+            key=DropboxMixin.APP_KEY,
+            secret=DropboxMixin.APP_SECRET,
             )
 
     def _oauth_get_user(self, access_token, callback):

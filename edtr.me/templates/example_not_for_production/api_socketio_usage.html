@@ -4,7 +4,7 @@
     {{ super() }}
     <button id="debug"
             class="btn btn-success btn-small cme-button-tooltip" href="#">
-        <span id="btn_debug">Debug</span>
+        <span id="btn_debug">Debug AJAX</span>
     </button>
 
     <button id="debug_socketion"
@@ -21,7 +21,7 @@
         var c = document.cookie.match("\\b" + name + "=([^;]*)\\b");
         return c ? c[1] : undefined;
     }
-    $('#btn_debug').click(function(){
+    $('#debug').click(function(){
         $.post('/api/0.1/dropbox/get_tree/',
             {"_xsrf": getCookie("_xsrf")},
             function(response) {
@@ -59,7 +59,7 @@
         });
 
         // Start event
-        $('#btn_debug_socketio').click(function() {
+        $('#debug_socketion').click(function() {
             s.emit('get_tree');
             return false;
         });
