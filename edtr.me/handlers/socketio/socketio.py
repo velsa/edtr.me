@@ -58,12 +58,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         self.user_cookie = request.get_cookie('user')
         if not self.user_cookie:
             raise HTTPError(403, SocketError.NO_COOKIE)
-        # user_cookie = user_cookie.value
         user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-        # # username = decode_signed_value(settings["cookie_secret"],
-        #     "user", user_cookie, max_age_days=settings['cookie_expires'])
-        # result = yield motor.Op(
-        #     self.db.accounts.find_one, {"username": username})
         if not user:
             raise HTTPError(403, SocketError.BAD_SESSION)
 
@@ -78,6 +73,8 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     @event
     @gen.engine
     def get_tree(self):
+        # TODO maybe set common user fields as self.field
+        # to not make database call to find user
         user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
 
         tree = yield gen.Task(
