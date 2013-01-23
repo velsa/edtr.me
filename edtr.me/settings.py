@@ -109,7 +109,7 @@ LOGGING = {
     'loggers': {
         # Usage: logger = logging.getLogger('edtr_logger')
         'edtr_logger': {
-            'handlers':     ['console', 'rotating_file', ],
+            'handlers':     ['rotating_file', ],
             'level':        'DEBUG' if settings['debug'] else "INFO",
         },
     }

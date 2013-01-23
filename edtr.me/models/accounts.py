@@ -14,6 +14,7 @@ class UserModel(Model):
     password = StringType(required=True, min_length=6, max_length=50)
     dbox_access_token = DictType()
     dbox_hash = StringType()
+    dbox_cursor = StringType()
     first_name = StringType()
     last_name = StringType()
     email = EmailType()
@@ -35,6 +36,9 @@ class UserModel(Model):
 
     def save(self, db, callback):
         db.accounts.save(to_python(self), callback=callback)
+
+    def create_dropbox_collection(self, db, callback):
+        db[self.username].ensure_index("root_path", callback=callback)
 
     def set_dropbox_account_info(self, api_response):
         info = json.loads(api_response.body)

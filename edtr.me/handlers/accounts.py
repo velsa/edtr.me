@@ -6,8 +6,6 @@ import tornado.escape
 from collections import defaultdict
 
 import motor
-from schematics.validation import validate_instance
-from schematics.serialize import to_python
 from pymongo.errors import DuplicateKeyError
 
 import logging
@@ -88,6 +86,10 @@ class RegisterHandler(BaseHandler):
                 yield motor.Op(usr.save, self.db)
                 # user save succeeded
                 self.set_current_user(usr.username)
+                # create user dropbox collection
+                yield motor.Op(
+                    usr.create_dropbox_collection, self.db)
+                    # self.db[usr.username].ensure_index, "root_path")
                 self.redirect(self.reverse_url("home"))
                 return
             except DuplicateKeyError:
