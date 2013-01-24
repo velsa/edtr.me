@@ -39,9 +39,9 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_edtr_current_user(self, callback):
         username = self.current_user
         # TODO cache
-        result = yield motor.Op(self.db.accounts.find_one,
-            {"username": username})
-        callback(UserModel(**result))
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
+        callback(user)
 
     def render_async(self, tmpl, context):
         self.render(tmpl, context)

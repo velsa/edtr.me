@@ -1,23 +1,20 @@
-from bson.objectid import ObjectId
-from schematics.models import Model
-from schematics.types import (StringType, EmailType, NumberType, DictType)
-from schematics.validation import validate_instance
-from schematics.serialize import to_python
+from schematics.types import (StringType, EmailType, DictType)
 from django.utils import simplejson as json
 from utils.auth import check_password, make_password
+from models.base import BaseModel
 
 
-class UserModel(Model):
-    _id = NumberType(number_class=ObjectId, number_type="ObjectId")
+class UserModel(BaseModel):
     username = StringType(required=True, min_length=4, max_length=50,
         regex="^[a-zA-Z0-9]+$")
     password = StringType(required=True, min_length=6, max_length=50)
     dbox_access_token = DictType()
-    dbox_hash = StringType()
     dbox_cursor = StringType()
     first_name = StringType()
     last_name = StringType()
     email = EmailType()
+
+    MONGO_COLLECTION = 'accounts'
 
     def check_password(self, entered_password):
         return check_password(entered_password, self.password)
@@ -30,12 +27,6 @@ class UserModel(Model):
 
     def get_dropbox_token(self):
         return self.dbox_access_token
-
-    def validate(self):
-        return validate_instance(self)
-
-    def save(self, db, callback):
-        db.accounts.save(to_python(self), callback=callback)
 
     def create_dropbox_collection(self, db, callback):
         db[self.username].ensure_index("root_path", callback=callback)

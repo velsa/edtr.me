@@ -47,14 +47,13 @@ class UpdateDropboxTree(DropboxHandler):
 
         username = self.current_user
 
-        result = yield motor.Op(self.db.accounts.find_one, {"username": username})
-        if not result:
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
+        if not user:
         # user not found
             self.set_current_user(None)
             self.redirect(self.reverse_url("home"))
             return
-
-        user = UserModel(**result)
 
         # TODO user doesn't have saved token string
         # if not user['token_string']:

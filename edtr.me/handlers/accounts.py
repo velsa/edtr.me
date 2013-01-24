@@ -36,10 +36,9 @@ class LoginHandler(BaseHandler):
     @gen.engine
     def post(self):
         username = self.get_argument("username", None)
-        result = yield motor.Op(self.db.accounts.find_one,
-                {"username": username})
-        if result:
-            usr = UserModel(**result)
+        usr = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
+        if usr:
             password = self.get_argument("password", None)
             if usr.check_password(password):
                 self.set_current_user(username)
@@ -107,10 +106,10 @@ class UserNameAvailabilityHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.engine
     def get(self, username):
-        result = yield motor.Op(self.db.accounts.find_one,
-                {"username": username})
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
         self.set_header("Content-Type", "text/plain")
-        if result:
+        if user:
             self.write('error')
         else:
             self.write("success")

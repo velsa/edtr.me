@@ -22,14 +22,13 @@ class HomeHandler(BaseHandler, DropboxWorkerMixin):
         username = self.current_user
 
         # find user with specified username
-        result = yield motor.Op(self.db.accounts.find_one,
-            {"username": username})
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
 
-        if not result:
+        if not user:
             self.set_current_user(None)
             self.redirect(self.reverse_url("home"))
             return
-        user = UserModel(**result)
 
         # user doesn't have saved token
         if not user.dbox_access_token:

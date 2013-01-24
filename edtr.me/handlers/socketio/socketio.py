@@ -40,10 +40,10 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
             "user", user_cookie.value,
             max_age_days=settings['cookie_expires'])
         # TODO cache
-        result = yield motor.Op(
-            self.db.accounts.find_one, {"username": username})
-        if result:
-            callback(UserModel(**result))
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
+        if user:
+            callback(user)
         else:
             callback(None)
 
