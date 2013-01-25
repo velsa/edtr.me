@@ -30,7 +30,7 @@ class DropboxGetTree(DropboxHandler):
         path_tree = yield gen.Task(self.dbox_get_tree, user, path)
 
         self.finish_json_request({
-            'status': 'stub',
+            'status': 'success',
             "tree": path_tree,
         })
 
