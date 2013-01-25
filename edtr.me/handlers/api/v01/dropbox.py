@@ -31,7 +31,7 @@ class DropboxGetTree(DropboxHandler):
 
         self.finish_json_request({
             'status': 'stub',
-            "tree": path_tree['contents'],
+            "tree": path_tree,
         })
 
 

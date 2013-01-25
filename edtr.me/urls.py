@@ -28,7 +28,7 @@ url_patterns = [
 
 if options.debug:
     url_patterns += [
-        url(r'/trash_debug/(.*)', RenderTrashHtml, name="get_editor"),
+        url(r'/trash_debug/(.*)', RenderTrashHtml, name="trash_debug"),
     ]
 
 if options.socketio:

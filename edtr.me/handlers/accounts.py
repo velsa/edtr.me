@@ -88,7 +88,6 @@ class RegisterHandler(BaseHandler):
                 # create user dropbox collection
                 yield motor.Op(
                     usr.create_dropbox_collection, self.db)
-                    # self.db[usr.username].ensure_index, "root_path")
                 self.redirect(self.reverse_url("home"))
                 return
             except DuplicateKeyError:

@@ -1,8 +1,11 @@
+import logging
 from bson.objectid import ObjectId
 from schematics.models import Model
 from schematics.types import NumberType
 from schematics.validation import validate_instance
 from schematics.serialize import to_python
+
+logger = logging.getLogger('edtr_logger')
 
 
 class BaseModel(Model):
@@ -26,8 +29,11 @@ class BaseModel(Model):
             params, callback=wrap_callback)
 
     def save(self, db, collection=None, callback=None):
-        db[self.check_collection(collection)].save(
-            to_python(self), callback=callback)
+        c = self.check_collection(collection)
+        logger.debug('MONGODB:save:{0}:{1}:fields:{2}'.format(
+            c, self.__class__.__name__,
+            ','.join(["\n{0}={1}".format(n, getattr(self, n)) for n in sorted(self._fields)])))
+        db[c].save(to_python(self), callback=callback)
 
     def validate(self):
         return validate_instance(self)
