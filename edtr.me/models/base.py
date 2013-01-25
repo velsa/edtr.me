@@ -28,6 +28,13 @@ class BaseModel(Model):
         db[cls.check_collection(collection)].find_one(
             params, callback=wrap_callback)
 
+    @classmethod
+    def remove_entries(cls, db, params, collection=None, callback=None):
+        c = cls.check_collection(collection)
+        logger.debug('MONGODB:remove_entries:{0}:{1}:params:{2}'.format(
+            c, cls.__name__, params))
+        db[c].remove(params, callback=callback)
+
     def save(self, db, collection=None, callback=None):
         c = self.check_collection(collection)
         logger.debug('MONGODB:save:{0}:{1}:fields:{2}'.format(
