@@ -32,10 +32,11 @@ class DropboxWorkerMixin(DropboxMixin):
             has_more = dbox_delta['has_more']
             cursor = dbox_delta['cursor']
             if dbox_delta['reset']:
-                logging.debug(
+                logger.debug(
                     "Reseting user all files for '{0}'".format(user.username))
                 yield motor.Op(self.db[user.username].drop)
-            logging.debug("Fetched {0} entries".format(len(dbox_delta['entries'])))
+            logger.debug("Fetched {0} entries".format(len(dbox_delta['entries'])))
+            logger.debug(dbox_delta)
             for path, entry in dbox_delta['entries']:
                 if entry is None:
                     yield motor.Op(
