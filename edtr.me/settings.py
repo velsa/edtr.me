@@ -1,9 +1,8 @@
+import os
+import logging.config
 import tornado
 import tornado.template
-import os
 from tornado.options import define, options
-import sys
-from logconfig import dictconfig
 from jinja2 import Environment, FileSystemLoader
 
 # Make filepaths relative to settings.
@@ -96,7 +95,7 @@ LOGGING = {
             'formatter':    'readable',
         },
         'rotating_file': {
-            'level' :       'INFO',
+            'level' :       'DEBUG',
             'formatter' :   'verbose',
             'class' :       'logging.handlers.TimedRotatingFileHandler',
             'filename' :    LOG_FILE,  # full path works
@@ -115,7 +114,7 @@ LOGGING = {
     }
 }
 
-dictconfig.dictConfig(LOGGING)
+logging.config.dictConfig(LOGGING)
 
 if options.config:
     tornado.options.parse_config_file(options.config)
