@@ -37,10 +37,10 @@ class DropboxWorkerMixin(DropboxMixin):
                 yield motor.Op(self.db[user.username].drop)
             logger.debug("Fetched {0} entries".format(len(dbox_delta['entries'])))
             logger.debug(dbox_delta)
-            for path, entry in dbox_delta['entries']:
+            for e_path, entry in dbox_delta['entries']:
                 if entry is None:
                     yield motor.Op(
-                        DropboxFile.remove_entries, self.db, {"_id": path},
+                        DropboxFile.remove_entries, self.db, {"_id": e_path},
                         user.username)
                 else:
                     entry['_id'] = entry.pop('path')
