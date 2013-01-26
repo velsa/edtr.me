@@ -40,7 +40,7 @@ class BaseHandler(tornado.web.RequestHandler):
         username = self.current_user
         # TODO cache
         user = yield motor.Op(
-            UserModel.find_one, self.db, {"username": username})
+            UserModel.find_one, self.db, {"_id": username})
         callback(user)
 
     def render_async(self, tmpl, context):

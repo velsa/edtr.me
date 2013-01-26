@@ -69,18 +69,5 @@ class UpdateDropboxTree(DropboxHandler):
     @tornado.web.authenticated
     def get(self):
         ret = {'status': 'error', 'message': '', 'task_id': '', }
-
-        username = self.current_user
-
-        user = yield motor.Op(
-            UserModel.find_one, self.db, {"username": username})
-        if not user:
-        # user not found
-            self.set_current_user(None)
-            self.redirect(self.reverse_url("home"))
-            return
-
-        # TODO user doesn't have saved token string
-        # if not user['token_string']:
         ret['message'] = "<strong>Currently debug stub</strong>"
         self.finish_json_request(ret)

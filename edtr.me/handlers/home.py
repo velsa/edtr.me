@@ -4,7 +4,6 @@ from tornado import gen
 import motor
 
 from workers.dropbox import DropboxWorkerMixin
-from models.accounts import UserModel
 from handlers.base import BaseHandler
 
 logger = logging.getLogger('edtr_logger')
@@ -19,11 +18,7 @@ class HomeHandler(BaseHandler, DropboxWorkerMixin):
     @gen.engine
     @tornado.web.authenticated
     def get(self):
-        username = self.current_user
-
-        # find user with specified username
-        user = yield motor.Op(
-            UserModel.find_one, self.db, {"username": username})
+        user = yield gen.Task(self.get_edtr_current_user)
 
         if not user:
             self.set_current_user(None)

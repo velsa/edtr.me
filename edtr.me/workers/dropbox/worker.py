@@ -40,8 +40,8 @@ class DropboxWorkerMixin(DropboxMixin):
             cursor = dbox_delta['cursor']
             if dbox_delta['reset']:
                 logger.debug(
-                    "Reseting user all files for '{0}'".format(user.username))
-                yield motor.Op(self.db[user.username].drop)
+                    "Reseting user all files for '{0}'".format(user.name))
+                yield motor.Op(self.db[user.name].drop)
             logger.debug("Fetched {0} entries".format(len(dbox_delta['entries'])))
             logger.debug(dbox_delta)
             for e_path, entry in dbox_delta['entries']:
@@ -50,7 +50,7 @@ class DropboxWorkerMixin(DropboxMixin):
                     # maybe there is a way to delete files in one db call
                     yield motor.Op(
                         DropboxFile.remove_entries, self.db, {"_id": e_path},
-                        user.username)
+                        user.name)
                 else:
                     entry['_id'] = entry.pop('path')
                     entry['root_path'] = os.path.dirname(entry['_id'])
@@ -59,14 +59,14 @@ class DropboxWorkerMixin(DropboxMixin):
                     db_file = DropboxFile(**entry)
                     # TODO
                     # maybe there is a way to save files in one db call
-                    yield motor.Op(db_file.save, self.db, user.username)
+                    yield motor.Op(db_file.save, self.db, user.name)
 
         user.dbox_cursor = cursor
         yield motor.Op(user.save, self.db)
         if recurse:
             callback('stub')
         else:
-            cursor = self.db[user.username].find({"root_path": path})
+            cursor = self.db[user.name].find({"root_path": path})
             files = yield motor.Op(cursor.to_list)
             callback(files)
 
@@ -86,7 +86,7 @@ class DropboxWorkerMixin(DropboxMixin):
     def dbox_get_file(self, user, path, callback=None):
         access_token = user.get_dropbox_token()
         file_meta = yield motor.Op(
-            DropboxFile.find_one, self.db, {"_id": path}, user.username)
+            DropboxFile.find_one, self.db, {"_id": path}, user.name)
         # TODO
         # check, if no file_meta found
         # check for updates in dropbox

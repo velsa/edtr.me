@@ -5,7 +5,7 @@ from models.base import BaseModel
 
 
 class UserModel(BaseModel):
-    username = StringType(required=True, min_length=4, max_length=50,
+    _id = StringType(required=True, min_length=4, max_length=50,
         regex="^[a-zA-Z0-9]+$")
     password = StringType(required=True, min_length=6, max_length=50)
     dbox_access_token = DictType()
@@ -15,6 +15,14 @@ class UserModel(BaseModel):
     email = EmailType()
 
     MONGO_COLLECTION = 'accounts'
+
+    @property
+    def name(self):
+        return self._id
+
+    @name.setter
+    def name(self, value):
+        self._id = value
 
     def check_password(self, entered_password):
         return check_password(entered_password, self.password)
@@ -29,7 +37,7 @@ class UserModel(BaseModel):
         return self.dbox_access_token
 
     def create_dropbox_collection(self, db, callback):
-        db[self.username].ensure_index("root_path", callback=callback)
+        db[self.name].ensure_index("root_path", callback=callback)
 
     def set_dropbox_account_info(self, api_response):
         info = json.loads(api_response.body)
