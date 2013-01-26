@@ -82,3 +82,22 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
             'tree': path_tree,
         }
         self.emit_as_json('get_tree', output)
+
+    @event
+    @gen.engine
+    def get_file(self, path):
+        # TODO maybe set common user fields as self.field
+        # to not make database call to find user
+        content = None
+        status = 'fail'
+        if path:
+            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
+            result = yield gen.Task(self.dbox_get_file, user, path)
+            status = result['status']
+            if status == 'success':
+                content = result['content']
+        output = {
+            'status': status,
+            'content': content,
+        }
+        self.emit_as_json('get_file', output)

@@ -8,6 +8,13 @@ from models.dropbox import DropboxFile
 logger = logging.getLogger('edtr_logger')
 
 
+# Strange dropbox behaviour:
+# File with ANSI (cp1251) encoding, dropbox output as ISO-8859-8 encoding
+DROPBOX_ENCODE_MAP = {
+    'ISO-8859-8': 'cp1251',
+}
+
+
 class DropboxWorkerMixin(DropboxMixin):
     def remove_odd_slash(self, path):
         while len(path) > 1 and path.endswith('/'):
@@ -39,13 +46,19 @@ class DropboxWorkerMixin(DropboxMixin):
             logger.debug(dbox_delta)
             for e_path, entry in dbox_delta['entries']:
                 if entry is None:
+                    # TODO
+                    # maybe there is a way to delete files in one db call
                     yield motor.Op(
                         DropboxFile.remove_entries, self.db, {"_id": e_path},
                         user.username)
                 else:
                     entry['_id'] = entry.pop('path')
                     entry['root_path'] = os.path.dirname(entry['_id'])
+                    # TODO
+                    # skip create DropboxFile instance, it is odd
                     db_file = DropboxFile(**entry)
+                    # TODO
+                    # maybe there is a way to save files in one db call
                     yield motor.Op(db_file.save, self.db, user.username)
 
         user.dbox_cursor = cursor
@@ -56,3 +69,47 @@ class DropboxWorkerMixin(DropboxMixin):
             cursor = self.db[user.username].find({"root_path": path})
             files = yield motor.Op(cursor.to_list)
             callback(files)
+
+    def _get_response_encoding(self, response):
+        encoding = 'ascii'
+        cont_type = response.headers.get('Content-Type', None)
+        if cont_type:
+            for v in cont_type.split(';'):
+                if 'charset=' in v:
+                    encoding = v.split('=', 1)[-1]
+                    if encoding in DROPBOX_ENCODE_MAP:
+                        encoding = DROPBOX_ENCODE_MAP[encoding]
+                    break
+        return encoding
+
+    @gen.engine
+    def dbox_get_file(self, user, path, callback=None):
+        access_token = user.get_dropbox_token()
+        file_meta = yield motor.Op(
+            DropboxFile.find_one, self.db, {"_id": path}, user.username)
+        # TODO
+        # check, if no file_meta found
+        # check for updates in dropbox
+        status = 'success'
+        file_content = None
+        if file_meta.is_dir:
+            status = 'is_dir'
+        # TODO
+        # check file_meta.mime_type
+        elif file_meta.thumb_exists:
+            # TODO
+            # probably image
+            status = 'image'
+        else:
+            path = self.remove_odd_slash(path)
+            api_url = "/1/files/{{root}}{path}".format(path=path)
+            response = yield gen.Task(self.dropbox_request,
+                "api-content", api_url,
+                access_token=access_token
+            )
+            if response.code == 404:
+                status = 'not found'
+            else:
+                encoding = self._get_response_encoding(response)
+                file_content = response.body.decode(encoding)
+        callback({'status': status, 'content': file_content})

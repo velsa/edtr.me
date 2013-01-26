@@ -35,6 +35,31 @@ class DropboxGetTree(DropboxHandler):
         })
 
 
+class DropboxGetFile(DropboxHandler):
+    """Get path metadata from dropbox.
+    Save it to database.
+    Return path metadata."""
+
+    @tornado.web.asynchronous
+    @gen.engine
+    @tornado.web.authenticated
+    def post(self):
+        path = self.get_argument("path", None)
+        content = None
+        if not path:
+            status = 'fail'
+        else:
+            user = yield gen.Task(self.get_edtr_current_user)
+            data = yield gen.Task(self.dbox_get_file, user, path)
+            status = data['status']
+            if status == 'success':
+                content = data['content']
+        self.finish_json_request({
+            'status': status,
+            "content": content,
+        })
+
+
 class UpdateDropboxTree(DropboxHandler):
     """Sync directories and files from dropbox to server
     """
