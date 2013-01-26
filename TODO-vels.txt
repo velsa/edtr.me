@@ -1,13 +1,14 @@
 UI:
-- left sidebar should be fixed size (?) and content area should be resizable and shouldn't jump
-- bottom preview should be resizable and hidable and movable to top
-- fullscreen editing
++ left sidebar should be fixed size (?) and content area should be resizable and shouldn't jump @done (2013-01-21 18:11)
++ bottom preview should be resizable and hidable and movable to top @done (2013-01-21 18:12)
++ fullscreen editing @done (2013-01-21 18:12)
 - codemirror themes
 
 JS:
-- dropbox tree with icons
+- dropbox tree with icons: use zTree
 - marked: add code highlighting (see example on their github page) 
-- codemirror hangs on gfm and on smart enter
++ codemirror hangs on gfm and on smart enter @done (2013-01-21 18:12)
 
 After alfa:
+- Ad comments from facebook and disqus
 - Integrate with ftp, livejournal and habrahanr for external publishing (in directory settings). Make a post on habr about it and work with feedback

@@ -2,18 +2,20 @@
 // Messages Bar
 //
 var messagesBar = {
-    fadein_time:    800,
-    fadeout_time:   600,
+    fadein_time:    0,
+    fadeout_time:   200,
 
-    init:    function( dom_elem ) {
+    init:    function(dom_elem, base_elem) {
         this.dom_elem = dom_elem;
+        this.base_elem = base_elem;
     },
 
-    update_dimensions: function (elem) {
-        this.dom_elem.css({
-                    left:   (elem.offset()).left-5,
-                    width:  elem.width()+10
+    update_dimensions: function () {
+        this.dom_elem.offset({
+            'left': this.base_elem.offset().left,
+            'top':  this.base_elem.offset().top-this.dom_elem.height()/2
         });
+        this.dom_elem.width(this.base_elem.width());
     },
     // Shows error on red background
     show_error:         function(html_message) {
@@ -27,9 +29,9 @@ var messagesBar = {
     show_info:          function(html_message) {
         this.show_message(html_message, 'alert-info', 0);
     },
-    // Shows info on green background
+    // Shows info on green background, automatically disappears
     show_success:       function(html_message) {
-        this.show_message(html_message, 'alert-success', 0);
+        this.show_message(html_message, 'alert-success', this.fadein_time);
     },
     // Shows warning on yellow background
     show_warning:       function(html_message) {
@@ -44,6 +46,8 @@ var messagesBar = {
     // If timeout is 0 - user must manually close the message
     // If timeout > 0 - message will disappear automagically after timeout ms
     show_message:       function(html_message, alert_class, timeout) {
+        // Compensate for any changes in dom structure
+        this.update_dimensions();
         // Create message in dom
         this.dom_elem.append(
             '<div class="message-container alert '+alert_class+' fade in">'+
@@ -128,7 +132,8 @@ var edtrSplitters = {
     // Setup splitter drag events
     //
     init: function(on_drag_end_callback) {
-        this.container_elem = $('.main-view-container');
+        this.container_elem = $('.main-container');
+        this.top_elem = $('.main-view-container');
         this.left_elem = $('.main-view-left');
         this.right_elem = $('.main-view-right');
         this.bottom_elem = $('.sticky-footer');
@@ -142,8 +147,9 @@ var edtrSplitters = {
         this.left_min_width = parseInt(this.left_elem.css('min-width'), 10);
         this.left_max_width = parseInt(this.left_elem.css('max-width'), 10);
         this.bottom_min_height = parseInt(this.bottom_elem.css('min-height'), 10);
-        this.container_min_height = parseInt(this.container_elem.css('min-height'), 10);
-        this.container_shift = parseInt(this.container_elem.css('bottom'), 10) - this.container_elem.height();
+        this.top_min_height = parseInt(this.top_elem.css('min-height'), 10);
+        this.container_shift = this.container_elem.position().top +
+            parseInt(this.container_elem.css('bottom'), 10);
         this.is_dragging = false;
         
         $this_es = this;
@@ -153,10 +159,12 @@ var edtrSplitters = {
             e.preventDefault(); // disable text selection during drag
             $(window).on("mousemove", function(e) {
                 $this_es.is_dragging = true;
-                var new_width = e.clientX;
-                if (new_width == $this_es.left_elem.width() ||
-                    new_width >= $this_es.left_max_width ||
-                    new_width <= $this_es.left_min_width)
+                var new_width = e.clientX-5;
+                if (new_width > $this_es.left_max_width)
+                    new_width = $this_es.left_max_width;
+                else if (new_width < $this_es.left_min_width)
+                    new_width = $this_es.left_min_width;
+                if (new_width == $this_es.left_elem.width())
                     return;
                 $this_es.left_elem.width(new_width);
                 $this_es.right_elem.css({left: new_width});
@@ -180,17 +188,26 @@ var edtrSplitters = {
         this.h_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
+            // $this_es.preview_container.contents().find('body').on("mousemove", function(e) {
+            //     //e.preventDefault(); // disable text selection during drag
+            //     console.log(e.pageY);
+            // });
             $(window).on("mousemove", function(e) {
+                if (!$this_es.is_dragging) {
+                    // Apply hack div over iframe, we don't want it to capture our mouse events
+                    $this_es.bottom_elem.append('<div id="tarpaulin"></div>');
+                }
                 $this_es.is_dragging = true;
-                var new_bottom_height = $(window).height()-e.clientY,
-                    new_container_height = $this_es.container_elem.height() -
-                        (new_bottom_height - $this_es.bottom_elem.height());
-                if (new_bottom_height == $this_es.bottom_elem.height() ||
-                    new_bottom_height <= $this_es.bottom_min_height ||
-                    new_container_height <= $this_es.container_min_height)
+                var top_height = e.clientY - $this_es.container_shift,
+                    new_height = $this_es.container_elem.height() - top_height - 5;
+                if (new_height < $this_es.bottom_min_height)
+                    new_height = $this_es.bottom_min_height;
+                else if (top_height <= $this_es.top_min_height)
+                    new_height = $this_es.container_elem.height() - $this_es.top_min_height - 5;
+                if (new_height == $this_es.bottom_elem.height())
                     return;
-                $this_es.bottom_elem.height(new_bottom_height);
-                $this_es.container_elem.css({bottom: new_bottom_height});
+                $this_es.bottom_elem.height(new_height);
+                $this_es.top_elem.css({bottom: new_height});
             });
             $(window).on("mouseup", function(e) {
                 var was_dragging = $this_es.is_dragging;
@@ -200,6 +217,8 @@ var edtrSplitters = {
                 if (!was_dragging) { // was clicking
                     //console.log("just a click");
                 } else {
+                    // Drag finished, remove hack div
+                    $('#tarpaulin').remove();
                     on_drag_end_callback();
                 }
             });
@@ -247,8 +266,8 @@ var edtrSplitters = {
             $this_es.preview_container.hide();
             $this_es.h_splitter.css({top: $this_es.bottom_elem.height() -
                 parseInt($this_es.h_splitter.css('top'), 10)});
-            $this_es.container_elem_bottom = $this_es.container_elem.css("bottom");
-            $this_es.container_elem.css({'bottom': $this_es.h_splitter.height()});
+            $this_es.top_elem_bottom = $this_es.top_elem.css("bottom");
+            $this_es.top_elem.css({'bottom': $this_es.h_splitter.height()});
         }
     },
     show_preview: function() {
@@ -256,7 +275,7 @@ var edtrSplitters = {
             $this_es.preview_is_visible = true;
             $this_es.preview_container.show();
             $this_es.h_splitter.removeAttr('style');
-            $this_es.container_elem.css({'bottom': $this_es.container_elem_bottom});
+            $this_es.top_elem.css({'bottom': $this_es.top_elem_bottom});
         }
     }
 };

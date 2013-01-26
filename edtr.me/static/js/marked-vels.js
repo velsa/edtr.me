@@ -391,6 +391,7 @@ Lexer.prototype.token = function(src, top) {
     if (cap = this.rules.html.exec(src)) {
       src = src.substring(cap[0].length);
       token_lines = cap[0].count("\n"); // VELS
+      //console.log(cap[0]);
       this.tokens.push({
         type: this.options.sanitize
           ? 'paragraph'

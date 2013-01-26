@@ -399,7 +399,7 @@ function edtrCodemirror(content_type, content) {
                         Math.abs(aTag.position().top-preview_offset) - 20);
                 if (new_pos !== $this.preview_pos) {
                     $this.preview_pos = new_pos;
-                    $this.preview_container.scrollTop(new_pos);
+                    $this.preview_elem.scrollTop(new_pos);
                 }
             }
         }
@@ -414,8 +414,8 @@ function edtrCodemirror(content_type, content) {
         if ($this.saved_state == 2) {
             $this.set_saved_state("NOT SAVED");
         }
-        // Update preview on timer
-        if (!$this.is_timer) {
+        // Update preview on timer (no need for preview when in fullscreen)
+        if (!$this.is_codemirror_fullscreen && !$this.is_timer) {
             $this.is_timer = true;
             setTimeout(function() {
                 // Generate preview
@@ -475,11 +475,18 @@ function edtrCodemirror(content_type, content) {
     // TODO: do we need to remove previous codemirror's bindings ?
     if (this.content_type !== content_type) {
         this.dom_elem = $(".cme-textarea");
-        this.preview_elem = $(".preview-area");
         //console.log(this.dom_elem);
         this.content_type = content_type;
 
         this.preview_container = $(".preview-container");
+        this.preview_elem = this.preview_container.contents().find('body');
+        this.preview_elem_head = this.preview_container.contents().find('head');
+        // TODO: load this from settings
+        this.preview_elem_head.
+            append("<link rel=\"stylesheet\" href=\"/static/css/md_preview/github.css?reload=" +
+                (new Date()).getTime() + "\">");
+
+        //$(".preview-area");
 
         // Timer for updating preview
         this.is_timer = false;
@@ -496,7 +503,7 @@ function edtrCodemirror(content_type, content) {
         //for (var i=0; i<4; i++) tab_spaces += " ";
         var cm_settings = {
             // TODO: all settings should accord to content_type
-            mode:               "markdown", // "gfm" is broken ?!
+            mode:               "gfm", // "gfm" is broken ?!
 
             // TODO: Get those from folder/general settings
             // gutter:             true,
@@ -506,11 +513,13 @@ function edtrCodemirror(content_type, content) {
             matchBrackets:      true,
             pollInterval:       300,
             undoDepth:          500,
-            theme:              "default",
+            theme:              "eclipse", //solarized light",
             indentUnit:         this.tab_spaces.length,
             tabSize:            this.tab_spaces.length, // should be the same !
             indentWithTabs:     true,
             electricChars:      false,
+            autoCloseTags:      true,   // TODO: apparently works only in text/html mode
+                                        // makw it work in gfm mode as well
 
             // TODO = find Mac equivalents
             extraKeys: {
@@ -554,10 +563,10 @@ function edtrCodemirror(content_type, content) {
         // Set default options for marked
         marked.setOptions({
           gfm:              true,
-          tables:           true,
-          breaks:           false,
+          tables:           false,
+          breaks:           true,
           pedantic:         false,
-          sanitize:         true
+          sanitize:         false
         });
 
         // Add bootstrap class to codemirror so it will behave

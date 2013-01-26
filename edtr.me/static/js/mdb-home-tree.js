@@ -289,6 +289,7 @@ var edtrTree = {
                         // TODO: do we need to do anything else if editor is of the same type ?
                     }
                     $this.edtr_editor = new edtrCodemirror(file_type, data);
+                    messagesBar.show_notification("File <b>"+file_url+"</b> was loaded into the editor");
                 });
             }
         ).error(function(data) {

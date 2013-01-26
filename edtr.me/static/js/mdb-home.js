@@ -65,12 +65,10 @@ $(document).ready(function() {
     // Vertical and horizontal splitter hooks
     edtrSplitters.init(function() {
         // Called when drag has finished
-        // TODO: do the same on browser window resize
-        messagesBar.update_dimensions($('.main-view-right'));
+        return;
     });
 
-    messagesBar.init($('#messages_bar'));
-    messagesBar.update_dimensions($('.main-view-right'));
+    messagesBar.init($('#messages_bar'), $('.main-view-right'));
 
     // Show tree on page load
     edtrTree.init();
@@ -81,8 +79,8 @@ $(document).ready(function() {
     show_info("<b>Goodbye.</b> Come back again...");
     show_warning("<b>Ah oh</b> Something is wrong. But we will fix it...");
     show_error("<b>Oh Damn !</b> Something really BAD happened. Please call 911 !");
-     show_notification("<b>Hello there !</b> Nice to see you here :)");
-     show_success("<b>Wow ! Great !</b> Everything worked as expected !");
+    show_success("<b>Wow ! Great !</b> Everything worked as expected !");
+    messagesBar.show_notification("<b>Hello there !</b> Nice to see you here :)");
     */
-   edtrTree.open_editor();
+    edtrTree.open_editor();
 });
