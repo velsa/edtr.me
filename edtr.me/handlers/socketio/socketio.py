@@ -6,6 +6,7 @@ import motor
 from settings import settings
 from workers.dropbox import DropboxWorkerMixin
 from models.accounts import UserModel
+from utils.error import ErrCode
 
 
 class SocketError:
@@ -76,10 +77,10 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         # TODO maybe set common user fields as self.field
         # to not make database call to find user
         user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-        path_tree = yield gen.Task(self.dbox_get_tree, user, path)
+        result = yield gen.Task(self.dbox_get_tree, user, path)
         output = {
-            'status': 'success',
-            'tree': path_tree,
+            'status': result['status'],
+            'tree': result.get('files', None),
         }
         self.emit_as_json('get_tree', output)
 
@@ -89,13 +90,12 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         # TODO maybe set common user fields as self.field
         # to not make database call to find user
         content = None
-        status = 'fail'
+        status = ErrCode.bad_request
         if path:
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
             result = yield gen.Task(self.dbox_get_file, user, path)
             status = result['status']
-            if status == 'success':
-                content = result['content']
+            content = result.get('content', None)
         output = {
             'status': status,
             'content': content,

@@ -1,11 +1,10 @@
 import logging
 import tornado.web
 from tornado import gen
-import motor
 from django.utils import simplejson as json
 from handlers.base import BaseHandler
-from models.accounts import UserModel
 from workers.dropbox import DropboxWorkerMixin
+from utils.error import ErrCode
 logger = logging.getLogger('edtr_logger')
 
 
@@ -27,11 +26,11 @@ class DropboxGetTree(DropboxHandler):
     def post(self):
         path = self.get_argument("path", "/")
         user = yield gen.Task(self.get_edtr_current_user)
-        path_tree = yield gen.Task(self.dbox_get_tree, user, path)
+        result = yield gen.Task(self.dbox_get_tree, user, path)
 
         self.finish_json_request({
-            'status': 'success',
-            "tree": path_tree,
+            'status': result['status'],
+            "tree": result.get('files', None),
         })
 
 
@@ -47,13 +46,12 @@ class DropboxGetFile(DropboxHandler):
         path = self.get_argument("path", None)
         content = None
         if not path:
-            status = 'fail'
+            status = ErrCode.bad_request
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.dbox_get_file, user, path)
             status = data['status']
-            if status == 'success':
-                content = data['content']
+            content = data.get('content', None)
         self.finish_json_request({
             'status': status,
             "content": content,
@@ -68,6 +66,6 @@ class UpdateDropboxTree(DropboxHandler):
     @gen.engine
     @tornado.web.authenticated
     def get(self):
-        ret = {'status': 'error', 'message': '', 'task_id': '', }
+        ret = {'status': ErrCode.unknown_error, 'message': '', 'task_id': '', }
         ret['message'] = "<strong>Currently debug stub</strong>"
         self.finish_json_request(ret)

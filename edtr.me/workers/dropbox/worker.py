@@ -5,6 +5,7 @@ from django.utils import simplejson as json
 import motor
 from utils.async_dropbox import DropboxMixin
 from models.dropbox import DropboxFile
+from utils.error import ErrCode
 logger = logging.getLogger('edtr_logger')
 
 
@@ -28,6 +29,7 @@ class DropboxWorkerMixin(DropboxMixin):
         if user.dbox_cursor:
             post_args['cursor'] = user.dbox_cursor
         path = self.remove_odd_slash(path)
+        status = ErrCode.ok
         has_more = True
         cursor = None
         while has_more:
@@ -64,11 +66,11 @@ class DropboxWorkerMixin(DropboxMixin):
         user.dbox_cursor = cursor
         yield motor.Op(user.save, self.db)
         if recurse:
-            callback('stub')
+            callback({'status': ErrCode.not_implemented})
         else:
             cursor = self.db[user.name].find({"root_path": path})
             files = yield motor.Op(cursor.to_list)
-            callback(files)
+            callback({'status': status, 'files': files})
 
     def _get_response_encoding(self, response):
         encoding = 'ascii'
@@ -90,16 +92,16 @@ class DropboxWorkerMixin(DropboxMixin):
         # TODO
         # check, if no file_meta found
         # check for updates in dropbox
-        status = 'success'
+        status = ErrCode.ok
         file_content = None
         if file_meta.is_dir:
-            status = 'is_dir'
+            status = ErrCode.file_is_dir
         # TODO
         # check file_meta.mime_type
         elif file_meta.thumb_exists:
             # TODO
             # probably image
-            status = 'image'
+            status = ErrCode.file_is_image
         else:
             path = self.remove_odd_slash(path)
             api_url = "/1/files/{{root}}{path}".format(path=path)
@@ -108,7 +110,7 @@ class DropboxWorkerMixin(DropboxMixin):
                 access_token=access_token
             )
             if response.code == 404:
-                status = 'not found'
+                status = ErrCode.not_found
             else:
                 encoding = self._get_response_encoding(response)
                 file_content = response.body.decode(encoding)
