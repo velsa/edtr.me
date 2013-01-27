@@ -88,7 +88,7 @@ class DropboxMixin(tornado.auth.OAuthMixin):
         if args:
             url += "?" + urllib.urlencode(args)
         http = AsyncHTTPClient()
-        logger.debug("%s %s" % (method, url))
+        logger.debug("\n%s %s" % (method, url))
         if post_args is not None:
             http.fetch(url, method=method, body=urllib.urlencode(post_args),
                        callback=callback)
