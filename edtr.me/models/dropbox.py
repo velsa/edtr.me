@@ -10,7 +10,7 @@ class DropboxFile(BaseModel):
     bytes = IntType()
     modified = StringType()
     client_mtime = StringType()
-    # path = StringType()
+    mime_type = StringType()
     root_path = StringType()
     is_dir = BooleanType()
     icon = StringType()
