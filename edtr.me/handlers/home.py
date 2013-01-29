@@ -8,6 +8,10 @@ from workers.dropbox import DropboxWorkerMixin
 from models.accounts import UserModel
 from handlers.base import BaseHandler
 
+from workers.dropbox import DropboxWorkerMixin
+from models.accounts import UserModel
+from handlers.base import BaseHandler
+
 logger = logging.getLogger('edtr_logger')
 
 
