@@ -1,3 +1,3 @@
 __author__ = 'st4lk'
 
-from socketio import EdtrConnection
+from socketio import EdtrConnection, SocketError

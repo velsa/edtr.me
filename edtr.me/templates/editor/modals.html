@@ -8,7 +8,7 @@
     </div>
     <div class="modal-body">
         <h4 class="modal-heading">In SubFolder:</h4>
-        <p><code class="modal-file-code"></code></p>
+        <p><pre class="modal-file-code"></pre></p>
         <h4 class="modal-heading">Use presets:</h4>
         <div class="controls">
             <!--
@@ -62,7 +62,7 @@
     </div>
     <div class="modal-body">
         <h4 class="modal-heading">In SubFolder:</h4>
-        <p><code class="modal-file-code"></code></p>
+        <p><pre class="modal-file-code"></pre></p>
         <h4 class="modal-heading">Use presets:</h4>
         <div class="controls">
             <label class="radio">
@@ -96,7 +96,7 @@
     </div>
     <div class="modal-body">
         <h4>From:</h4>
-        <p><code class="modal-file-code"></code></p>
+        <p><pre class="modal-file-code"></pre></p>
         <h4>To:</h4>
         <div class="controls">
             <label class="radio">
@@ -148,7 +148,7 @@
     </div>
     <div class="modal-body">
         <h4>From:</h4>
-        <p><code class="modal-file-code"></code></p>
+        <p><pre class="modal-file-code"></pre></p>
         <h4>To:</h4>
         <div class="controls">
             <label class="radio">
@@ -188,7 +188,7 @@
     <div class="modal-body">
         <h4>Please confirm removal of the following file:</h4>
         <br/>
-        <p><code class="modal-file-code"></code></p>
+        <p><pre class="modal-file-code"></pre></p>
         <br/>
         Editor window will be closed !
         <br/>
@@ -210,11 +210,11 @@
     <div class="modal-body">
         <h4>Please confirm removal of the following directory:</h4>
         <br/>
-        <p><code class="modal-file-code"></code></p>
+        <p><pre class="modal-file-code"></pre></p>
         <br/>
-        Please make sure that directory does not contain any files or subdirs !
+        Please make sure this directory does not contain any important files !
         <br/>
-        <strong>Only empty directories can be removed.</strong>
+        <strong>Consider reviewing the files in this directory first.</strong>
         <br/>
     </div>
     <div class="modal-footer">
@@ -224,15 +224,40 @@
 </div>
 
 <!--
-    Save, Continue Editing or Cancel
+    Delete Checked
+-->
+<div id="modal_remove_checked" class="modal hide">
+    <div class="modal-header">
+        <a class="close" data-dismiss="modal">×</a>
+        <h3>Delete checked items from Dropbox</h3>
+    </div>
+    <div class="modal-body">
+        <h4>Please confirm removal of the following items:</h4>
+        <p><pre class="modal-file-code"></pre></p>
+        Please make sure you are not deleting any important files !
+        <br/>
+        <strong>Consider reviewing the checked files again.</strong>
+        <br/>
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn btn-danger modal-submit-button">Delete the files</a>
+        <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+    </div>
+</div>
+
+<!--
+    Save, Continue Editing or Discard changes
 -->
 <div id="modal_save_continue_lose" class="modal hide">
     <div class="modal-header">
         <a class="close" data-dismiss="modal">×</a>
-        <h2>You have unsaved changes !</h2>
+        <h3>You have unsaved changes !</h3>
     </div>
     <div class="modal-body">
-        <h3>Please select appropriate action:</h3>
+        <h4>Please select appropriate action for file:</h4>
+        <br/>
+        <p><pre class="modal-file-code"></pre></p>
+        <br/>
     </div>
     <div class="modal-footer">
         <a id="scl_save" href="#"
@@ -241,13 +266,13 @@
             Save
         </a>
         <a id="scl_continue" href="#"
-           class="btn btn-default" data-dismiss="modal">
+           class="btn btn-default pull-left" data-dismiss="modal">
             Continue editing...
         </a>
         <a id="scl_lose" href="#"
            style="width: 120px;"
            class="btn btn-danger modal-submit-button pull-right">
-            Lose all changes
+            Discard all changes
         </a>
     </div>
 </div>

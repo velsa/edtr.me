@@ -6,8 +6,6 @@ import tornado.escape
 from collections import defaultdict
 
 import motor
-from schematics.validation import validate_instance
-from schematics.serialize import to_python
 from pymongo.errors import DuplicateKeyError
 
 import logging
@@ -38,10 +36,9 @@ class LoginHandler(BaseHandler):
     @gen.engine
     def post(self):
         username = self.get_argument("username", None)
-        result = yield motor.Op(self.db.accounts.find_one,
-                {"username": username})
-        if result:
-            usr = UserModel(**result)
+        usr = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
+        if usr:
             password = self.get_argument("password", None)
             if usr.check_password(password):
                 self.set_current_user(username)
@@ -81,13 +78,16 @@ class RegisterHandler(BaseHandler):
         usr.username = self.get_argument("username", None)
         usr.password = password
 
-        result = validate_instance(usr)
+        result = usr.validate()
         if result.tag == 'OK':
             usr.set_password(usr.password)
             try:
-                yield motor.Op(self.db.accounts.insert, to_python(usr))
+                yield motor.Op(usr.save, self.db)
                 # user save succeeded
                 self.set_current_user(usr.username)
+                # create user dropbox collection
+                yield motor.Op(
+                    usr.create_dropbox_collection, self.db)
                 self.redirect(self.reverse_url("home"))
                 return
             except DuplicateKeyError:
@@ -105,10 +105,10 @@ class UserNameAvailabilityHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.engine
     def get(self, username):
-        result = yield motor.Op(self.db.accounts.find_one,
-                {"username": username})
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
         self.set_header("Content-Type", "text/plain")
-        if result:
+        if user:
             self.write('error')
         else:
             self.write("success")

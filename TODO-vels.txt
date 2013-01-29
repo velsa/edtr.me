@@ -1,13 +1,16 @@
 UI:
-+ left sidebar should be fixed size (?) and content area should be resizable and shouldn't jump @done (2013-01-21 18:11)
-+ bottom preview should be resizable and hidable and movable to top @done (2013-01-21 18:12)
-+ fullscreen editing @done (2013-01-21 18:12)
 - codemirror themes
+- replace home icon in tree with dropbox icon
 
 JS:
 - dropbox tree with icons: use zTree
 - marked: add code highlighting (see example on their github page) 
 + codemirror hangs on gfm and on smart enter @done (2013-01-21 18:12)
+
+BUGS:
+- in chrome, when selection is active in codemirror and mouse moves to tree area, selection disappears. Actually, and edit operation is being performed on codemirror. Why ?
+- ztree: need a way to allow drag/drop "inner" only into isParent nodes. for file/directory structure, where leaf node (file) can never become parent node (directory). Also it would be really nice to be able to drag node visually (as icon or as a text line) and to visually see which node it will become a child of (e.g. highlight the whole parent node structure during drag)
+- ztree: if parent node is checked, but not loaded with ajax, its check_Child_State is -1, but when it is loaded, the check_Child_State becomes 1, although none of it's children are checked. So the check_Child_State should actually become 0
 
 After alfa:
 - Ad comments from facebook and disqus

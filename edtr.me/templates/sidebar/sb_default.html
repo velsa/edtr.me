@@ -9,49 +9,94 @@
     <li class="nav-header">
         <ul class="nav nav-tabs">
             <li class="active">
-                <a href="#">Files in Dropbox:</a>
+                <a href="#">Files:</a>
             </li>
             <li class="dropdown" style="text-transform: none;">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                    Actions<b class="caret"></b>
+                    View<b class="caret"></b>
                 </a>
                 <ul class="dropdown-menu">
                     <li>
-                        <a data-toggle="modal" id="action_add_file" href="#">
+                        <a data-toggle="modal" id="sb_view_clear_select" href="#">
+                            <i class="icon-remove-circle icon-black"></i>
+                            Clear all checkboxes
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a data-toggle="modal" id="sb_view_multiselect" href="#">
+                            <i class="icon-check icon-black"></i>
+                            Toggle checkboxes
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="dropdown" style="text-transform: none;">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    Edit<b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a data-toggle="modal" 
+                            id="sb_edit_add_file" data-action="add_file" href="#">
                             <i class="icon-file icon-black"></i>
                             New File...
                         </a>
                     </li>
                     <li>
-                        <a data-toggle="modal" id="action_add_subdir" href="#">
+                        <a data-toggle="modal" 
+                            id="sb_edit_add_subdir" data-action="add_subdir" href="#">
                             <i class="icon-folder-close icon-black"></i>
-                            New Subdir...
+                            New Directory...
                         </a>
                     </li>
                     <li>
-                        <a data-toggle="modal" id="action_rename" href="#">
+                        <a data-toggle="modal" 
+                            id="sb_edit_rename" data-action="rename" href="#">
                             <i class="icon-pencil icon-black"></i>
                             Rename...
                         </a>
                     </li>
                     <li>
-                        <a data-toggle="modal" id="action_delete" href="#">
+                        <a data-toggle="modal" 
+                            id="sb_edit_delete" data-action="remove" href="#">
                             <i class="icon-trash icon-black"></i>
                             Delete...
                         </a>
                     </li>
+                    <li class="divider"></li>
+                    <li>
+                        <a data-toggle="modal" 
+                            id="sb_edit_copy" data-action="copy" href="#">
+                            <!-- <i class="icon-trash icon-black"></i> -->
+                            Copy
+                        </a>
+                    </li>
+                    <li>
+                        <a data-toggle="modal" 
+                            id="sb_edit_cut" data-action="cut" href="#">
+                            <!-- <i class="icon-trash icon-black"></i> -->
+                            Cut
+                        </a>
+                    </li>
+                    <li>
+                        <a data-toggle="modal" 
+                            id="sb_edit_paste" data-action="paste" href="#">
+                            <!-- <i class="icon-trash icon-black"></i> -->
+                            Paste
+                        </a>
+                    </li>
                 </ul>
             </li>
-            <li id="rotate-on-click-li">
+            <li class="sync-button-li">
                 <img src="{{ static_url('images/refresh-static.gif') }}" 
-                    alt="()"
-                    class="rotate-on-click">
+                    alt="()" class="sync-button">
             </li>
         </ul>
     </li>
 </ul>
 <div class="sidebar-tree"> <!-- well effect -->
-    <div id="db_tree">
+    <div id="db_tree" class="ztree">
         <!-- Dropbox TreeView will be inserted here -->
     </div>
 </div><!--/well -->

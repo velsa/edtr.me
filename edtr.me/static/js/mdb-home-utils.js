@@ -41,6 +41,10 @@ var messagesBar = {
     show_notification:  function(html_message) {
         this.show_message(html_message, 'alert-info', this.fadein_time+html_message.length*80);
     },
+    // Shows notification on blue background, which will disappear after timeout
+    show_notification_warning:  function(html_message) {
+        this.show_message(html_message, '', this.fadein_time+html_message.length*80);
+    },
 
     // Universal method
     // If timeout is 0 - user must manually close the message
@@ -287,6 +291,24 @@ var edtrSplitters = {
 //
 var serverComm = {
     timer_interval:     1000,
+    api_v:              "/api/0.1/",
+
+    get_cookie:             function (name) {
+        var c = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+        return c ? c[1] : undefined;
+    },
+
+    get_request_url:        function (source, request) {
+        return this.api_v + source + '/' + request + '/';
+    },
+
+    get_tree:               function (from, path, callback) {
+        $.post(serverComm.get_request_url("dropbox", "get_tree"),
+            {
+                "_xsrf": this.get_cookie("_xsrf"),
+                "path": path
+            }, callback);
+    },
 
     get_server_result:      function( task_id, callback_ok, callback_error ) {
         // // Check for special task_ids, those can be emitted by blocking calls

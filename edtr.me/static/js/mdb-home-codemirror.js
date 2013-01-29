@@ -12,7 +12,7 @@ function edtrCodemirror(content_type, content) {
     //
     
     this.hide_codemirror = function() {
-        $this.is_codemirror_hidden = true;
+        $this.is_hidden = true;
         $this.set_saved_state("SAVED");
         //$('#cme_wide_toggle').html("&nbsp;");
         edtrSplitters.hide_editor();
@@ -59,6 +59,11 @@ function edtrCodemirror(content_type, content) {
     //     }
     //     $this.is_codemirror_fullscreen = false;
     // };
+
+    this.replace_selection = function (text) {
+        $this.cm_editor.replaceSelection(text);
+        $this.cm_editor.focus();
+    };
 
     //
     // TOOLBAR
@@ -410,7 +415,7 @@ function edtrCodemirror(content_type, content) {
     //
     // This function will be called VERY OFTEN !
     this.on_change = function(inst, change_obj) {
-        //console.log($this.saved_state);
+        // console.log($this.saved_state);
         if ($this.saved_state == 2) {
             $this.set_saved_state("NOT SAVED");
         }
@@ -431,13 +436,13 @@ function edtrCodemirror(content_type, content) {
 
     // TODO: Use this to open clicked urls (Ctrl-Click)
     this.on_cursor_activity = function(inst) {
-        //console.log("cursor");
+        // console.log("cursor");
         $this.cm_editor.matchHighlight("CodeMirror-matchhighlight");
         $this.scroll_to_anchor();
     };
 
-    // TODO: bind Ctrl-M to set/remove markers on gutter
-    // TODO: and Shift-Ctrl-M to jump over markers
+    // TODO: bind Alt-M to set/remove markers on gutter
+    // TODO: and Alt-Shift-M to jump over markers
     this.on_gutter_clicked = function(inst, n) {
         var info = $this.cm_editor.lineInfo(n);
         if (info.markerText)
@@ -450,8 +455,8 @@ function edtrCodemirror(content_type, content) {
     // INITIALIZATION (constructor)
     //
     this.is_codemirror_fullscreen=      false;
-    this.is_codemirror_hidden=          true;
-    this.is_codemirror_saved=           true;
+    this.is_hidden=          true;
+    this.is_saved=           true;
     this.tab_character=                 "\t";
     this.tab_spaces=                    Array(4).join(" "); // should equal to tab_character
     this.list_character=                "-";
@@ -576,10 +581,6 @@ function edtrCodemirror(content_type, content) {
         // TODO: do we need to do anything else if editor is of the same type ?
     }
 
-    // Set correct flags
-    this.is_codemirror_hidden = false;
-    this.set_saved_state("SAVED");
-
     // Show codemirror
     //$('#cme_wide_toggle').html(toggle_left);
 
@@ -614,7 +615,11 @@ function edtrCodemirror(content_type, content) {
     this.cm_editor.setValue(content);//search_words.join("\n"));
     this.cm_editor.focus();
 
-    return this.cm_editor;
+    // Set correct flags
+    this.is_hidden = false;
+    this.set_saved_state("SAVED");
+
+    return this;
 }
 
 //var toggle_left = "&lt;&lt;";
@@ -624,17 +629,17 @@ function edtrCodemirror(content_type, content) {
 edtrCodemirror.prototype.set_saved_state = function(saved) {
     if (saved == "SAVED") {
         this.saved_state = 2;
-        this.is_codemirror_saved = true;
+        this.is_saved = true;
         $('#btn_save_text').text("SAVED");
         $('#btn_save').removeClass("btn-success").attr('disabled', 'disabled');
     } else if (saved == "SAVING") {
         this.saved_state = 1;
-        this.is_codemirror_saved = false;
+        this.is_saved = false;
         $('#btn_save_text').text("saving...");
         $('#btn_save').removeClass("btn-success").attr('disabled', 'disabled');
     } else { // "NOT SAVED"
         this.saved_state = 0;
-        this.is_codemirror_saved = false;
+        this.is_saved = false;
         $('#btn_save_text').text("Save");
         $('#btn_save').addClass("btn-success").removeAttr('disabled');
     }

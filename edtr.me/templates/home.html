@@ -22,7 +22,65 @@
     <link rel="stylesheet" href="{{ static_url('codemirror/theme/vibrant-ink.css') }}">
     <link rel="stylesheet" href="{{ static_url('codemirror/theme/solarized.css') }}">
     <link rel="stylesheet" href="{{ static_url('codemirror/theme/twilight.css') }}">
-    <!-- 
+
+    <!--     zTree styles
+    -->    
+    <link rel="stylesheet" href="{{ static_url('ztree/css/zTreeStyle/zTreeStyle.css') }}">
+    <!-- zTree Icons -->
+    <style type="text/css">
+        .ztree li span.button.parent_ico_open { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/1_open.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+        .ztree li span.button.parent_ico_close { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/1_close.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+
+        .ztree li span.button.icon_edit_ico_docu { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/2.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+        .ztree li span.button.icon01_ico_docu { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/3.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+        .ztree li span.button.icon02_ico_docu { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/4.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+        .ztree li span.button.icon03_ico_docu { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/5.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+        .ztree li span.button.icon04_ico_docu { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/6.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+        .ztree li span.button.icon05_ico_docu { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/7.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+        .ztree li span.button.icon06_ico_docu { 
+            margin-right: 2px;
+            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/8.png') }}")
+            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+        }
+    </style>
+<!--
+    <script type="text/javascript" src="jquery.ztree.excheck-3.5.js"></script>
+    <script type="text/javascript" src="jquery.ztree.exedit-3.5.js"></script>
+-->
+
+     <!-- 
         Custom CSS 
     -->
     <link rel="stylesheet" href="{{ static_url('css/style.css') }}">
@@ -39,15 +97,12 @@
     <script src="{{ static_url('jstree/jquery.jstree.js') }}"></script>
      -->
 
-    <!-- JQuery JQWidgets - Tree
-         TODO: replace with zTree    
+    <!-- JQuery zTree
      -->
-    <script src="{{ static_url('jqwidgets/jqxcore.js') }}"></script>
-    <script src="{{ static_url('jqwidgets/jqxbuttons.js') }}"></script>
-    <script src="{{ static_url('jqwidgets/jqxscrollbar.js') }}"></script>
-    <script src="{{ static_url('jqwidgets/jqxpanel.js') }}"></script>
-    <script src="{{ static_url('jqwidgets/jqxtree.js') }}"></script>
-    <script src="{{ static_url('jqwidgets/jqxcheckbox.js') }}"></script>
+    <script src="{{ static_url('ztree/js/jquery.ztree.core-3.5.js') }}"></script>
+    <script src="{{ static_url('ztree/js/jquery.ztree.excheck-3.5.js') }}"></script>
+    <script src="{{ static_url('ztree/js/jquery.ztree.exedit-3.5.js') }}"></script>
+
     <!-- 
     CodeMirror 
     -->
@@ -110,8 +165,6 @@
             </div>
         </div>  <!-- .main-view-container -->
         <div class="sticky-footer"> 
-            {% block extra_footer %}
-            {% endblock %}
             <!-- Horizontal splitter between main-view-container and extra footer -->
             <div class="bottom-splitter">
             </div>
@@ -130,3 +183,7 @@
         </div> <!-- sticky-footer -->
     </div><!-- main-container -->
 {% endblock %} <!-- body_container -->
+
+{% block extra_footer %}
+    {{ super() }}
+{% endblock %} <!-- extra_footer -->

@@ -1,6 +1,9 @@
+import logging
 import tornado.web
 import tornado.escape
-import logging
+from tornado import gen
+import motor
+from models.accounts import UserModel
 from settings import jinja_env
 
 logger = logging.getLogger('edtr_logger')
@@ -31,6 +34,14 @@ class BaseHandler(tornado.web.RequestHandler):
     def get_current_user(self):
         expires = self.settings.get('cookie_expires', 31)
         return self.get_secure_cookie('user', max_age_days=expires)
+
+    @gen.engine
+    def get_edtr_current_user(self, callback):
+        username = self.current_user
+        # TODO cache
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
+        callback(user)
 
     def render_async(self, tmpl, context):
         self.render(tmpl, context)

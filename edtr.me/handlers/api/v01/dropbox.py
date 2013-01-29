@@ -1,22 +1,22 @@
-from handlers.base import BaseHandler
 import logging
 import tornado.web
 from tornado import gen
-from models.accounts import UserModel
-from django.utils import simplejson
-from utils.mdb_dropbox.tasks import process_web_sync
 import motor
+from django.utils import simplejson as json
+from handlers.base import BaseHandler
+from models.accounts import UserModel
+from workers.dropbox import DropboxWorkerMixin
 logger = logging.getLogger('edtr_logger')
 
 
-class DropboxHandler(BaseHandler):
+class DropboxHandler(BaseHandler, DropboxWorkerMixin):
     def finish_json_request(self, ret):
         self.set_header("Content-Type",  'application/json')
-        self.write(simplejson.dumps(ret))
+        self.write(json.dumps(ret))
         self.finish()
 
 
-class DropboxGetPath(DropboxHandler):
+class DropboxGetTree(DropboxHandler):
     """Get path metadata from dropbox.
     Save it to database.
     Return path metadata."""
@@ -25,7 +25,14 @@ class DropboxGetPath(DropboxHandler):
     @gen.engine
     @tornado.web.authenticated
     def post(self):
-        self.finish_json_request({'status': 'stub'})
+        path = self.get_argument("path", "/")
+        user = yield gen.Task(self.get_edtr_current_user)
+        path_tree = yield gen.Task(self.dbox_get_tree, user, path)
+
+        self.finish_json_request({
+            'status': 'success',
+            "tree": path_tree,
+        })
 
 
 class UpdateDropboxTree(DropboxHandler):
@@ -40,17 +47,15 @@ class UpdateDropboxTree(DropboxHandler):
 
         username = self.current_user
 
-        result = yield motor.Op(self.db.accounts.find_one, {"username": username})
-        if not result:
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"username": username})
+        if not user:
         # user not found
             self.set_current_user(None)
             self.redirect(self.reverse_url("home"))
             return
 
-        user = UserModel(**result)
-
         # TODO user doesn't have saved token string
         # if not user['token_string']:
-        process_web_sync(user)
         ret['message'] = "<strong>Currently debug stub</strong>"
         self.finish_json_request(ret)

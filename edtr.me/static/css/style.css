@@ -177,6 +177,9 @@ body {
     Internal elements of .main-view-left 
  */
 /* Bottom portion of the sidebar */
+.sidebar-header i {
+    vertical-align:     text-bottom;
+}
 .sidebar-tree {
     position:           absolute;
     bottom:             5px;
@@ -190,24 +193,30 @@ body {
     padding:            4px 0 0 4px;
     margin-bottom:      0;
 }
-#rotate-on-click-li {
+.sync-button-li {
     float:              right;
     margin-right:       4px;
 }
-.rotate-on-click {
+.sync-button {
     cursor:             pointer;
     margin-top:         10px;
     margin-left:        20px;
     border:             none;
 }
 
-.jstree-leaf {
-    line-height:        3em;
+.ztree {
+    /* 
+        border-box includes padding in height
+        that way min-height: 100% will correspond to the correct parent height
+    */
+    -moz-box-sizing:    border-box; /* Firefox */
+    -webkit-box-sizing: border-box; /* Safari */
+    box-sizing:         border-box;
+    background-color:   white;
+    min-height:         100%;
 }
-.tree-node-selected {
-    border-style:       dotted;
-    border-width:       2px;
-    border-color:       #B0C4DE;
+#db_tree_1_a {
+    font-weight:        bold;
 }
 
 
@@ -233,6 +242,7 @@ body {
 }
 #btn_save {
     width:              120px;
+    margin-right:       5px;
 }
 #btn_preview, #btn_publish {
     width:              180px;
@@ -319,7 +329,7 @@ span.CodeMirror-matchhighlight {
 }
 .message-container {
     display:            none;
-    margin:             0;
+    margin:             2px 0;
     padding:            0;
     position:           relative;
     font-size:          13px;
@@ -327,7 +337,8 @@ span.CodeMirror-matchhighlight {
     z-index:            100;
 }
 .message-container .close {
-    right:              1px;
+    right:              2px;
+    top:                0;
 }
 .message-container-text {
     text-align:         center;
@@ -360,21 +371,40 @@ span.CodeMirror-matchhighlight {
 /*
 *   Modal dialogs
 */
-code {
-    font-size:          14px;
+.modal {
+    background-color:   #fafafa;
+    border:             3px solid rgba(0, 0, 0, 0.3);
 }
-.controls {
+.modal-header {
+    padding:            15px 15px 5px;;
+}
+.modal-body {
+    padding:            5px 15px;
+}
+.modal .controls {
     margin-left:        30px;
     margin-right:       30px;
 }
-.radio {
+.modal .radio {
     vertical-align:     text-top;
     margin-left:        30px;
     margin-right:       50px;
     margin-bottom:      10px;
 }
-.modal-heading {
-    margin-bottom:      5px;
+.modal h4 {
+    margin-bottom:      0;
+}
+.modal hr {
+    margin:             15px 0;
+}
+.modal pre {
+    padding:            2px 4px;
+    color:              #d14;
+    background-color:   #f7f7f9;
+    border:             1px solid #e1e1e8;
+    font-size:          13px;
+    max-height:         150px;
+    overflow:           scroll;
 }
 .modal-shifted-code {
     position:           absolute;

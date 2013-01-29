@@ -9,11 +9,19 @@ class FakeHandler(tornado.web.RequestHandler):
         self.write("under construction")
 
 
-class GetDropboxTreeHandler(BaseHandler):
-    """Fake handler for serving dropbox tree to browser
+class RenderTrashHtml(BaseHandler):
+    def get(self, tmpl):
+        if "api_socketio_usage" in tmpl:
+            self.render("example_not_for_production/api_socketio_usage.html")
+        else:
+            self.write("tmpl not found")
+
+
+class GetEditorHandler(BaseHandler):
+    """Fake handler for serving correct web editor code to browser
     """
     def initialize(self, **kwargs):
-        super(GetDropboxTreeHandler, self).initialize(**kwargs)
+        super(GetEditorHandler, self).initialize(**kwargs)
 
     def get(self, *args, **kwargs):
         self.write({

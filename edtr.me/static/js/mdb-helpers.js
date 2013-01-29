@@ -7,6 +7,19 @@ if (typeof String.prototype.startsWith != 'function') {
         return this.slice(0, str.length) == str;
     };
 }
+// adds .format(text) to any string
+// "{0} is dead, but {1} is alive! {0} {2}".format("ASP", "ASP.NET")
+// outputs
+// ASP is dead, but ASP.NET is alive! ASP {2}
+if (typeof String.prototype.format != 'function') {
+    String.prototype.format = function() {
+      var args = arguments;
+      return this.replace(/\{(\d+)\}/g, function(match, number) {
+        return typeof args[number] != 'undefined' ? args[number] : match;
+      });
+    };
+}
+
 // adds element any array
 if (!Array.prototype.push) {
     Array.prototype.push = function(elem) {
