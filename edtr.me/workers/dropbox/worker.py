@@ -44,8 +44,6 @@ class DropboxWorkerMixin(DropboxMixin):
                 logger.debug(
                     "Reseting user all files for '{0}'".format(user.name))
                 yield motor.Op(self.db[user.name].drop)
-            logger.debug("Fetched {0} entries".format(len(dbox_delta['entries'])))
-            logger.debug(dbox_delta)
             for e_path, entry in dbox_delta['entries']:
                 if entry is None:
                     # TODO
@@ -79,8 +77,7 @@ class DropboxWorkerMixin(DropboxMixin):
             for v in cont_type.split(';'):
                 if 'charset=' in v:
                     encoding = v.split('=', 1)[-1]
-                    if encoding in DROPBOX_ENCODE_MAP:
-                        encoding = DROPBOX_ENCODE_MAP[encoding]
+                    encoding = DROPBOX_ENCODE_MAP.get(encoding, encoding)
                     break
         return encoding
 
@@ -98,10 +95,10 @@ class DropboxWorkerMixin(DropboxMixin):
             status = ErrCode.file_is_dir
         # TODO
         # check file_meta.mime_type
-        elif file_meta.thumb_exists:
-            # TODO
-            # probably image
-            status = ErrCode.file_is_image
+        # elif file_meta.thumb_exists:
+        #     # TODO
+        #     # probably image
+        #     status = ErrCode.file_is_image
         else:
             path = self.remove_odd_slash(path)
             api_url = "/1/files/{{root}}{path}".format(path=path)
@@ -109,6 +106,10 @@ class DropboxWorkerMixin(DropboxMixin):
                 "api-content", api_url,
                 access_token=access_token
             )
+            print "__________________"
+            logger.debug(response)
+            logger.debug(response.body)
+            print "__________________"
             if response.code == 404:
                 status = ErrCode.not_found
             else:
