@@ -178,6 +178,16 @@ var edtrTree = {
         edtrTree.ztree.setting.check.enable = !edtrTree.ztree.setting.check.enable;
         edtrTree.ztree.refresh();
     },
+    // Clear checkboxes in tree view and remove clipboard
+    clear_checkboxes:           function() {
+        edtrTree.ztree.checkAllNodes(false);
+        edtrTree.clipped = null;
+        var nodes = edtrTree.ztree.getNodes(), i;
+        for (i=0; i < nodes.length; i++) {
+            $("#"+nodes[i].tId+"_span").css("color", "");
+        }
+    },
+
     //
     // Get all checked nodes and filter them, so that 'remove' can be performed
     // Assumes that getCheckedNodes() returns list ordered by dirs first
@@ -361,6 +371,31 @@ var edtrTree = {
     },
 
     //
+    // Perform requested clipboard action on array of nodes
+    // action:      copy, cut, paste
+    //
+    clipboard:              function(action, nodes) {
+        var k;
+        debugger;
+        switch(action) {
+            case "copy":
+            case "cut":
+                edtrTree.clipped = {
+                    action:     action,
+                    nodes:      nodes
+                };
+                for (k=0; k < nodes.length; k++) {
+                    $("#"+nodes[k].tId+"_span").css("color", "#e0e0e0");
+                }
+                break;
+            case "paste":
+                if (edtrTree.clipped)
+                    console.log(edtrTree.clipped.action, edtrTree.clipped.nodes);
+                break;
+        }
+    },
+
+    //
     // Perform requested file action in ztree:
     //
     // action:          add_file, add_subdir, remove_file, remove_subdir, rename_file, rename_subdir,
@@ -395,13 +430,13 @@ var edtrTree = {
                     edtrTree.ztree.checkAllNodes(false);
                     edtrTree.ztree.selectNode(edtrTree.ztree.getNodes()[0], false);
                     break;
-                case "edit_cut":
+                case "copy":
                     console.log(filename);
                     return;
-                case "edit_copy":
+                case "cut":
                     console.log(filename);
                     return;
-                case "edit_paste":
+                case "paste":
                     console.log(filename);
                     return;
                 default:

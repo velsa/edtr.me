@@ -187,14 +187,14 @@ body {
     right:              4px;
     left:               6px;
     border:             1px solid #ddd;
-    overflow:           scroll;
+    overflow:           auto;
 }
 .form-search {
     padding:            4px 0 0 4px;
     margin-bottom:      0;
 }
 .sync-button-li {
-    float:              right;
+    float:              right !important;
     margin-right:       4px;
 }
 .sync-button {
@@ -404,7 +404,7 @@ span.CodeMirror-matchhighlight {
     border:             1px solid #e1e1e8;
     font-size:          13px;
     max-height:         150px;
-    overflow:           scroll;
+    overflow:           auto;
 }
 .modal-shifted-code {
     position:           absolute;

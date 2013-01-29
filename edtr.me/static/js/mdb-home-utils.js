@@ -295,6 +295,9 @@ var serverComm = {
 
     get_cookie:             function (name) {
         var c = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+        if (!c && name == "_xsrf") {
+            return 'not_found';
+        }
         return c ? c[1] : undefined;
     },
 

@@ -10,9 +10,9 @@ $(document).ready(function() {
     $("#sb_view_multiselect").on("click", function() {
         edtrTree.toggle_checkboxes();
     });
-    // Cleat all checkboxes in tree
+    // Cleat all checkboxes in tree (should also clear clipboard)
     $("#sb_view_clear_select").on("click", function() {
-        edtrTree.ztree.checkAllNodes(false);
+        edtrTree.clear_checkboxes();
     });
 
 
@@ -20,7 +20,7 @@ $(document).ready(function() {
     // Sidebar Actions (Edit)
     //
     // Add New file/subdir
-    $("#sb_edit_add_file, #sb_edit_add_subdir").on("click", function() {
+    $(".sb_add").on("click", function() {
         // Save for callback
         modalDialog.cb = {};
         modalDialog.cb.action   = $(this).data("action");
@@ -47,30 +47,38 @@ $(document).ready(function() {
             edtrTree.expand_node(node, modalDialog.modal_on_callback);
     });
     // Rename/Remove file/subdir
-    $("#sb_edit_rename, #sb_edit_delete").on("click", function() {
+    $(".sb_edit, .sb_clipboard").on("click", function() {
         var action = $(this).data("action");
 
-        // The only action performed in checkbox mode is remove
-        if (edtrTree.is_checkbox_mode() && action === "remove") {
+        // debugger;
+        // Allowed actions for checkbox mode are remove and clipboard operations
+        if (edtrTree.is_checkbox_mode()) {
             var nodes = edtrTree.get_filtered_checked_nodes(),
                 k, html="";
-
             // Perform action on checkboxes only if at least one is checked
             if (nodes.length) {
-                for (k=0; k < nodes.length; k++) {
-                    // console.log(nodes[k].id);
-                    html += nodes[k].id + (nodes[k].isParent? "/\n" : "\n");
-                }
-                modalDialog.cb = {};
-                modalDialog.cb.action   = action + "_checked";
-                modalDialog.cb.header   = html;
-                modalDialog.cb.path     = null;
-                modalDialog.cb.filename = nodes;
+                switch(action) {
+                    case "remove":
+                        for (k=0; k < nodes.length; k++) {
+                            // console.log(nodes[k].id);
+                            html += nodes[k].id + (nodes[k].isParent? "/\n" : "\n");
+                        }
+                        modalDialog.cb = {};
+                        modalDialog.cb.action   = action + "_checked";
+                        modalDialog.cb.header   = html;
+                        modalDialog.cb.path     = null;
+                        modalDialog.cb.filename = nodes;
 
-                modalDialog.modal_on_callback();
-                return;
-            }
-        }
+                        modalDialog.modal_on_callback();
+                        return;
+                    case "copy":
+                    case "cut":
+                    case "paste":
+                        edtrTree.clipboard(action, nodes);
+                        return;
+                }
+            } // if nodes checked
+        } // if in checkbox mode
 
         // Selection mode
         var selected_node = edtrTree.get_selected_node();
@@ -91,6 +99,8 @@ $(document).ready(function() {
         // Always expand the directory we're about to remove
         if (action === "remove" && selected_node.isParent && !selected_node.open)
             edtrTree.expand_node(selected_node, modalDialog.modal_on_callback);
+        else if($.inArray(action, ["copy", "cut", "paste"]) > -1)
+            edtrTree.clipboard(action, [selected_node]);
         else
             modalDialog.modal_on_callback();
     });
