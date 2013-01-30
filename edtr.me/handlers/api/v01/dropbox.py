@@ -44,28 +44,9 @@ class DropboxGetFile(DropboxHandler):
     @tornado.web.authenticated
     def post(self):
         path = self.get_argument("path", None)
-        content = None
         if not path:
-            status = ErrCode.bad_request
+            self.finish_json_request({'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.dbox_get_file, user, path)
-            status = data['status']
-            content = data.get('content', None)
-        self.finish_json_request({
-            'status': status,
-            "content": content,
-        })
-
-
-class UpdateDropboxTree(DropboxHandler):
-    """Sync directories and files from dropbox to server
-    """
-
-    @tornado.web.asynchronous
-    @gen.engine
-    @tornado.web.authenticated
-    def get(self):
-        ret = {'status': ErrCode.unknown_error, 'message': '', 'task_id': '', }
-        ret['message'] = "<strong>Currently debug stub</strong>"
-        self.finish_json_request(ret)
+            self.finish_json_request(data)

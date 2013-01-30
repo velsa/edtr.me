@@ -3,8 +3,7 @@ from tornado.web import url
 
 from handlers.accounts import (LoginHandler, RegisterHandler,
     UserNameAvailabilityHandler, LogoutHandler)
-from handlers.api.v01.dropbox import (
-    UpdateDropboxTree, DropboxGetTree, DropboxGetFile)
+from handlers.api.v01.dropbox import (DropboxGetTree, DropboxGetFile)
 from handlers.fake import FakeHandler, GetEditorHandler, RenderTrashHtml
 from handlers.home import HomeHandler
 
@@ -20,7 +19,6 @@ url_patterns = [
     url(r'/accounts/profile', FakeHandler, name="profile"),  # TODO
     url(r'/accounts/settings', FakeHandler, name="settings"),  # TODO
 
-    url(r'/async/update_db_tree/', UpdateDropboxTree, name="update_db_tree"),  # TODO remove it. Use /api/0.1/dropbox/get_path/
     # ajax api
     url(r'/api/0.1/dropbox/get_tree/', DropboxGetTree, name="dropbox_get_path"),
     url(r'/api/0.1/dropbox/get_file/', DropboxGetFile, name="dropbox_get_file"),

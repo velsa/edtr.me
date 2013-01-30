@@ -89,15 +89,9 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     def get_file(self, path):
         # TODO maybe set common user fields as self.field
         # to not make database call to find user
-        content = None
-        status = ErrCode.bad_request
-        if path:
+        if not path:
+            self.emit_as_json('get_file', {'status': ErrCode.bad_request})
+        else:
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
             result = yield gen.Task(self.dbox_get_file, user, path)
-            status = result['status']
-            content = result.get('content', None)
-        output = {
-            'status': status,
-            'content': content,
-        }
-        self.emit_as_json('get_file', output)
+            self.emit_as_json('get_file', result)

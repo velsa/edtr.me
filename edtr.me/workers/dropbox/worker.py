@@ -1,8 +1,11 @@
 import os.path
+from datetime import datetime
 import logging
 from tornado import gen
 from django.utils import simplejson as json
 import motor
+import pytz
+
 from utils.async_dropbox import DropboxMixin
 from models.dropbox import DropboxFile
 from utils.error import ErrCode
@@ -86,33 +89,42 @@ class DropboxWorkerMixin(DropboxMixin):
         access_token = user.get_dropbox_token()
         file_meta = yield motor.Op(
             DropboxFile.find_one, self.db, {"_id": path}, collection=user.name)
-        # TODO
-        # check, if no file_meta found
-        # check for updates in dropbox
-        status = ErrCode.ok
-        file_content = None
-        if file_meta.is_dir:
-            status = ErrCode.file_is_dir
-        # TODO
-        # check file_meta.mime_type
-        # elif file_meta.thumb_exists:
-        #     # TODO
-        #     # probably image
-        #     status = ErrCode.file_is_image
+        url_trans, url_expires = None, None
+        if not file_meta:
+            # TODO make sync with dropbox and check again
+            callback({'status': ErrCode.not_found})
+            return
+        # check, if saved media url is already saved and not expired
+        expires = file_meta.get_url_expires()
+        now = pytz.UTC.localize(datetime.utcnow())
+        if file_meta.url_trans and expires and expires > now:
+            url_trans = file_meta.url_trans
+            url_expires = file_meta.url_expires
         else:
-            path = self.remove_odd_slash(path)
-            api_url = "/1/files/{{root}}{path}".format(path=path)
+            # make dropbox request
+            api_url = "/1/media/{{root}}{path}".format(path=path)
+            post_args = {}
             response = yield gen.Task(self.dropbox_request,
-                "api-content", api_url,
-                access_token=access_token
-            )
-            print "__________________"
-            logger.debug(response)
-            logger.debug(response.body)
-            print "__________________"
-            if response.code == 404:
-                status = ErrCode.not_found
-            else:
-                encoding = self._get_response_encoding(response)
-                file_content = response.body.decode(encoding)
-        callback({'status': status, 'content': file_content})
+                "api", api_url,
+                access_token=access_token,
+                post_args=post_args)
+            if response.code != 200:
+                error = 'undefined'
+                if 'error' in response.body:
+                    error = json.loads(response.body)['error']
+                callback({
+                    "status": ErrCode.bad_request,
+                    'http_code': response.code,
+                    'error': error,
+                })
+                return
+            dbox_media_url = json.loads(response.body)
+            url_trans = dbox_media_url['url']
+            url_expires = dbox_media_url['expires']
+            file_meta.url_trans = url_trans
+            file_meta.set_url_expires(url_expires)
+            yield motor.Op(file_meta.save, self.db, collection=user.name)
+        callback({
+            'status': ErrCode.ok,
+            'url': url_trans,
+            'expires': url_expires})
