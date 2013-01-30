@@ -23,6 +23,8 @@ class BaseHandler(tornado.web.RequestHandler):
             context = {}
         context.update(self.get_template_namespace())
         self.write(jinja_env.get_template(template).render(context))
+        # Always set _xsrf cookie
+        self.xsrf_token
         self.flush()
 
     def set_current_user(self, user):
