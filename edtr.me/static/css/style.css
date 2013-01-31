@@ -8,6 +8,41 @@ body {
    height:              100%;
 }
 
+/* Add disabled state for items in sidebar
+ */
+.nav  li.disabled {
+  opacity:              0.4;
+  pointer-events:       none;
+}
+.nav li.disabled a:hover {
+  cursor:               default;
+  text-decoration:      none;
+  background-color:     inherit;
+}
+.dropdown-toggle {
+    font-size:          13px;    
+}
+.dropdown-menu label {
+    font-size:          11px;    
+    padding:            2px 5px;
+    line-height:        20px;
+    color:              #333333;
+    white-space:        nowrap;
+}
+.dropdown-menu input {
+    margin-left:        16px;
+    margin-right:       2px;
+    vertical-align:     top;
+}
+.dropdown .shortcut {
+    float:              right;
+    padding-left:       30px;
+}
+.dropdown-menu>.disabled>a:hover, 
+.dropdown-menu>.disabled>a:hover {
+    background-color: transparent;
+}
+
 /*
 *   Navigation bar
 */
@@ -374,6 +409,9 @@ span.CodeMirror-matchhighlight {
 .modal {
     background-color:   #fafafa;
     border:             3px solid rgba(0, 0, 0, 0.3);
+}
+.modal-backdrop {
+    opacity:            0.2;
 }
 .modal-header {
     padding:            15px 15px 5px;;

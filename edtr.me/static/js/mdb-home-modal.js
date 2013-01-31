@@ -23,7 +23,7 @@ var modalDialog = {
             var filename = dom_input.val();
 
             // Empty and unchanged filename is not allowed
-            if (filename === "" || filename === modalDialog.attr.filename)
+            if (filename === "" || filename === edtrTree.modal_params.filename)
                 return false;
 
             // Check for invalid characters in filename
@@ -49,75 +49,96 @@ var modalDialog = {
 
             dom_submit.removeAttr('disabled');
         } else {
-            // Input does not exist: correct filename is the one we received in attr
-            modalDialog.filename_with_correct_ext = modalDialog.attr.filename;
+            // Input does not exist: correct filename is the one we received
+            modalDialog.filename_with_correct_ext = edtrTree.modal_params.filename;
         }
         //console.log("'"+this.filename_with_correct_ext+"'");
 
         return true;
     },
 
-    // Callbacks, which are called by get_server_result()
-    modal_result_success:           function(message) {
-        edtrTree.update_db_tree(false);
-        messagesBar.show_notification(message);
+    // General helpers for modals
+    modal_prepare:                  function(dom_elem) {
+        // Create correct modal dialog
+        modalDialog.dom_container.html(dom_elem.clone());
+        modalDialog.dom_modal = modalDialog.dom_container.find(".modal");
+        modalDialog.callback_arg = {};
+
+        // Check for keys to dismiss dialog
+        // Submission via ENTER and ESCAPE
+        $('body').on("keyup", function(event) {
+            var key = event.which; // recommended to use e.which, it's normalized across browsers
+            if (key == 13 || key == 27) {
+                modalDialog.callback_arg.key = key;
+                modalDialog.modal_close();
+            }
+        });
+
+        modalDialog.dom_modal.on("hidden", function() {
+            // Unbind all events
+            modalDialog.dom_modal.off("hidden");
+            modalDialog.dom_modal.find('.modal-submit-button').off("click");
+            $('body').off("keyup");
+            if (modalDialog.callback)
+                modalDialog.callback(modalDialog.callback_arg);
+        });
+
+        // Form submission
+        modalDialog.dom_modal.find(".modal-submit-button").on("click", function() {
+            modalDialog.callback_arg.button = $(this).attr("id");
+            modalDialog.modal_close();
+        }); // modal-submit-button.click()
     },
-    modal_result_error:             function(message) {
-        messagesBar.show_error(message);
+    // Hide modal
+    modal_close:                    function() {
+        modalDialog.dom_modal.modal("hide");
     },
 
     //
     // Called when user presses ENTER in input field or clicks on submit button
+    // For file dialogs ONLY !
     //
-    on_submit:                      function() {
+    on_file_modal_submit:           function() {
         // For 'remove' dialogs will always return true
         if (modalDialog.check_filename_input()) {
-            // Hide modal and remove event handlers
-            modalDialog.dom_modal.modal('hide');
-            modalDialog.dom_modal.find('.modal-radio').off();
-            modalDialog.dom_modal.find('.modal-filename-input').off();
-            modalDialog.dom_modal.find('.modal-submit-button').off();
-
+            modalDialog.close_file_modal();
             // Call edtrTree to perform requested action
             edtrTree.file_action(
-                modalDialog.action,
-                modalDialog.attr.path,
-                modalDialog.attr.filename,
-                modalDialog.filename_with_correct_ext);
+                // All params that we received stay the same
+                edtrTree.modal_params.action,
+                edtrTree.modal_params.path,
+                edtrTree.modal_params.filename,
+                // This is sanitized user input
+                modalDialog.filename_with_correct_ext,
+                // Ask server to perform this action as well
+                true
+            );
         }
     },
 
-    //
-    // Called via callback (e.g. from edtrTree.on_node_expand)
-    // modalDialog.cb should contain correct values !
-    modal_on_callback:              function() {
-        // Show add/remove/rename file/subdir dialog
-        modalDialog.show_file_modal(modalDialog.cb.action, {
-            header:         modalDialog.cb.header,
-            path:           modalDialog.cb.path,
-            filename:       modalDialog.cb.filename
-        });
+    // Hide modal and remove event handlers
+    close_file_modal:               function() {
+        modalDialog.dom_modal.modal('hide');
     },
-
+    
     //
     // Show File or Directory action dialog (new, rename, delete)
     // They are all VERY similar, so we handle them with one function
     // (sticking with DRY :)
     // Also, server is processing all file/dir operations via the same ajax
     //
-    // attr: {
+    // Can be called via callback (e.g. from edtrTree.on_node_expand)
+    // edtrTree.modal_params should contain correct values !
+    //
+    // edtrTree.modal_params: {
+    //      action              - Action to be performed, should correspond to modal_ name
     //      header              - What should be displayed in dialog header
     //      path                - Full path of dir where file/dir is located
     //      filename            - File/dir name itself, without full path
     // }
-    show_file_modal:                function(action, attr) {
-        // Create correct modal dialog
-        modalDialog.dom_container.html($("#modal_"+action).clone());
-        modalDialog.dom_modal = modalDialog.dom_container.find(".modal");
-
-        // Remember arguments for callback
-        modalDialog.action  = action;
-        modalDialog.attr    = attr;
+    show_file_modal:                function() {
+        var action = edtrTree.modal_params.action;
+        modalDialog.modal_prepare($("#modal_"+action));
 
         // Filename helpers are not available in 'remove' dialogs
         if (action !== "remove_file" && action !== "remove_subdir") {
@@ -145,11 +166,19 @@ var modalDialog = {
                 ("0" + (d.getMonth() + 1)).slice(-2)+"_";
             modalDialog.dom_modal.find('.modal-yearmonth').text(yearmonth);
 
-            // Activate and select input field
-            // Place provided filename as default value
-            modalDialog.dom_modal.on("shown", function() {
-                modalDialog.dom_modal.find(".modal-filename-input").val(modalDialog.attr.filename).focus().select();
+            modalDialog.dom_modal
+            .on("shown", function() {
+                // Activate and select input field
+                // Place provided filename as default value
+                modalDialog.dom_modal.find(".modal-filename-input")
+                    .val(edtrTree.modal_params.filename).focus().select();
                 modalDialog.check_filename_input();
+            })
+            .on("hidden", function() {
+                // Unbind all events
+                modalDialog.dom_modal.find('.modal-radio').off();
+                modalDialog.dom_modal.find('.modal-filename-input').off();
+                modalDialog.dom_modal.find('.modal-submit-button').off();
             });
 
             // Smart presets
@@ -165,39 +194,60 @@ var modalDialog = {
                 var key = event.which; // recommended to use e.which, it's normalized across browsers
                 // Submission via ENTER
                 if (key == 13)
-                    modalDialog.on_submit();
+                    modalDialog.on_file_modal_submit();
                 else
                     modalDialog.check_filename_input();
             });
         }
 
-        // Set dialog file field (<code> element)
-        modalDialog.dom_modal.find('.modal-file-code').text(modalDialog.attr.header);
+        // Set dialog file field (<pre> element)
+        modalDialog.dom_modal.find('.modal-file-code').text(edtrTree.modal_params.header);
 
         // Submission via button
-        modalDialog.dom_modal.find('.modal-submit-button').on("click", modalDialog.on_submit);
+        modalDialog.dom_modal.find('.modal-submit-button').on("click", modalDialog.on_file_modal_submit);
 
         // Show modal
-        modalDialog.dom_modal.modal({backdrop: false});
+        modalDialog.dom_modal.modal({backdrop: true});
+    },
+
+    show_info_modal:                function(action, text, callback) {
+        // Create correct modal dialog
+        modalDialog.modal_prepare($("#modal_"+action));
+        modalDialog.callback = callback;
+
+        // Set dialog code field (<pre> element)
+        modalDialog.dom_modal.find('.modal-text-code').text(text);
+
+        // Show modal
+        modalDialog.dom_modal.modal({backdrop: true});
+
+        // Grab keyboard focus
+        modalDialog.dom_modal.focus();
     },
 
     //
     // Confirmation dialog with one or more buttons
-    // id of clicked button is passed to the callback function
-    // a button should have .modal-submit-button class to receive callback
+    // callback function receives true if ENTER or submit-button was clicked, false otherwise
     //
     show_confirm_modal:             function(action, callback) {
         // Load modal HTML into placeholder
-        modalDialog.dom_container.html($("#modal_"+action).clone());
-        modalDialog.dom_modal = modalDialog.dom_container.find(".modal");
-
-        // Form submission
-        modalDialog.dom_modal.find('.modal-submit-button').on("click", function() {
-            modalDialog.dom_modal.modal('hide');
-            callback($(this).attr("id"));
-        }); // modal-submit-button.click()
+        modalDialog.modal_prepare($("#modal_"+action));
+        modalDialog.callback = callback;
 
         // Show modal
-        modalDialog.dom_modal.modal({backdrop: false});
+        modalDialog.dom_modal.modal({backdrop: true, keyboard: true});
+
+        // Grab keyboard focus
+        modalDialog.dom_modal.focus();
     }
+
+    // Callbacks, which are called by get_server_result()
+    // modal_result_success:           function(message) {
+    //     edtrTree.update_db_tree(false);
+    //     messagesBar.show_notification(message);
+    // },
+    // modal_result_error:             function(message) {
+    //     messagesBar.show_error(message);
+    // },
+
 };

@@ -99,6 +99,105 @@ var edtrTree = {
 
         // Notify user about new and updated files
         // edtrTree.blink_changes_in_tree(eval(data.changes_list));
+        
+        var shiftKey = 16, ctrlKey = 17, altKey = 18, metaKey = 91,
+            leftKey = 37, upKey = 38, rightKey = 39, downKey = 40,
+            spaceKey = 20, enterKey = 13,
+            aKey = 65, shift = 'a'.charCodeAt(0)-aKey, key_char;
+        edtrTree.dom_db_tree.keydown(function(e) {
+            // console.log(e);
+            // debugger;
+            switch (e.keyCode) {
+                case metaKey:       e.stopPropagation(); return;
+                case leftKey:       key_char = "left"; e.preventDefault(); break;
+                case upKey:         key_char = "up"; e.preventDefault(); break;
+                case rightKey:      key_char = "right"; e.preventDefault(); break;
+                case downKey:       key_char = "down"; e.preventDefault(); break;
+                default:
+                    key_char = String.fromCharCode(e.keyCode+shift); break;
+                    // return;
+            }
+            edtrTree.process_key(e, key_char);
+        }).keyup(function(e) {
+            // console.log(e);
+            switch (e.keyCode) {
+                case spaceKey:      key_char = "space"; e.stopPropagation(); break;
+                case enterKey:      key_char = "enter"; e.stopPropagation(); break;
+                default:
+                    // key_char = String.fromCharCode(e.keyCode+shift); break;
+                    return;
+            }
+            edtrTree.process_key(e, key_char);
+        });
+
+        // Select root node
+        edtrTree.ztree.selectNode(edtrTree.get_selected_node());
+    }, // init()
+
+    process_key:    function(e, key_char) {
+        //
+        // Process key event and do appropriate action
+        //
+        // Hotkeys for tree (Ctrl/Meta+X/C/V)
+        var shortcuts = [ {
+                keys:       [ "Left", "Up", "Right", "Down" ],
+                action:     edtrTree.move_selection,
+                args:       []
+            }, {
+                keys:       [ "Space" ],
+                action:     edtrTree.show_node_info,
+                args:       []
+            }, {
+                keys:       [ "Enter" ],
+                action:     edtrTree.on_double_click,
+                args:       [ null, null, true ]
+            }, {
+                keys:       [ "Alt-T" ],
+                action:     edtrTree.toggle_checkboxes,
+                args:       [ false ]
+            }, {
+                keys:       [ "Ctrl-X", "Meta-X" ],
+                action:     edtrTree.node_action,
+                args:       [ "cut" ]
+            }, {
+                keys:       [ "Ctrl-C", "Meta-C" ],
+                action:     edtrTree.node_action,
+                args:       [ "copy" ]
+            }, {
+                keys:       [ "Ctrl-V", "Meta-V" ],
+                action:     edtrTree.smart_paste,
+                args:       []
+            }
+        ],
+        i, k, shortcut_parts,
+        key_mods =  (e.shiftKey << 0) +
+                    (e.ctrlKey  << 1) +
+                    (e.altKey   << 2) +
+                    (e.metaKey  << 3);
+        for (i = 0; i < shortcuts.length; i++) {
+            for (k = 0; k < shortcuts[i].keys.length; k++) {
+                shortcut_parts = shortcuts[i].keys[k].toLowerCase().split('-');
+                shortcut_mods = {
+                    shift:      0,
+                    ctrl:       0,
+                    alt:        0,
+                    meta:       0
+                };
+                for (l=0; l < shortcut_parts.length-1; l++)
+                    shortcut_mods[shortcut_parts[l]] = 1;
+                shortcut_bits = (shortcut_mods['shift'] << 0) +
+                                (shortcut_mods['ctrl']  << 1) +
+                                (shortcut_mods['alt']   << 2) +
+                                (shortcut_mods['meta']  << 3);
+                if (shortcut_bits === key_mods &&
+                    key_char === shortcut_parts[shortcut_parts.length-1]) {
+                        // console.log("matched", shortcuts[i].keys[k]);
+                        shortcuts[i].action.apply(undefined, // value for this
+                            shortcuts[i].args.concat(shortcuts[i].keys[k]));
+                        return;
+                    }
+            }
+        }
     },
 
     // Move node to alphabetical position within parent
@@ -154,16 +253,6 @@ var edtrTree = {
         return edtrTree.sort_nodes(nodes);
     },
 
-    // Callbacks, which are called by get_server_result()
-    db_tree_update_success: function(message) {
-        messagesBar.show_notification(message);
-        edtrTree.show_db_tree();
-    },
-    db_tree_update_failed:  function(message) {
-        syncIcon.stop_sync_rotation();
-        messagesBar.show_notification(message);
-    },
-
     // Wrappers
     is_checkbox_mode:           function() { return edtrTree.ztree.setting.check.enable; },
 
@@ -173,19 +262,76 @@ var edtrTree = {
         var selected = edtrTree.ztree.getSelectedNodes();
         return selected.length? selected[0] : edtrTree.ztree.getNodes()[0];
     },
-    // Show/hide checkboxes in tree view
-    toggle_checkboxes:         function() {
-        edtrTree.ztree.setting.check.enable = !edtrTree.ztree.setting.check.enable;
-        edtrTree.ztree.refresh();
+    // Keyboard movement
+    // direction: Left, Up, Right, Down
+    move_selection:             function(direction) {
+        var selected = edtrTree.get_selected_node();
+        switch(direction.toLowerCase()) {
+            case "left":
+                if (selected.isParent && selected.open)
+                    edtrTree.ztree.expandNode(selected, false);
+                else
+                    edtrTree.ztree.selectNode(selected.getParentNode());
+                break;
+            case "up":
+                var pre_node = selected.getPreNode();
+                if (!pre_node)
+                    pre_node = selected.getParentNode();
+                else if (pre_node.isParent && pre_node.open &&
+                    pre_node.children.length)
+                    pre_node = pre_node.children[pre_node.children.length-1];
+                if (pre_node)
+                    edtrTree.ztree.selectNode(pre_node);
+                break;
+            case "right":
+                if (selected.isParent && !selected.open)
+                    edtrTree.ztree.expandNode(selected, true);
+                break;
+            case "down":
+                var next_node;
+                if (selected.isParent && selected.open &&
+                    selected.children.length)
+                    next_node = selected.children[0];
+                else {
+                    next_node = selected.getNextNode();
+                    if (!next_node)
+                        next_node = selected.getParentNode().getNextNode();
+                }
+                if (next_node)
+                    edtrTree.ztree.selectNode(next_node);
+                break;
+        }
+        // Restore keyboard focus
+        edtrTree.dom_db_tree.focus();
     },
-    // Clear checkboxes in tree view and remove clipboard
+
+    // Show/hide checkboxes in tree view
+    toggle_checkboxes:         function(is_mouse_click) {
+        // Also update menu items
+        if (!is_mouse_click)
+            $("#sb_view_multiselect").prop("checked", !$("#sb_view_multiselect").prop("checked"));
+        if (edtrTree.is_checkbox_mode())
+            $("#sb_view_clear_checkboxes").parent().removeClass("disabled");
+        else
+            $("#sb_view_clear_checkboxes").parent().addClass("disabled");
+        console.log(is_mouse_click);
+        edtrTree.ztree.setting.check.enable = !edtrTree.ztree.setting.check.enable;
+        edtrTree.clear_clipboard();
+        // Remember selected node to restore it after refresh
+        var selected = edtrTree.ztree.getSelectedNodes()[0];
+        edtrTree.ztree.refresh();
+        if (selected)
+            // We search selected node by param because tree structure has changed and
+            // 'selected' is not valid anymore
+            edtrTree.ztree.selectNode(edtrTree.ztree.getNodesByParam("id", selected.id)[0]);
+        else
+            edtrTree.ztree.selectNode(edtrTree.ztree.getNodes()[0]);
+        // Restore keyboard focus
+        edtrTree.dom_db_tree.focus();
+    },
+    // Clear checkboxes in tree view
     clear_checkboxes:           function() {
         edtrTree.ztree.checkAllNodes(false);
-        edtrTree.clipped = null;
-        var nodes = edtrTree.ztree.getNodes(), i;
-        for (i=0; i < nodes.length; i++) {
-            $("#"+nodes[i].tId+"_span").css("color", "");
-        }
     },
 
     //
@@ -221,65 +367,11 @@ var edtrTree = {
         return filtered_nodes;
     },
 
-    // Retrieve new dropbox tree structure from from server
-    // and update #db_tree element
-    update_db_tree:         function(hide_tree) {
-        syncIcon.start_sync_rotation();
-
-        // Reset TreeView cookies (we use them as global vars)
-        $.cookie('mdb_preview_url', ""); // url, opened when Preview button is clicked
-        $.cookie('mdb_current_dbpath', "/"); // selected item
-        $.cookie('mdb_current_is_folder', "true"); // true if dir selected
-        $.cookie('mdb_current_dir_dbpath', "/"); // parent dir of selected item
-        $.cookie('mdb_is_treeview_selected', "false"); // true if user clicked on treeview item
-
-        // Disallow some file/dir actions until first click
-        $("#action_delete, #action_rename").css('cursor', 'no-drop');
-
-        // Show text while updating
-        if (hide_tree) {
-            edtrTree.dom_db_tree.html("<br/><h4 style='text-align: center; background: white'>Syncing with Dropbox...</h4>");
-        }
-        // Get new data from server
-        $.get('/async/update_db_tree/', function(data) {
-            if (data.status != 'success') {
-                syncIcon.stop_sync_rotation();
-                messagesBar.show_error(data.message);
-                return false;
-            }
-            // Wait for result from server
-            serverComm.get_server_result(data.task_id,
-                edtrTree.db_tree_update_success, edtrTree.db_tree_update_failed);
-        });
-    },
-
-    // Helper to highlight given db_path
-    highlight_db_tree_item_by_db_path:  function(db_path) {
-        $('.file').each(function() {
-            if ($(this).data("dbpath") == db_path) {
-                edtrTree.highlight_db_tree_item($(this));
-            }
-        });
-    },
-
-    // Helper to highlight given DOM element
-    highlight_db_tree_item:             function(elem) {
-        // Remove selection from all items in TreeView
-        $('.file, .folder')
-            .removeAttr("style")
-            .css({'background-color': 'white', 'border':'none'});
-            //.removeClass('tree-node-selected');
-        // And mark only clicked item in TreeView as selected
-        elem
-            .removeAttr("style")
-            .css({'background-color': '#eee', 'border':'1px solid darkgrey'});
-        //elem.addClass('tree-node-selected');
-    },
-
     //
     // Called by zTree on mouse click
     //
     on_click:               function(e, ztree, node, flag) {
+        edtrTree.dom_db_tree.focus();
         // Alt-Click inserts path to clicked node into editor
         if (e && e.altKey) {
             if (edtrTree.editor && !edtrTree.editor.is_hidden) {
@@ -290,7 +382,7 @@ var edtrTree = {
     },
 
     //
-    // Called by zTree on mouse click
+    // Called by zTree on mouse double click
     //
     on_double_click:        function(e, ztree, node, flag) {
         // Doubleclick was not on node - ignore
@@ -370,28 +462,190 @@ var edtrTree = {
         edtrTree.ztree.expandNode(node, true, false, true, true);
     },
 
+
+    //
+    // File / Directory operations with modal dialogs
+    //
+    add_node_via_modal:     function(action) {
+        // Save for callback
+        edtrTree.modal_params = {};
+        edtrTree.modal_params.action   = action;
+        edtrTree.modal_params.filename = "";
+
+        var selected_node = edtrTree.get_selected_node(),
+            node = null;
+        // Always expand the directory we're about to add to
+        if (selected_node.isParent) {
+            edtrTree.modal_params.header   = selected_node.id;
+            edtrTree.modal_params.path     = edtrTree.modal_params.header;
+            // Dir is selected - use it as root
+            node = selected_node;
+        } else {
+            // File is selected - use it's dir (obviously, node is already expanded)
+            edtrTree.modal_params.header   = selected_node.getParentNode().id;
+            edtrTree.modal_params.path     = edtrTree.modal_params.header;
+        }
+        // If node is already expanded - launch modal
+        if (!node || node.open)
+            modalDialog.show_file_modal();
+        else
+            // Expand node and only then launch modal
+            edtrTree.expand_node(node, modalDialog.show_file_modal);
+    },
+
+    // User requested action
+    // We may need to display confirmation dialog
+    // We store all dialog params in edtrTree.modal_params
+    // And modal uses it to display correct dialog and data
+    //
+    // action:      add_file, add_subdir, rename, remove, copy, cut, paste
+    //
+    node_action:            function(action) {
+        // Allowed actions for checkbox mode are: remove and clipboard operations
+        if (edtrTree.is_checkbox_mode()) {
+            var nodes = edtrTree.get_filtered_checked_nodes(),
+                i, text="";
+            // Perform action on checkboxes only if at least one is checked
+            if (nodes.length) {
+                switch(action) {
+                    case "remove":
+                        for (i=0; i < nodes.length; i++)
+                            text += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
+                        edtrTree.modal_params = {};
+                        edtrTree.modal_params.action   = action + "_checked";
+                        edtrTree.modal_params.header   = text;
+                        edtrTree.modal_params.path     = null;
+                        edtrTree.modal_params.filename = nodes;
+                        modalDialog.show_file_modal();
+                        return;
+                    case "copy":
+                    case "cut":
+                        edtrTree.clipboard_action(action, nodes);
+                        return;
+                }
+            } // if nodes checked
+        } // if in checkbox mode
+
+        // Paste works on root, so we process it first
+        if (action === "paste") {
+            edtrTree.smart_paste();
+            return;
+        }
+        
+        // Selection mode
+        var selected_node = edtrTree.get_selected_node();
+
+        // Ignore operations on root
+        if (selected_node.id === '/') {
+            messagesBar.show_notification_warning("Will not "+action+" root folder.");
+            return;
+        }
+
+        // Save for callback
+        edtrTree.modal_params = {};
+        edtrTree.modal_params.action   = action + (selected_node.isParent ? "_subdir" : "_file");
+        edtrTree.modal_params.header   = action === "remove" ? selected_node.id : selected_node.name;
+        edtrTree.modal_params.path     = selected_node.getParentNode().id;
+        edtrTree.modal_params.filename = selected_node.name;
+
+        // Always expand the directory we're about to remove
+        if (action === "remove" && selected_node.isParent && !selected_node.open)
+            edtrTree.expand_node(selected_node, modalDialog.show_file_modal);
+        else if($.inArray(action, ["copy", "cut"]) > -1)
+            edtrTree.clipboard_action(action, [selected_node]);
+        else
+            modalDialog.show_file_modal();
+    },
+
+    // Remove clipboard and clear tree highlighting set by clipboard()
+    clear_clipboard:           function() {
+        // debugger;
+        if (edtrTree.clipped) {
+            edtrTree.clipped = null;
+            // Gets ALL ztree nodes
+            var nodes = edtrTree.ztree.getNodesByFilter(function() {return true;}), i;
+            for (i=0; i < nodes.length; i++) {
+                $("#"+nodes[i].tId+"_span").css("color", "");
+            }
+        }
+    },
+    // Show modal with clipboard contents
+    show_clipboard:             function(modal_id) {
+        var nodes, i, text="";
+        if (edtrTree.clipped) {
+            nodes = edtrTree.clipped.nodes;
+            for (i=0; i < nodes.length; i++) {
+                text += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
+            }
+        } else {
+            text = "You don't have clipped files.";
+        }
+        modalDialog.show_info_modal(modal_id, text);
+    },
+
     //
     // Perform requested clipboard action on array of nodes
-    // action:      copy, cut, paste
+    // action:      copy, cut
     //
-    clipboard:              function(action, nodes) {
-        var k;
-        debugger;
-        switch(action) {
-            case "copy":
-            case "cut":
-                edtrTree.clipped = {
-                    action:     action,
-                    nodes:      nodes
-                };
-                for (k=0; k < nodes.length; k++) {
-                    $("#"+nodes[k].tId+"_span").css("color", "#e0e0e0");
-                }
-                break;
-            case "paste":
-                if (edtrTree.clipped)
-                    console.log(edtrTree.clipped.action, edtrTree.clipped.nodes);
-                break;
+    clipboard_action:           function(action, nodes) {
+        edtrTree.clear_clipboard();
+        edtrTree.clipped = {
+            action:     action,
+            nodes:      nodes,
+            paste_node: null
+        };
+        var i, color = action === "copy"? "blue" : "lightblue";
+        for (i=0; i < nodes.length; i++) {
+            $("#"+nodes[i].tId+"_span").css("color", color);
+        }
+    },
+    //
+    // Perform paste. We do it in two steps:
+    // First, paste_node is set and then paste() is be called
+    // this allows using paste() as callback for edtrTree.expand_node()
+    //
+    smart_paste:            function() {
+        if (!edtrTree.clipped) {
+            messagesBar.show_notification_warning("Nothing to paste. Clipboard is empty.");
+            return;
+        }
+
+        // Adjust selection to parent folder
+        var node = edtrTree.get_selected_node();
+        if (!node.isParent)
+            node = node.getParentNode();
+        if (!edtrTree.set_paste_node(node)) {
+            messagesBar.show_notification_warning("Can't paste clipboard into <strong>"+
+                node.id+"</strong>");
+            return;
+        } else {
+            // Open folder (if needed) and paste into it
+            if (!node.open)
+                edtrTree.expand_node(node, edtrTree.paste);
+            else
+                edtrTree.paste();
+            return;
+        }
+    },
+    set_paste_node:         function(node) {
+        // If we don't have a clipboard or paste is not into folder - break out
+        if (!edtrTree.clipped || !node.isParent)
+            return false;
+        // We shouldn't paste into ourselves or into the same parent
+        for (var i=0; i < edtrTree.clipped.nodes.length; i++)
+            if (edtrTree.clipped.nodes[i].id === node.id ||
+                edtrTree.clipped.nodes[i].getParentNode().id === node.id)
+                return false;
+        edtrTree.clipped.paste_node = node;
+        return true;
+    },
+    paste:                  function() {
+        if (edtrTree.clipped) {
+            console.log("paste", edtrTree.clipped.nodes, "to",
+                edtrTree.clipped.paste_node, "via", edtrTree.clipped.action);
+            edtrTree.clear_clipboard();
+            // Restore keyboard focus
+            edtrTree.dom_db_tree.focus();
         }
     },
 
@@ -400,7 +654,7 @@ var edtrTree = {
     //
     // action:          add_file, add_subdir, remove_file, remove_subdir, rename_file, rename_subdir,
     //                  remove_checked
-    // path:            path to filename
+    // path:            path to directory where filename resides
     // filename:        file name to perform action on
     // filename_new:    file name to rename to (if action is rename)
     // need_server_action:
@@ -501,64 +755,21 @@ var edtrTree = {
         return;
         // Request file contents from server
         // TODO: get direct link to dropbox from server and fetch file
-        $.post('/async/do_dropbox/', {
-                action:     action,
-                path:       path,
-                filename:   filename
-            }, function(data) {
-                if (data['status'] != 'success') {
-                    messagesBar.show_error(data['message']);
-                } else {
-                    // Wait for result from server
-                    serverComm.get_server_result(data.task_id,
-                        modal_result_success, modal_result_error);
-                }
-            }).error(function(data) {
-                messagesBar.show_error("Can't communicate with server ! Please refresh the page.");
-            });
-    },
-
-    db_tree_select:         function(elem) {
-        // First - set correct highlight
-        edtrTree.highlight_db_tree_item(elem);
-
-        // Save cookies for other JS methods
-        $.cookie('mdb_source_url', elem.data("src"));
-        $.cookie('mdb_preview_url', elem.data("html"));
-        $.cookie('mdb_current_dbpath', elem.data("dbpath"));
-        $.cookie('mdb_is_treeview_selected', "true");
-
-        // Allow file/dir actions in menu
-        $("#action_delete, #action_rename").css('cursor', 'pointer');
-
-        if (elem.hasClass('folder')) {
-            // This is a DIR !
-            // TODO: open folder settings pane
-
-            // We add trailing slash to make dir look nicer in dialogs
-            $.cookie('mdb_current_dir_dbpath', elem.data("dbpath")+"/");
-            $.cookie('mdb_current_is_folder', "true");
-        } else {
-            // This is a FILE !
-            // Calculate dropbox directory for it
-            var path;
-            var parts=$.cookie('mdb_current_dbpath').split("/");
-            parts[parts.length-1]="";
-            path = parts.join("/");
-            if (path === "") path = "/";
-            $.cookie('mdb_current_dir_dbpath', path);
-            $.cookie('mdb_current_is_folder', "false");
-            // Check extension
-            var ext = edtrHelper.get_filename_ext($.cookie('mdb_current_dbpath')).toLowerCase();
-            if ($.inArray(ext, editable_exts) > -1) {
-                edtrTree.open_editor();
-            } else if ($.inArray(ext, image_exts) > -1) {
-                edtrTree.show_img_gallery();
-            } else {
-                edtrTree.editor.hide_codemirror();
-            }
-        }
-        //return false;
+        // $.post('/async/do_dropbox/', {
+        //         action:     action,
+        //         path:       path,
+        //         filename:   filename
+        //     }, function(data) {
+        //         if (data['status'] != 'success') {
+        //             messagesBar.show_error(data['message']);
+        //         } else {
+        //             // Wait for result from server
+        //             serverComm.get_server_result(data.task_id,
+        //                 modal_result_success, modal_result_error);
+        //         }
+        //     }).error(function(data) {
+        //         messagesBar.show_error("Can't communicate with server ! Please refresh the page.");
+        //     });
     },
 
     //
@@ -613,66 +824,177 @@ var edtrTree = {
         ).error(function(data) {
                 messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
             });
-    },
+    }
+
+
+
+    // // Callbacks, which are called by get_server_result()
+    // db_tree_update_success: function(message) {
+    //     messagesBar.show_notification(message);
+    //     edtrTree.show_db_tree();
+    // },
+    // db_tree_update_failed:  function(message) {
+    //     syncIcon.stop_sync_rotation();
+    //     messagesBar.show_notification(message);
+    // },
+
+
+    // db_tree_select:         function(elem) {
+    //     // First - set correct highlight
+    //     edtrTree.highlight_db_tree_item(elem);
+
+    //     // Save cookies for other JS methods
+    //     $.cookie('mdb_source_url', elem.data("src"));
+    //     $.cookie('mdb_preview_url', elem.data("html"));
+    //     $.cookie('mdb_current_dbpath', elem.data("dbpath"));
+    //     $.cookie('mdb_is_treeview_selected', "true");
+
+    //     // Allow file/dir actions in menu
+    //     $("#action_delete, #action_rename").css('cursor', 'pointer');
+
+    //     if (elem.hasClass('folder')) {
+    //         // This is a DIR !
+    //         // TODO: open folder settings pane
+
+    //         // We add trailing slash to make dir look nicer in dialogs
+    //         $.cookie('mdb_current_dir_dbpath', elem.data("dbpath")+"/");
+    //         $.cookie('mdb_current_is_folder', "true");
+    //     } else {
+    //         // This is a FILE !
+    //         // Calculate dropbox directory for it
+    //         var path;
+    //         var parts=$.cookie('mdb_current_dbpath').split("/");
+    //         parts[parts.length-1]="";
+    //         path = parts.join("/");
+    //         if (path === "") path = "/";
+    //         $.cookie('mdb_current_dir_dbpath', path);
+    //         $.cookie('mdb_current_is_folder', "false");
+    //         // Check extension
+    //         var ext = edtrHelper.get_filename_ext($.cookie('mdb_current_dbpath')).toLowerCase();
+    //         if ($.inArray(ext, editable_exts) > -1) {
+    //             edtrTree.open_editor();
+    //         } else if ($.inArray(ext, image_exts) > -1) {
+    //             edtrTree.show_img_gallery();
+    //         } else {
+    //             edtrTree.editor.hide_codemirror();
+    //         }
+    //     }
+    //     //return false;
+    // },
 
     //
     // Open jQuery carousel with clicked image as active
     //
-    show_img_gallery:       function() {
-        // Load images carousel (all images from current dir)
-        $.post("/get_content_div/", {
-            content_type: 'img_gallery',
-            db_path: $.cookie('mdb_current_dbpath'),
-            is_folder: $.cookie('mdb_current_is_folder'),
-            dir_path: $.cookie('mdb_current_dir_dbpath')
-        }, function(data) {
-            if (data.status != 'success') {
-                messagesBar.show_error(data.message);
-            } else {
-                $('#content_area').html(data.html);
-                // Every time image slides
-                $('#img_carousel').on('slid', function() {
-                    // We update the selection in tree view
-                    var db_path = $('.carousel .active').data("dbpath");
-                    edtrTree.highlight_db_tree_item_by_db_path(db_path);
-                });
-            }
-        }).error(function(data) {
-                messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
-            });
-    },
+    // show_img_gallery:       function() {
+    //     // Load images carousel (all images from current dir)
+    //     $.post("/get_content_div/", {
+    //         content_type: 'img_gallery',
+    //         db_path: $.cookie('mdb_current_dbpath'),
+    //         is_folder: $.cookie('mdb_current_is_folder'),
+    //         dir_path: $.cookie('mdb_current_dir_dbpath')
+    //     }, function(data) {
+    //         if (data.status != 'success') {
+    //             messagesBar.show_error(data.message);
+    //         } else {
+    //             $('#content_area').html(data.html);
+    //             // Every time image slides
+    //             $('#img_carousel').on('slid', function() {
+    //                 // We update the selection in tree view
+    //                 var db_path = $('.carousel .active').data("dbpath");
+    //                 edtrTree.highlight_db_tree_item_by_db_path(db_path);
+    //             });
+    //         }
+    //     }).error(function(data) {
+    //             messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
+    //         });
+    // },
+
+    // Retrieve new dropbox tree structure from from server
+    // and update #db_tree element
+    // update_db_tree:         function(hide_tree) {
+    //     syncIcon.start_sync_rotation();
+
+    //     // Reset TreeView cookies (we use them as global vars)
+    //     $.cookie('mdb_preview_url', ""); // url, opened when Preview button is clicked
+    //     $.cookie('mdb_current_dbpath', "/"); // selected item
+    //     $.cookie('mdb_current_is_folder', "true"); // true if dir selected
+    //     $.cookie('mdb_current_dir_dbpath', "/"); // parent dir of selected item
+    //     $.cookie('mdb_is_treeview_selected', "false"); // true if user clicked on treeview item
+
+    //     // Disallow some file/dir actions until first click
+    //     $("#action_delete, #action_rename").css('cursor', 'no-drop');
+
+    //     // Show text while updating
+    //     if (hide_tree) {
+    //         edtrTree.dom_db_tree.html("<br/><h4 style='text-align: center; background: white'>Syncing with Dropbox...</h4>");
+    //     }
+    //     // Get new data from server
+    //     $.get('/async/update_db_tree/', function(data) {
+    //         if (data.status != 'success') {
+    //             syncIcon.stop_sync_rotation();
+    //             messagesBar.show_error(data.message);
+    //             return false;
+    //         }
+    //         // Wait for result from server
+    //         serverComm.get_server_result(data.task_id,
+    //             edtrTree.db_tree_update_success, edtrTree.db_tree_update_failed);
+    //     });
+    // },
+
+    // Helper to highlight given db_path
+    // highlight_db_tree_item_by_db_path:  function(db_path) {
+    //     $('.file').each(function() {
+    //         if ($(this).data("dbpath") == db_path) {
+    //             edtrTree.highlight_db_tree_item($(this));
+    //         }
+    //     });
+    // },
+
+    // Helper to highlight given DOM element
+    // highlight_db_tree_item:             function(elem) {
+    //     // Remove selection from all items in TreeView
+    //     $('.file, .folder')
+    //         .removeAttr("style")
+    //         .css({'background-color': 'white', 'border':'none'});
+    //         //.removeClass('tree-node-selected');
+    //     // And mark only clicked item in TreeView as selected
+    //     elem
+    //         .removeAttr("style")
+    //         .css({'background-color': '#eee', 'border':'1px solid darkgrey'});
+    //     //elem.addClass('tree-node-selected');
+    // },
 
     //
     // Nice animation to highlight changed files
     //
-    blink_changes_in_tree: function(changes_list) {
-        // Blink changed files and dirs
-        var it1 = { opacity: 0.3 };
-        var it2 = { opacity: 1 };
-        var dur = 400;
-        var isEven = function(num){ return (num%2 === 0) ? true : false; };
-        var iter_anim = function(elem, i) {
-            if (i !== 0) {
-                if (isEven(i)) {
-                    elem.animate(it1, dur, iter_anim(elem, i-1));
-                    elem.addClass("hover");
-                }
-                else {
-                    elem.removeClass("hover");
-                    elem.animate(it2, dur, iter_anim(elem, i-1));
-                }
-            } else {
-                //alert(i);
-                elem.removeClass("hover");
-                elem.css({'font-weight': "normal", 'background-color': "white" });
-            }
-        };
-        if (changes_list) {
-            for (var i=0; i < changes_list.length; i++) {
-                iter_anim($('span[data-dbpath="'+changes_list[i]+'"]'), 5);
-            }
-        }
-        //$(this).css({'font-weight': "bold", 'background-color': "#eb9fb9" });
-        //iter_anim($('span[data-dbpath="/t.md"]'), 5);
-    }
+    // blink_changes_in_tree: function(changes_list) {
+    //     // Blink changed files and dirs
+    //     var it1 = { opacity: 0.3 };
+    //     var it2 = { opacity: 1 };
+    //     var dur = 400;
+    //     var isEven = function(num){ return (num%2 === 0) ? true : false; };
+    //     var iter_anim = function(elem, i) {
+    //         if (i !== 0) {
+    //             if (isEven(i)) {
+    //                 elem.animate(it1, dur, iter_anim(elem, i-1));
+    //                 elem.addClass("hover");
+    //             }
+    //             else {
+    //                 elem.removeClass("hover");
+    //                 elem.animate(it2, dur, iter_anim(elem, i-1));
+    //             }
+    //         } else {
+    //             //alert(i);
+    //             elem.removeClass("hover");
+    //             elem.css({'font-weight': "normal", 'background-color': "white" });
+    //         }
+    //     };
+    //     if (changes_list) {
+    //         for (var i=0; i < changes_list.length; i++) {
+    //             iter_anim($('span[data-dbpath="'+changes_list[i]+'"]'), 5);
+    //         }
+    //     }
+    //     //$(this).css({'font-weight': "bold", 'background-color': "#eb9fb9" });
+    //     //iter_anim($('span[data-dbpath="/t.md"]'), 5);
+    // }
 };

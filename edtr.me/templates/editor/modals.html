@@ -242,9 +242,26 @@
 </div>
 
 <!--
+    Show clipped files
+-->
+<div id="modal_show_clipboard" class="modal hide">
+    <div class="modal-header">
+        <a class="close" data-dismiss="modal">×</a>
+        <h3>Clipped files:</h3>
+    </div>
+    <div class="modal-body">
+        <h4>The following items have been clipped:</h4>
+        <p><pre class="modal-text-code"></pre></p>
+    </div>
+    <div class="modal-footer">
+        <a href="#" class="btn btn-success modal-submit-button">Got it !</a>
+    </div>
+</div>
+
+<!--
     Save, Continue Editing or Discard changes
 -->
-<div id="modal_save_continue_lose" class="modal hide">
+<div id="modal_save_continue_lose" class="modal hide" tabindex="0">
     <div class="modal-header">
         <a class="close" data-dismiss="modal">×</a>
         <h3>You have unsaved changes !</h3>
