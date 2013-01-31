@@ -18,7 +18,7 @@ DROPBOX_ENCODE_MAP = {
     'ISO-8859-8': 'cp1251',
 }
 MAX_META_PER_CALL = 250
-DELTA_PERIOD_SEC = 10
+DELTA_PERIOD_SEC = 5
 
 
 class DropboxWorkerMixin(DropboxMixin):
@@ -35,50 +35,56 @@ class DropboxWorkerMixin(DropboxMixin):
         return False
 
     @gen.engine
+    def _update_delta_from_dropbox(self, user, callback):
+        # Get delta metadata from dropbox
+        access_token = user.get_dropbox_token()
+        post_args = {}
+        if user.dbox_cursor:
+            post_args['cursor'] = user.dbox_cursor
+        has_more = True
+        cursor = None
+        while has_more:
+            user.last_delta = datetime.now()
+            response = yield gen.Task(self.dropbox_request,
+                "api", "/1/delta",
+                access_token=access_token,
+                post_args=post_args)
+            if self._check_bad_response(response, callback):
+                return
+            dbox_delta = json.loads(response.body)
+            has_more = dbox_delta['has_more']
+            cursor = dbox_delta['cursor']
+            if dbox_delta['reset']:
+                logger.debug(
+                    "Reseting user all files for '{0}'".format(user.name))
+                yield motor.Op(self.db[user.name].drop)
+            for e_path, entry in dbox_delta['entries']:
+                if entry is None:
+                    # TODO
+                    # maybe there is a way to delete files in one db call
+                    yield motor.Op(
+                        DropboxFile.remove_entries, self.db,
+                        {"_id": e_path}, collection=user.name)
+                else:
+                    entry['_id'] = entry.pop('path')
+                    entry['root_path'] = os.path.dirname(entry['_id'])
+                    db_file = DropboxFile(**entry)
+                    # TODO
+                    # maybe there is a way to save files in one db call
+                    yield motor.Op(
+                        db_file.save, self.db, collection=user.name)
+        user.dbox_cursor = cursor
+        yield motor.Op(user.save, self.db)
+        callback({'status': ErrCode.ok})
+
+    @gen.engine
     def dbox_get_tree(self, user, path, recurse=False, callback=None):
         # Check, that delta is not called very often
         if not self._delta_called_recently(user):
-            # Get delta metadata from dropbox
-            access_token = user.get_dropbox_token()
-            post_args = {}
-            if user.dbox_cursor:
-                post_args['cursor'] = user.dbox_cursor
-            path = self.remove_odd_slash(path)
-            # status = ErrCode.ok
-            has_more = True
-            cursor = None
-            while has_more:
-                user.last_delta = datetime.now()
-                response = yield gen.Task(self.dropbox_request,
-                    "api", "/1/delta",
-                    access_token=access_token,
-                    post_args=post_args)
-                if self._check_bad_response(response, callback):
-                    return
-                dbox_delta = json.loads(response.body)
-                has_more = dbox_delta['has_more']
-                cursor = dbox_delta['cursor']
-                if dbox_delta['reset']:
-                    logger.debug(
-                        "Reseting user all files for '{0}'".format(user.name))
-                    yield motor.Op(self.db[user.name].drop)
-                for e_path, entry in dbox_delta['entries']:
-                    if entry is None:
-                        # TODO
-                        # maybe there is a way to delete files in one db call
-                        yield motor.Op(
-                            DropboxFile.remove_entries, self.db,
-                            {"_id": e_path}, collection=user.name)
-                    else:
-                        entry['_id'] = entry.pop('path')
-                        entry['root_path'] = os.path.dirname(entry['_id'])
-                        db_file = DropboxFile(**entry)
-                        # TODO
-                        # maybe there is a way to save files in one db call
-                        yield motor.Op(
-                            db_file.save, self.db, collection=user.name)
-            user.dbox_cursor = cursor
-            yield motor.Op(user.save, self.db)
+            r = yield gen.Task(self._update_delta_from_dropbox, user)
+            if r['status'] != ErrCode.ok:
+                callback(r)
+                return
         if recurse:
             callback({'status': ErrCode.not_implemented})
         else:
@@ -118,14 +124,22 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def dbox_get_file(self, user, path, callback=None):
-        access_token = user.get_dropbox_token()
-        file_meta = yield motor.Op(
-            DropboxFile.find_one, self.db, {"_id": path}, collection=user.name)
+        for i in range(2):
+            # first try to find file_meta in database
+            file_meta = yield motor.Op(
+                DropboxFile.find_one, self.db, {"_id": path}, collection=user.name)
+            if not file_meta:
+                if i > 0:
+                    # file not found in database and in dropbox
+                    callback({'status': ErrCode.not_found})
+                    return
+                elif not self._delta_called_recently(user):
+                    # make sync with dropbox and check again
+                    r = yield gen.Task(self._update_delta_from_dropbox, user)
+                    if r['status'] != ErrCode.ok:
+                        callback({'status': ErrCode.not_found})
+                        return
         url_trans, url_expires = None, None
-        if not file_meta:
-            # TODO make sync with dropbox and check again
-            callback({'status': ErrCode.not_found})
-            return
         # check, if saved media url is already saved and not expired
         expires = file_meta.get_url_expires()
         now = pytz.UTC.localize(datetime.utcnow())
@@ -134,6 +148,7 @@ class DropboxWorkerMixin(DropboxMixin):
             url_expires = file_meta.url_expires
         else:
             # make dropbox request
+            access_token = user.get_dropbox_token()
             api_url = "/1/media/{{root}}{path}".format(path=path)
             post_args = {}
             response = yield gen.Task(self.dropbox_request,
