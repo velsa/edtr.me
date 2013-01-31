@@ -37,54 +37,54 @@ class DropboxWorkerMixin(DropboxMixin):
     @gen.engine
     def _update_delta_from_dropbox(self, user, callback):
         # Get delta metadata from dropbox
-        access_token = user.get_dropbox_token()
-        post_args = {}
-        if user.dbox_cursor:
-            post_args['cursor'] = user.dbox_cursor
-        has_more = True
-        cursor = None
-        while has_more:
-            user.last_delta = datetime.now()
-            response = yield gen.Task(self.dropbox_request,
-                "api", "/1/delta",
-                access_token=access_token,
-                post_args=post_args)
-            if self._check_bad_response(response, callback):
-                return
-            dbox_delta = json.loads(response.body)
-            has_more = dbox_delta['has_more']
-            cursor = dbox_delta['cursor']
-            if dbox_delta['reset']:
-                logger.debug(
-                    "Reseting user all files for '{0}'".format(user.name))
-                yield motor.Op(self.db[user.name].drop)
-            for e_path, entry in dbox_delta['entries']:
-                if entry is None:
-                    # TODO
-                    # maybe there is a way to delete files in one db call
-                    yield motor.Op(
-                        DropboxFile.remove_entries, self.db,
-                        {"_id": e_path}, collection=user.name)
-                else:
-                    entry['_id'] = entry.pop('path')
-                    entry['root_path'] = os.path.dirname(entry['_id'])
-                    db_file = DropboxFile(**entry)
-                    # TODO
-                    # maybe there is a way to save files in one db call
-                    yield motor.Op(
-                        db_file.save, self.db, collection=user.name)
-        user.dbox_cursor = cursor
-        yield motor.Op(user.save, self.db)
+        if not self._delta_called_recently(user):
+            access_token = user.get_dropbox_token()
+            post_args = {}
+            if user.dbox_cursor:
+                post_args['cursor'] = user.dbox_cursor
+            has_more = True
+            cursor = None
+            while has_more:
+                user.last_delta = datetime.now()
+                response = yield gen.Task(self.dropbox_request,
+                    "api", "/1/delta",
+                    access_token=access_token,
+                    post_args=post_args)
+                if self._check_bad_response(response, callback):
+                    return
+                dbox_delta = json.loads(response.body)
+                has_more = dbox_delta['has_more']
+                cursor = dbox_delta['cursor']
+                if dbox_delta['reset']:
+                    logger.debug(
+                        "Reseting user all files for '{0}'".format(user.name))
+                    yield motor.Op(self.db[user.name].drop)
+                for e_path, entry in dbox_delta['entries']:
+                    if entry is None:
+                        # TODO
+                        # maybe there is a way to delete files in one db call
+                        yield motor.Op(
+                            DropboxFile.remove_entries, self.db,
+                            {"_id": e_path}, collection=user.name)
+                    else:
+                        entry['_id'] = entry.pop('path')
+                        entry['root_path'] = os.path.dirname(entry['_id'])
+                        db_file = DropboxFile(**entry)
+                        # TODO
+                        # maybe there is a way to save files in one db call
+                        yield motor.Op(
+                            db_file.save, self.db, collection=user.name)
+            user.dbox_cursor = cursor
+            yield motor.Op(user.save, self.db)
         callback({'status': ErrCode.ok})
 
     @gen.engine
     def dbox_get_tree(self, user, path, recurse=False, callback=None):
         # Check, that delta is not called very often
-        if not self._delta_called_recently(user):
-            r = yield gen.Task(self._update_delta_from_dropbox, user)
-            if r['status'] != ErrCode.ok:
-                callback(r)
-                return
+        r = yield gen.Task(self._update_delta_from_dropbox, user)
+        if r['status'] != ErrCode.ok:
+            callback(r)
+            return
         if recurse:
             callback({'status': ErrCode.not_implemented})
         else:
