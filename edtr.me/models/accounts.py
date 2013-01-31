@@ -1,4 +1,4 @@
-from schematics.types import (StringType, EmailType, DictType)
+from schematics.types import (StringType, EmailType, DictType, DateTimeType)
 from django.utils import simplejson as json
 from utils.auth import check_password, make_password
 from models.base import BaseModel
@@ -13,6 +13,7 @@ class UserModel(BaseModel):
     first_name = StringType()
     last_name = StringType()
     email = EmailType()
+    last_delta = DateTimeType()
 
     MONGO_COLLECTION = 'accounts'
 

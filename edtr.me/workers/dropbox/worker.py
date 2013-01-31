@@ -18,6 +18,7 @@ DROPBOX_ENCODE_MAP = {
     'ISO-8859-8': 'cp1251',
 }
 MAX_META_PER_CALL = 250
+DELTA_PERIOD_SEC = 10
 
 
 class DropboxWorkerMixin(DropboxMixin):
@@ -26,53 +27,65 @@ class DropboxWorkerMixin(DropboxMixin):
             path = path[:-1]
         return path
 
+    def _delta_called_recently(self, user):
+        if user.last_delta:
+            last_delta_time = datetime.now() - user.last_delta
+            if last_delta_time.total_seconds() < DELTA_PERIOD_SEC:
+                return True
+        return False
+
     @gen.engine
     def dbox_get_tree(self, user, path, recurse=False, callback=None):
-        access_token = user.get_dropbox_token()
-        post_args = {}
-        if user.dbox_cursor:
-            post_args['cursor'] = user.dbox_cursor
-        path = self.remove_odd_slash(path)
-        status = ErrCode.ok
-        has_more = True
-        cursor = None
-        while has_more:
-            response = yield gen.Task(self.dropbox_request,
-                "api", "/1/delta",
-                access_token=access_token,
-                post_args=post_args)
-            if self._check_bad_response(response, callback):
-                return
-            dbox_delta = json.loads(response.body)
-            has_more = dbox_delta['has_more']
-            cursor = dbox_delta['cursor']
-            if dbox_delta['reset']:
-                logger.debug(
-                    "Reseting user all files for '{0}'".format(user.name))
-                yield motor.Op(self.db[user.name].drop)
-            for e_path, entry in dbox_delta['entries']:
-                if entry is None:
-                    # TODO
-                    # maybe there is a way to delete files in one db call
-                    yield motor.Op(
-                        DropboxFile.remove_entries, self.db, {"_id": e_path},
-                        collection=user.name)
-                else:
-                    entry['_id'] = entry.pop('path')
-                    entry['root_path'] = os.path.dirname(entry['_id'])
-                    db_file = DropboxFile(**entry)
-                    # TODO
-                    # maybe there is a way to save files in one db call
-                    yield motor.Op(db_file.save, self.db, collection=user.name)
-
-        user.dbox_cursor = cursor
-        yield motor.Op(user.save, self.db)
+        # Check, that delta is not called very often
+        if not self._delta_called_recently(user):
+            # Get delta metadata from dropbox
+            access_token = user.get_dropbox_token()
+            post_args = {}
+            if user.dbox_cursor:
+                post_args['cursor'] = user.dbox_cursor
+            path = self.remove_odd_slash(path)
+            # status = ErrCode.ok
+            has_more = True
+            cursor = None
+            while has_more:
+                user.last_delta = datetime.now()
+                response = yield gen.Task(self.dropbox_request,
+                    "api", "/1/delta",
+                    access_token=access_token,
+                    post_args=post_args)
+                if self._check_bad_response(response, callback):
+                    return
+                dbox_delta = json.loads(response.body)
+                has_more = dbox_delta['has_more']
+                cursor = dbox_delta['cursor']
+                if dbox_delta['reset']:
+                    logger.debug(
+                        "Reseting user all files for '{0}'".format(user.name))
+                    yield motor.Op(self.db[user.name].drop)
+                for e_path, entry in dbox_delta['entries']:
+                    if entry is None:
+                        # TODO
+                        # maybe there is a way to delete files in one db call
+                        yield motor.Op(
+                            DropboxFile.remove_entries, self.db,
+                            {"_id": e_path}, collection=user.name)
+                    else:
+                        entry['_id'] = entry.pop('path')
+                        entry['root_path'] = os.path.dirname(entry['_id'])
+                        db_file = DropboxFile(**entry)
+                        # TODO
+                        # maybe there is a way to save files in one db call
+                        yield motor.Op(
+                            db_file.save, self.db, collection=user.name)
+            user.dbox_cursor = cursor
+            yield motor.Op(user.save, self.db)
         if recurse:
             callback({'status': ErrCode.not_implemented})
         else:
+            path = self.remove_odd_slash(path)
             cursor = self.db[user.name].find({"root_path": path})
             files = yield motor.Op(cursor.to_list, MAX_META_PER_CALL)
-            result = {'status': status, 'tree': files}
+            result = {'status': ErrCode.ok, 'tree': files}
             if len(files) == MAX_META_PER_CALL:
                 result['has_more'] = True
             callback(result)
