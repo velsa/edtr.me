@@ -17,6 +17,7 @@ logger = logging.getLogger('edtr_logger')
 DROPBOX_ENCODE_MAP = {
     'ISO-8859-8': 'cp1251',
 }
+MAX_META_PER_CALL = 250
 
 
 class DropboxWorkerMixin(DropboxMixin):
@@ -59,8 +60,6 @@ class DropboxWorkerMixin(DropboxMixin):
                 else:
                     entry['_id'] = entry.pop('path')
                     entry['root_path'] = os.path.dirname(entry['_id'])
-                    # TODO
-                    # skip create DropboxFile instance, it is odd
                     db_file = DropboxFile(**entry)
                     # TODO
                     # maybe there is a way to save files in one db call
@@ -72,8 +71,11 @@ class DropboxWorkerMixin(DropboxMixin):
             callback({'status': ErrCode.not_implemented})
         else:
             cursor = self.db[user.name].find({"root_path": path})
-            files = yield motor.Op(cursor.to_list)
-            callback({'status': status, 'tree': files})
+            files = yield motor.Op(cursor.to_list, MAX_META_PER_CALL)
+            result = {'status': status, 'tree': files}
+            if len(files) == MAX_META_PER_CALL:
+                result['has_more'] = True
+            callback(result)
 
     def _get_response_encoding(self, response):
         encoding = 'ascii'
