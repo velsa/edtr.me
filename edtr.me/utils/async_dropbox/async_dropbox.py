@@ -2,6 +2,7 @@ import logging
 import tornado.auth
 import urllib
 from tornado.httpclient import AsyncHTTPClient
+from tornado.options import options
 from settings import settings
 logger = logging.getLogger('edtr_logger')
 
@@ -88,10 +89,20 @@ class DropboxMixin(tornado.auth.OAuthMixin):
         if args:
             url += "?" + urllib.urlencode(args)
         http = AsyncHTTPClient()
-        pargs = post_args or {}
-        logger.debug("\nDROPBOX {0} {1} {2}".format(method, url,
-            ",".join(["\n\t{0}:{1}".format(key, pargs[key]) for key in pargs])
-            ))
+        if options.debug:
+            pargs = post_args or {}
+            logger.debug("\nDROPBOX {0} {1} {2}".format(method, url,
+                ",".join(["\n\t{0}:{1}".format(key, pargs[key]) for key in pargs])
+                ))
+            from copy import copy
+            copied_callback = copy(callback)
+
+            def wrapped_callback(response):
+                logger.debug("\nDROPBOX RESPONSE: {0}".format(
+                    ",".join(['\n\t{0}:{1}'.format(p, getattr(response, p, None)) for p in ('body', 'code', 'error')])
+                ))
+                copied_callback(response)
+            callback = wrapped_callback
         if post_args is not None:
             http.fetch(url, method=method, body=urllib.urlencode(post_args),
                        callback=callback)
