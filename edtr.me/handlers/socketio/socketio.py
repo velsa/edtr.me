@@ -78,11 +78,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         # to not make database call to find user
         user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
         result = yield gen.Task(self.dbox_get_tree, user, path)
-        output = {
-            'status': result['status'],
-            'tree': result.get('files', None),
-        }
-        self.emit_as_json('get_tree', output)
+        self.emit_as_json('get_tree', result)
 
     @event
     @gen.engine

@@ -40,6 +40,8 @@ class DropboxWorkerMixin(DropboxMixin):
                 "api", "/1/delta",
                 access_token=access_token,
                 post_args=post_args)
+            if self._check_bad_response(response, callback):
+                return
             dbox_delta = json.loads(response.body)
             has_more = dbox_delta['has_more']
             cursor = dbox_delta['cursor']
@@ -71,7 +73,7 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             cursor = self.db[user.name].find({"root_path": path})
             files = yield motor.Op(cursor.to_list)
-            callback({'status': status, 'files': files})
+            callback({'status': status, 'tree': files})
 
     def _get_response_encoding(self, response):
         encoding = 'ascii'
@@ -83,6 +85,21 @@ class DropboxWorkerMixin(DropboxMixin):
                     encoding = DROPBOX_ENCODE_MAP.get(encoding, encoding)
                     break
         return encoding
+
+    def _check_bad_response(self, response, callback=None):
+        if response.code != 200:
+            error = 'undefined'
+            if 'error' in response.body:
+                error = json.loads(response.body)['error']
+            result = {
+                "status": ErrCode.bad_request,
+                'http_code': response.code,
+                'error': error,
+            }
+            if callback:
+                callback(result)
+            return result
+        return None
 
     @gen.engine
     def dbox_get_file(self, user, path, callback=None):
@@ -108,15 +125,7 @@ class DropboxWorkerMixin(DropboxMixin):
                 "api", api_url,
                 access_token=access_token,
                 post_args=post_args)
-            if response.code != 200:
-                error = 'undefined'
-                if 'error' in response.body:
-                    error = json.loads(response.body)['error']
-                callback({
-                    "status": ErrCode.bad_request,
-                    'http_code': response.code,
-                    'error': error,
-                })
+            if self._check_bad_response(response, callback):
                 return
             dbox_media_url = json.loads(response.body)
             url_trans = dbox_media_url['url']

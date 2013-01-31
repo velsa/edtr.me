@@ -28,10 +28,7 @@ class DropboxGetTree(DropboxHandler):
         user = yield gen.Task(self.get_edtr_current_user)
         result = yield gen.Task(self.dbox_get_tree, user, path)
 
-        self.finish_json_request({
-            'status': result['status'],
-            "tree": result.get('files', None),
-        })
+        self.finish_json_request(result)
 
 
 class DropboxGetFile(DropboxHandler):
