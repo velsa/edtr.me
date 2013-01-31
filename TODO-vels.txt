@@ -2,6 +2,9 @@ UI:
 - codemirror themes
 - replace home icon in tree with dropbox icon
 
+Marked:
+- Add highlighter mechanism (see how it is done in demo on github repo)
+
 JS:
 - dropbox tree with icons: use zTree
 - marked: add code highlighting (see example on their github page) 

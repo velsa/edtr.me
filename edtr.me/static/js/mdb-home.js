@@ -8,8 +8,9 @@ $(document).ready(function() {
     //
     // Toggle checkboxes in tree
     $("#sb_view_multiselect").on("click", function(e) {
+        edtrTree.toggle_checkboxes();
         // e.stopPropagation();
-        edtrTree.toggle_checkboxes(true);
+        // e.preventDefault();
     });
     // Clear all checkboxes in tree
     $("#sb_view_clear_checkboxes").on("click", edtrTree.clear_checkboxes);
@@ -40,7 +41,7 @@ $(document).ready(function() {
     $(".shortcut").each(function() {
         $(this).html($(this).text().format(modifier));
     });
-
+    
     //
     // Init modal dialogs
     //

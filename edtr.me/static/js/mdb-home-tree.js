@@ -154,7 +154,7 @@ var edtrTree = {
             }, {
                 keys:       [ "Alt-T" ],
                 action:     edtrTree.toggle_checkboxes,
-                args:       [ false ]
+                args:       []
             }, {
                 keys:       [ "Ctrl-X", "Meta-X" ],
                 action:     edtrTree.node_action,
@@ -169,13 +169,13 @@ var edtrTree = {
                 args:       []
             }
         ],
-        i, k, shortcut_parts,
+        i, k, l, shortcut_parts,
         key_mods =  (e.shiftKey << 0) +
                     (e.ctrlKey  << 1) +
                     (e.altKey   << 2) +
                     (e.metaKey  << 3);
-        for (i = 0; i < shortcuts.length; i++) {
-            for (k = 0; k < shortcuts[i].keys.length; k++) {
+        for (i in shortcuts) {
+            for (k in shortcuts[i].keys) {
                 shortcut_parts = shortcuts[i].keys[k].toLowerCase().split('-');
                 shortcut_mods = {
                     shift:      0,
@@ -183,19 +183,19 @@ var edtrTree = {
                     alt:        0,
                     meta:       0
                 };
-                for (l=0; l < shortcut_parts.length-1; l++)
+                for (l in shortcut_parts)
                     shortcut_mods[shortcut_parts[l]] = 1;
-                shortcut_bits = (shortcut_mods['shift'] << 0) +
-                                (shortcut_mods['ctrl']  << 1) +
-                                (shortcut_mods['alt']   << 2) +
-                                (shortcut_mods['meta']  << 3);
+                shortcut_bits = (shortcut_mods.shift << 0) +
+                                (shortcut_mods.ctrl  << 1) +
+                                (shortcut_mods.alt   << 2) +
+                                (shortcut_mods.meta  << 3);
                 if (shortcut_bits === key_mods &&
                     key_char === shortcut_parts[shortcut_parts.length-1]) {
                         // console.log("matched", shortcuts[i].keys[k]);
                         shortcuts[i].action.apply(undefined, // value for this
                             shortcuts[i].args.concat(shortcuts[i].keys[k]));
                         return;
-                    }
+                }
             }
         }
     },
@@ -253,9 +253,6 @@ var edtrTree = {
         return edtrTree.sort_nodes(nodes);
     },
 
-    // Wrappers
-    is_checkbox_mode:           function() { return edtrTree.ztree.setting.check.enable; },
-
     // Get selected node (we can only have one)
     // If nothing is selected - we assume selection to be root
     get_selected_node:          function() {
@@ -306,16 +303,19 @@ var edtrTree = {
     },
 
     // Show/hide checkboxes in tree view
-    toggle_checkboxes:         function(is_mouse_click) {
+    is_checkbox_mode:           function() { return edtrTree.ztree.setting.check.enable; },
+    toggle_checkboxes:          function() {
         // Also update menu items
-        if (!is_mouse_click)
-            $("#sb_view_multiselect").prop("checked", !$("#sb_view_multiselect").prop("checked"));
-        if (edtrTree.is_checkbox_mode())
-            $("#sb_view_clear_checkboxes").parent().removeClass("disabled");
-        else
+        if (edtrTree.is_checkbox_mode()) {
+            $("#sb_view_multiselect").prop("checked", false);
             $("#sb_view_clear_checkboxes").parent().addClass("disabled");
-        console.log(is_mouse_click);
-        edtrTree.ztree.setting.check.enable = !edtrTree.ztree.setting.check.enable;
+            edtrTree.ztree.setting.check.enable = false;
+        }
+        else {
+            $("#sb_view_multiselect").prop("checked", true);
+            $("#sb_view_clear_checkboxes").parent().removeClass("disabled");
+            edtrTree.ztree.setting.check.enable = true;
+        }
         edtrTree.clear_clipboard();
         // Remember selected node to restore it after refresh
         var selected = edtrTree.ztree.getSelectedNodes()[0];
@@ -331,7 +331,8 @@ var edtrTree = {
     },
     // Clear checkboxes in tree view
     clear_checkboxes:           function() {
-        edtrTree.ztree.checkAllNodes(false);
+        if (edtrTree.is_checkbox_mode())
+            edtrTree.ztree.checkAllNodes(false);
     },
 
     //
@@ -639,10 +640,32 @@ var edtrTree = {
         edtrTree.clipped.paste_node = node;
         return true;
     },
+    // Perform the paste operation
+    // edtrTree.clipped contains all the necessary info:
+    //      edtrTree.clipped.nodes:         the nodes to paste
+    //      edtrTree.clipped.paste_node:    node to paste to
+    //      edtrTree.clipped.action:        clip action - "copy" or "cut"
+    //
+    // We expect paste_node to be already opened by smart_paste()
+    //
     paste:                  function() {
         if (edtrTree.clipped) {
             console.log("paste", edtrTree.clipped.nodes, "to",
                 edtrTree.clipped.paste_node, "via", edtrTree.clipped.action);
+            for (var i in edtrTree.clipped.nodes) {
+                var ztree_action, new_node;
+                if (edtrTree.clipped.action === "copy")
+                    ztree_action = edtrTree.ztree.copyNode;
+                else
+                    ztree_action = edtrTree.ztree.moveNode;
+                edtrTree.clipped.nodes[i]
+                new_node = ztree_action(
+                        edtrTree.clipped.paste_node,
+                        edtrTree.clipped.nodes[i],
+                        "inner", false);
+                edtrTree.move_node_in_parent(new_node, edtrTree.clipped.paste_node);
+                // TODO: perform server action here
+            }
             edtrTree.clear_clipboard();
             // Restore keyboard focus
             edtrTree.dom_db_tree.focus();
@@ -652,8 +675,11 @@ var edtrTree = {
     //
     // Perform requested file action in ztree:
     //
-    // action:          add_file, add_subdir, remove_file, remove_subdir, rename_file, rename_subdir,
-    //                  remove_checked
+    // action:          add_file, add_subdir,
+    //                  remove_file, remove_subdir,
+    //                  rename_file, rename_subdir,
+    //                  remove_checked,
+    //                  move_node, copy_node
     // path:            path to directory where filename resides
     // filename:        file name to perform action on
     // filename_new:    file name to rename to (if action is rename)
@@ -674,7 +700,9 @@ var edtrTree = {
             "remove_checked":   "checked items where removed"
         }, i;
 
-        // Action is requested while in checkbox mode
+        // Action is requested while in checkbox mode and on an array of objects
+        // It is possible that user would perform an action on single node while in checkbox mode
+        // in this case, filename will be string and not an array of objects
         if (edtrTree.is_checkbox_mode() && typeof filename !== "string") {
             switch (action) {
                 case "remove_checked":

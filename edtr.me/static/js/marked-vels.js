@@ -159,6 +159,7 @@ Lexer.prototype.token = function(src, top) {
     , l
     , token_lines; // VELS
 
+  // debugger;
   while (src) {
     // newline
     if (cap = this.rules.newline.exec(src)) {
@@ -412,6 +413,9 @@ Lexer.prototype.token = function(src, top) {
         href: cap[2],
         title: cap[3]
       };
+      // No tokens to add, just increment cur_line
+      token_lines = cap[0].count("\n"); // VELS
+      this.cur_line += token_lines; // VELS
       continue;
     }
 

@@ -397,6 +397,8 @@ function edtrCodemirror(content_type, content) {
                 prev_anchor_num = anchor_num;
             }
             // The anchor to scroll to
+            // If we're at the last tag - adjust to it
+            if (i == $this.aTags.size()) --i;
             aTag = $this.aTags.slice(i);
             if (aTag !== null && aTag.length) {
                 var new_pos;
@@ -485,6 +487,8 @@ function edtrCodemirror(content_type, content) {
 
         this.preview_container = $(".preview-container");
         this.preview_elem = this.preview_container.contents().find('body');
+        /* Allows last line to be positioned above the bottom */
+        this.preview_elem.css("margin-bottom", "90px");
         this.preview_elem_head = this.preview_container.contents().find('head');
         // TODO: load this from settings
         this.preview_elem_head.

@@ -20,7 +20,9 @@ body {
   background-color:     inherit;
 }
 .dropdown-toggle {
-    font-size:          13px;    
+    font-size:          12px;
+    padding-left:       6px !important;
+    padding-right:      6px !important;
 }
 .dropdown-menu label {
     font-size:          11px;    
@@ -38,10 +40,7 @@ body {
     float:              right;
     padding-left:       30px;
 }
-.dropdown-menu>.disabled>a:hover, 
-.dropdown-menu>.disabled>a:hover {
-    background-color: transparent;
-}
+
 
 /*
 *   Navigation bar
