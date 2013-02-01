@@ -7,16 +7,16 @@
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
             <span id="btn_debug">AJAX Metadata</span>
         </button>
-        <button id="file_get"
+        <button id="debug_socketion"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
-            <span id="btn_file_get">AJAX File</span>
+            <span id="btn_debug_socketio">SocketIO Metadata</span>
         </button>
     </div>
 
     <div>
-        <button id="debug_socketion"
+        <button id="file_get"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
-            <span id="btn_debug_socketio">SocketIO Metadata</span>
+            <span id="btn_file_get">AJAX File</span>
         </button>
         <button id="sio_file_get"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
@@ -26,11 +26,25 @@
     <div>
         <span>File path to get:</span><input id="file_input" type="text" name="fname" value="/1.txt"/>
     </div>
+    <div>
+        <div>File contents:</div>
+        <textarea name="file_content" id="file_content" cols="300" rows="10" style="height:30px;width:500px"></textarea>
+        <div>File url:</div><div id="file_url"></div>
+        <div>
+            <button id="file_save"
+                    class="btn btn-success btn-small cme-button-tooltip" href="#">
+                <span id="btn_file_save">AJAX save file</span>
+            </button>
+            <button id="sio_file_save"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_file_save">SocketIO save file</span>
+        </div>
+        </button>
+    </div>
 {% endblock %}
 
 {% block extra_footer %}
     {{ super() }}
-    <!-- AJAX -->
     <script type="text/javascript">
     function getCookie(name) {
         var c = document.cookie.match("\\b" + name + "=([^;]*)\\b");
@@ -39,6 +53,24 @@
     function getFilePath(){
         return $("#file_input").val()
     }
+    function clearFileContents(){
+        $("#file_content").val('')
+        $("#file_url").html('')
+    }
+    function setFileContents(response){
+        if (response['status'] == 0){
+            if (response['content']){
+                $("#file_content").val(response['content'])
+            } else if (response['url']){
+                $("#file_url").html(response['url'])
+            }
+        } else {
+            alert("Bad status: " + response['status']);
+        }
+    }
+    </script>
+    <!-- AJAX -->
+    <script type="text/javascript">
     $('#debug').click(function(){
         $.post("{{reverse_url('dropbox_get_path')}}",
             {
@@ -55,7 +87,7 @@
             })
     })
     $('#file_get').click(function(){
-
+        clearFileContents();
         $.post("{{reverse_url('dropbox_get_file')}}",
             {
                 "_xsrf": getCookie("_xsrf"),
@@ -67,6 +99,7 @@
                     console.log(f+":")
                     console.log(response[f])
                 }
+                setFileContents(response);
                 console.log("_______ AJAX: dropbox_get_file end_________");
             })
     })
@@ -96,12 +129,14 @@
         });
 
         s.on('get_file', function(response) {
+            clearFileContents();
             console.log("__SOCKET_IO Get file__")
             var response = JSON.parse(response)
             for (f in response){
                 console.log(f+":")
                 console.log(response[f])
             }
+            setFileContents(response);
             console.log("__SOCKET_IO Get file__ end")
         });
 

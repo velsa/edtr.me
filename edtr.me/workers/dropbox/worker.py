@@ -18,7 +18,6 @@ logger = logging.getLogger('edtr_logger')
 DROPBOX_ENCODE_MAP = {
     'ISO-8859-8': 'cp1251',
 }
-MAX_META_PER_CALL = 250
 DELTA_PERIOD_SEC = 5
 FILE_CONTENT_PERIOD_SEC = 5
 TEXT_MIMES = (
@@ -55,9 +54,10 @@ class DropboxWorkerMixin(DropboxMixin):
             has_more = True
             cursor = None
             while has_more:
+                # make dropbox request
                 user.last_delta = datetime.now()
-                # TODO find a way to call user.save one time
-                # yield motor.Op(user.save, self.db)
+                # TODO find a way to call save one time in this func
+                yield motor.Op(user.save, self.db)
                 response = yield gen.Task(self.dropbox_request,
                     "api", "/1/delta",
                     access_token=access_token,
@@ -101,12 +101,13 @@ class DropboxWorkerMixin(DropboxMixin):
             callback({'status': ErrCode.not_implemented})
         else:
             path = self.unify_path(path)
-            cursor = self.db[user.name].find({"root_path": path})
-            files = yield motor.Op(cursor.to_list, MAX_META_PER_CALL)
+            cursor = self.db[user.name].find({"root_path": path},
+                fields=DropboxFile.public_exclude_fields())
+            files = yield motor.Op(cursor.to_list, DropboxFile.FIND_LIST_LEN)
             result = {'status': ErrCode.ok, 'tree': files}
-            if len(files) == MAX_META_PER_CALL:
+            if len(files) == DropboxFile.FIND_LIST_LEN:
                 result['has_more'] = True
-                logger.debug(u"MAX_META_PER_CALL reached for user '{0}',"
+                logger.debug(u"FIND_LIST_LEN reached for user '{0}',"
                     " path '{1}".format(user.name, path))
             callback(result)
 
@@ -161,12 +162,17 @@ class DropboxWorkerMixin(DropboxMixin):
                         return
         if file_meta.mime_type in TEXT_MIMES:
             if file_meta.last_updated:
+                # Not allow to spam api very often
                 time_left = datetime.now() - file_meta.last_updated
                 if time_left.total_seconds() < FILE_CONTENT_PERIOD_SEC:
                     callback({
                         'status': ErrCode.called_too_often})
                     return
+            # make dropbox request
             api_url = self._get_file_url(path, 'files')
+            file_meta.last_updated = datetime.now()
+            # TODO find a way to call save one time in this func
+            yield motor.Op(file_meta.save, self.db, collection=user.name)
             access_token = user.get_dropbox_token()
             response = yield gen.Task(self.dropbox_request,
                 "api-content", api_url,
@@ -176,7 +182,7 @@ class DropboxWorkerMixin(DropboxMixin):
             encoding = self._get_response_encoding(response)
             if encoding != file_meta.text_encoding:
                 file_meta.text_encoding = encoding
-                yield motor.Op(file_meta.save, self.db, collection=user.name)
+            yield motor.Op(file_meta.save, self.db, collection=user.name)
             callback({
                 'status': ErrCode.ok,
                 'content': response.body.decode(encoding),
