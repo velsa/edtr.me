@@ -23,6 +23,9 @@
             <span id="btn_sio_file_get">SocketIO File</span>
         </button>
     </div>
+    <div>
+        <span>File path to get:</span><input id="file_input" type="text" name="fname" value="/1.txt"/>
+    </div>
 {% endblock %}
 
 {% block extra_footer %}
@@ -32,6 +35,9 @@
     function getCookie(name) {
         var c = document.cookie.match("\\b" + name + "=([^;]*)\\b");
         return c ? c[1] : undefined;
+    }
+    function getFilePath(){
+        return $("#file_input").val()
     }
     $('#debug').click(function(){
         $.post("{{reverse_url('dropbox_get_path')}}",
@@ -49,10 +55,11 @@
             })
     })
     $('#file_get').click(function(){
+
         $.post("{{reverse_url('dropbox_get_file')}}",
             {
                 "_xsrf": getCookie("_xsrf"),
-                "path": "/1.txt"
+                "path": getFilePath()
             },
             function(response) {
                 console.log("_______AJAX: dropbox_get_file_________");
@@ -105,7 +112,7 @@
         });
 
         $('#sio_file_get').click(function() {
-            s.emit('get_file', '/1.txt');
+            s.emit('get_file',  getFilePath());
             return false;
         });
     });

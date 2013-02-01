@@ -1,3 +1,4 @@
+import urllib
 import os.path
 from datetime import datetime
 import logging
@@ -19,12 +20,20 @@ DROPBOX_ENCODE_MAP = {
 }
 MAX_META_PER_CALL = 250
 DELTA_PERIOD_SEC = 5
+FILE_CONTENT_PERIOD_SEC = 5
+TEXT_MIMES = (
+    'text/plain',
+    'text/html',
+    'application/octet-stream',
+)
 
 
 class DropboxWorkerMixin(DropboxMixin):
-    def remove_odd_slash(self, path):
+    def unify_path(self, path):
         while len(path) > 1 and path.endswith('/'):
             path = path[:-1]
+        if len(path) > 1 and not path.startswith('/'):
+            path = '/' + path
         return path
 
     def _delta_called_recently(self, user):
@@ -36,8 +45,9 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def _update_delta_from_dropbox(self, user, callback):
-        # Get delta metadata from dropbox
+        # check, that update_delta is not called very often
         if not self._delta_called_recently(user):
+            # Get delta metadata from dropbox
             access_token = user.get_dropbox_token()
             post_args = {}
             if user.dbox_cursor:
@@ -80,7 +90,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def dbox_get_tree(self, user, path, recurse=False, callback=None):
-        # Check, that delta is not called very often
+        # Update metadata from dropbox to database
         r = yield gen.Task(self._update_delta_from_dropbox, user)
         if r['status'] != ErrCode.ok:
             callback(r)
@@ -88,12 +98,14 @@ class DropboxWorkerMixin(DropboxMixin):
         if recurse:
             callback({'status': ErrCode.not_implemented})
         else:
-            path = self.remove_odd_slash(path)
+            path = self.unify_path(path)
             cursor = self.db[user.name].find({"root_path": path})
             files = yield motor.Op(cursor.to_list, MAX_META_PER_CALL)
             result = {'status': ErrCode.ok, 'tree': files}
             if len(files) == MAX_META_PER_CALL:
                 result['has_more'] = True
+                logger.debug(u"MAX_META_PER_CALL reached for user '{0}',"
+                    " path '{1}".format(user.name, path))
             callback(result)
 
     def _get_response_encoding(self, response):
@@ -122,8 +134,13 @@ class DropboxWorkerMixin(DropboxMixin):
             return result
         return None
 
+    def _get_file_url(self, path):
+        return "/1/files/{{root}}{path}".format(
+            path=urllib.quote(path.encode('utf8')))
+
     @gen.engine
     def dbox_get_file(self, user, path, callback=None):
+        path = self.unify_path(path)
         for i in range(2):
             # first try to find file_meta in database
             file_meta = yield motor.Op(
@@ -139,31 +156,52 @@ class DropboxWorkerMixin(DropboxMixin):
                     if r['status'] != ErrCode.ok:
                         callback({'status': ErrCode.not_found})
                         return
-        url_trans, url_expires = None, None
-        # check, if saved media url is already saved and not expired
-        expires = file_meta.get_url_expires()
-        now = pytz.UTC.localize(datetime.utcnow())
-        if file_meta.url_trans and expires and expires > now:
-            url_trans = file_meta.url_trans
-            url_expires = file_meta.url_expires
-        else:
-            # make dropbox request
+        if file_meta.mime_type in TEXT_MIMES:
+            if file_meta.last_updated:
+                time_left = datetime.now() - file_meta.last_updated
+                if time_left.total_seconds() < FILE_CONTENT_PERIOD_SEC:
+                    callback({
+                        'status': ErrCode.called_too_often})
+                    return
+            api_url = self._get_file_url(path=path)
             access_token = user.get_dropbox_token()
-            api_url = "/1/media/{{root}}{path}".format(path=path)
-            post_args = {}
             response = yield gen.Task(self.dropbox_request,
-                "api", api_url,
-                access_token=access_token,
-                post_args=post_args)
+                "api-content", api_url,
+                access_token=access_token)
             if self._check_bad_response(response, callback):
                 return
-            dbox_media_url = json.loads(response.body)
-            url_trans = dbox_media_url['url']
-            url_expires = dbox_media_url['expires']
-            file_meta.url_trans = url_trans
-            file_meta.set_url_expires(url_expires)
-            yield motor.Op(file_meta.save, self.db, collection=user.name)
-        callback({
-            'status': ErrCode.ok,
-            'url': url_trans,
-            'expires': url_expires})
+            encoding = self._get_response_encoding(response)
+            callback({
+                'status': ErrCode.ok,
+                'content': response.body.decode(encoding),
+            })
+            return
+        else:
+            url_trans, url_expires = None, None
+            # check, if saved media url is already saved and not expired
+            expires = file_meta.get_url_expires()
+            now = pytz.UTC.localize(datetime.utcnow())
+            if file_meta.url_trans and expires and expires > now:
+                url_trans = file_meta.url_trans
+                url_expires = file_meta.url_expires
+            else:
+                # make dropbox request
+                access_token = user.get_dropbox_token()
+                api_url = self._get_file_url(path=path)
+                post_args = {}
+                response = yield gen.Task(self.dropbox_request,
+                    "api", api_url,
+                    access_token=access_token,
+                    post_args=post_args)
+                if self._check_bad_response(response, callback):
+                    return
+                dbox_media_url = json.loads(response.body)
+                url_trans = dbox_media_url['url']
+                url_expires = dbox_media_url['expires']
+                file_meta.url_trans = url_trans
+                file_meta.set_url_expires(url_expires)
+                yield motor.Op(file_meta.save, self.db, collection=user.name)
+            callback({
+                'status': ErrCode.ok,
+                'url': url_trans,
+                'expires': url_expires})

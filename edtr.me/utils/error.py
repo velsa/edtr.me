@@ -5,6 +5,7 @@ class ErrCode:
     file_is_bin = 3
     not_found = 4
     bad_request = 5
-    unknown_error = 6
+    called_too_often = 6
 
+    unknown_error = 20770
     not_implemented = 20771

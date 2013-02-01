@@ -1,5 +1,5 @@
 import dateutil.parser
-from schematics.types import (StringType, IntType, BooleanType)
+from schematics.types import (StringType, IntType, BooleanType, DateTimeType)
 from models.base import BaseModel
 
 
@@ -18,6 +18,7 @@ class DropboxFile(BaseModel):
     root = StringType()
     mime_type = StringType()
     size = StringType()
+    last_updated = DateTimeType()
     url_trans = StringType()
     url_expires = StringType()
 
