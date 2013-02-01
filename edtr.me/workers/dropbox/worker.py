@@ -56,6 +56,8 @@ class DropboxWorkerMixin(DropboxMixin):
             cursor = None
             while has_more:
                 user.last_delta = datetime.now()
+                # TODO find a way to call user.save one time
+                # yield motor.Op(user.save, self.db)
                 response = yield gen.Task(self.dropbox_request,
                     "api", "/1/delta",
                     access_token=access_token,
@@ -134,8 +136,9 @@ class DropboxWorkerMixin(DropboxMixin):
             return result
         return None
 
-    def _get_file_url(self, path):
-        return "/1/files/{{root}}{path}".format(
+    def _get_file_url(self, path, api_url):
+        return "/1/{api_url}/{{root}}{path}".format(
+            api_url=api_url,
             path=urllib.quote(path.encode('utf8')))
 
     @gen.engine
@@ -143,8 +146,8 @@ class DropboxWorkerMixin(DropboxMixin):
         path = self.unify_path(path)
         for i in range(2):
             # first try to find file_meta in database
-            file_meta = yield motor.Op(
-                DropboxFile.find_one, self.db, {"_id": path}, collection=user.name)
+            file_meta = yield motor.Op(DropboxFile.find_one, self.db,
+                {"_id": path}, collection=user.name)
             if not file_meta:
                 if i > 0:
                     # file not found in database and in dropbox
@@ -163,7 +166,7 @@ class DropboxWorkerMixin(DropboxMixin):
                     callback({
                         'status': ErrCode.called_too_often})
                     return
-            api_url = self._get_file_url(path=path)
+            api_url = self._get_file_url(path, 'files')
             access_token = user.get_dropbox_token()
             response = yield gen.Task(self.dropbox_request,
                 "api-content", api_url,
@@ -187,7 +190,7 @@ class DropboxWorkerMixin(DropboxMixin):
             else:
                 # make dropbox request
                 access_token = user.get_dropbox_token()
-                api_url = self._get_file_url(path=path)
+                api_url = self._get_file_url(path, 'media')
                 post_args = {}
                 response = yield gen.Task(self.dropbox_request,
                     "api", api_url,
