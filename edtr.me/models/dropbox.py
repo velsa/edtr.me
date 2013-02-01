@@ -22,7 +22,6 @@ class DropboxFile(BaseModel):
     mime_type = StringType()
     size = StringType()
     last_updated = DateTimeType()
-    text_encoding = StringType()
     url_trans = StringType()
     url_expires = StringType()
 

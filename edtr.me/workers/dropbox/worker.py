@@ -18,6 +18,7 @@ logger = logging.getLogger('edtr_logger')
 DROPBOX_ENCODE_MAP = {
     'ISO-8859-8': 'cp1251',
 }
+DEFAULT_ENCODING = 'utf8'
 DELTA_PERIOD_SEC = 5
 FILE_CONTENT_PERIOD_SEC = 5
 TEXT_MIMES = (
@@ -138,9 +139,19 @@ class DropboxWorkerMixin(DropboxMixin):
         return None
 
     def _get_file_url(self, path, api_url):
+        path = self.unify_path(path)
         return "/1/{api_url}/{{root}}{path}".format(
             api_url=api_url,
             path=urllib.quote(path.encode('utf8')))
+
+    def _skip_spam_filemeta(self, file_meta, callback):
+        if file_meta and file_meta.last_updated:
+            time_left = datetime.now() - file_meta.last_updated
+            if time_left.total_seconds() < FILE_CONTENT_PERIOD_SEC:
+                callback({
+                    'status': ErrCode.called_too_often})
+                return True
+        return False
 
     @gen.engine
     def dbox_get_file(self, user, path, callback=None):
@@ -161,13 +172,9 @@ class DropboxWorkerMixin(DropboxMixin):
                         callback({'status': ErrCode.not_found})
                         return
         if file_meta.mime_type in TEXT_MIMES:
-            if file_meta.last_updated:
-                # Not allow to spam api very often
-                time_left = datetime.now() - file_meta.last_updated
-                if time_left.total_seconds() < FILE_CONTENT_PERIOD_SEC:
-                    callback({
-                        'status': ErrCode.called_too_often})
-                    return
+            # Not allow to spam api very often
+            if self._skip_spam_filemeta(file_meta, callback):
+                return
             # make dropbox request
             api_url = self._get_file_url(path, 'files')
             file_meta.last_updated = datetime.now()
@@ -180,8 +187,6 @@ class DropboxWorkerMixin(DropboxMixin):
             if self._check_bad_response(response, callback):
                 return
             encoding = self._get_response_encoding(response)
-            if encoding != file_meta.text_encoding:
-                file_meta.text_encoding = encoding
             yield motor.Op(file_meta.save, self.db, collection=user.name)
             callback({
                 'status': ErrCode.ok,
@@ -217,3 +222,37 @@ class DropboxWorkerMixin(DropboxMixin):
                 'status': ErrCode.ok,
                 'url': url_trans,
                 'expires': url_expires})
+
+    @gen.engine
+    def dbox_save_file(self, user, path, text_content, callback=None):
+        file_meta = yield motor.Op(DropboxFile.find_one, self.db,
+            {"_id": path}, collection=user.name)
+        # Not allow to spam api very often
+        # TODO skip calls, when not file_meta is found
+        if self._skip_spam_filemeta(file_meta, callback):
+            return
+        if text_content:
+            try:
+                text_content = text_content.encode(DEFAULT_ENCODING)
+            except UnicodeEncodeError:
+                text_content = text_content.encode('ascii', 'replace')
+        else:
+            text_content = ''
+        # make dropbox request
+        api_url = self._get_file_url(path, 'files_put')
+        access_token = user.get_dropbox_token()
+        response = yield gen.Task(self.dropbox_request,
+            "api-content", api_url,
+            access_token=access_token,
+            put_body=text_content,
+            overwrite='true')
+        if self._check_bad_response(response, callback):
+            return
+        file_meta = json.loads(response.body)
+        file_meta['_id'] = file_meta.pop('path')
+        file_meta['root_path'] = os.path.dirname(file_meta['_id'])
+        file_meta['last_updated'] = datetime.now()
+        db_file = DropboxFile(**file_meta)
+        yield motor.Op(
+            db_file.save, self.db, collection=user.name)
+        callback({'status': ErrCode.ok})

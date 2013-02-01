@@ -103,6 +103,28 @@
                 console.log("_______ AJAX: dropbox_get_file end_________");
             })
     })
+    $('#file_save').click(function(){
+        var url = $("#file_url").html();
+        if (url.length != 0){
+            alert("File is not text");
+        } else {
+            $.post("{{reverse_url('dropbox_save_file')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "path": getFilePath(),
+                    "content": $("#file_content").val()
+                },
+                function(response) {
+                    console.log("_______AJAX: dropbox_get_file_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    setFileContents(response);
+                    console.log("_______ AJAX: dropbox_get_file end_________");
+            })
+        }
+    })
     </script>
 
     <!-- SOCKETIO -->

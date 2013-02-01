@@ -47,3 +47,23 @@ class DropboxGetFile(DropboxHandler):
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.dbox_get_file, user, path)
             self.finish_json_request(data)
+
+
+class DropboxSaveFile(DropboxHandler):
+    """Save file path metadata from dropbox.
+    Save it to database.
+    Return path metadata."""
+
+    @tornado.web.asynchronous
+    @gen.engine
+    @tornado.web.authenticated
+    def post(self):
+        path = self.get_argument("path", None)
+        if not path:
+            self.finish_json_request({'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user)
+            text_content = self.get_argument("content", None)
+            data = yield gen.Task(self.dbox_save_file, user, path,
+                text_content)
+            self.finish_json_request(data)
