@@ -174,6 +174,9 @@ class DropboxWorkerMixin(DropboxMixin):
             if self._check_bad_response(response, callback):
                 return
             encoding = self._get_response_encoding(response)
+            if encoding != file_meta.text_encoding:
+                file_meta.text_encoding = encoding
+                yield motor.Op(file_meta.save, self.db, collection=user.name)
             callback({
                 'status': ErrCode.ok,
                 'content': response.body.decode(encoding),
