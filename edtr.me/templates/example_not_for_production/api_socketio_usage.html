@@ -41,8 +41,24 @@
             <button id="sio_file_save"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
             <span id="btn_sio_file_save">SocketIO save file</span>
+            </button>
         </div>
-        </button>
+
+        <div style="padding-top:10px;">
+            <div>
+                <span>Create dir root:</span><input id='create_dir_root' type="text" value="/">
+                <span>Create dir:</span><input id='create_dir_name' type="text" value="">
+            </div>
+            <button id="create_dir"
+                    class="btn btn-success btn-small cme-button-tooltip" href="#">
+                <span id="btn_create_dir">AJAX create_dir</span>
+            </button>
+            <button id="sio_create_dir"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_create_dir">SocketIO create_dir</span>
+            </button>
+        </div>
+
     </div>
 {% endblock %}
 
@@ -70,6 +86,12 @@
         } else {
             alert("Bad status: " + response['status']);
         }
+    }
+    function getCreateDirName(){
+        return $('#create_dir_name').val()
+    }
+    function getCreateDirRoot(){
+        return $('#create_dir_root').val()
     }
     </script>
     <!-- AJAX -->
@@ -128,6 +150,31 @@
                     console.log("_______ AJAX: dropbox_get_file end_________");
             })
         }
+    })
+    $('#create_dir').click(function(){
+        var dir_name = getCreateDirName();
+        var dir_root = getCreateDirRoot();
+        if (dir_name.length == 0){
+            alert("Dir name not specified");
+        } else if(dir_root.length ==0){
+            alert("Dir root not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_create_dir')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "root": dir_root,
+                    "path": dir_name
+                },
+                function(response) {
+                    console.log("__SOCKET_IO: create dir_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: create dir end_________");
+                })
+        }
+
     })
     </script>
 

@@ -67,3 +67,20 @@ class DropboxSaveFile(DropboxHandler):
             data = yield gen.Task(self.dbox_save_file, user, path,
                 text_content)
             self.finish_json_request(data)
+
+
+class DropboxCreateDir(DropboxHandler):
+    """Create new dir in dropbox"""
+
+    @tornado.web.asynchronous
+    @gen.engine
+    @tornado.web.authenticated
+    def post(self):
+        path = self.get_argument("path", None)
+        root = self.get_argument("root", None)
+        if not path or not root:
+            self.finish_json_request({'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user)
+            data = yield gen.Task(self.dbox_create_dir, user, root, path)
+            self.finish_json_request(data)

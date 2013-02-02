@@ -256,3 +256,7 @@ class DropboxWorkerMixin(DropboxMixin):
         yield motor.Op(
             db_file.save, self.db, collection=user.name)
         callback({'status': ErrCode.ok})
+
+    @gen.engine
+    def dbox_create_dir(self, user, root, path, callback=None):
+        callback({'status': ErrCode.not_implemented})

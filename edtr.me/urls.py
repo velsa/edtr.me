@@ -4,7 +4,7 @@ from tornado.web import url
 from handlers.accounts import (LoginHandler, RegisterHandler,
     UserNameAvailabilityHandler, LogoutHandler)
 from handlers.api.v01.dropbox import (DropboxGetTree, DropboxGetFile,
-    DropboxSaveFile)
+    DropboxSaveFile, DropboxCreateDir)
 from handlers.fake import FakeHandler, GetEditorHandler, RenderTrashHtml
 from handlers.home import HomeHandler
 
@@ -24,6 +24,7 @@ url_patterns = [
     url(r'/api/0.1/dropbox/get_tree/', DropboxGetTree, name="dropbox_get_path"),
     url(r'/api/0.1/dropbox/get_file/', DropboxGetFile, name="dropbox_get_file"),
     url(r'/api/0.1/dropbox/save_file/', DropboxSaveFile, name="dropbox_save_file"),
+    url(r'/api/0.1/dropbox/create_dir/', DropboxCreateDir, name="dropbox_create_dir"),
 
     url(r'/get_editor(.*)', GetEditorHandler, name="get_editor"),
 ]
