@@ -259,6 +259,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def dbox_create_dir(self, user, path, callback=None):
+        path = self.unify_path(path)
         access_token = user.get_dropbox_token()
         post_args = {'root': DropboxMixin.ACCESS_TYPE, 'path': path}
         # make dropbox request
@@ -269,5 +270,33 @@ class DropboxWorkerMixin(DropboxMixin):
         if self._check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
+        # TODO: save meta of all transitional folders
         yield motor.Op(self._save_meta, file_meta, user.name)
+        callback({'status': ErrCode.ok})
+
+    @gen.engine
+    def dbox_delete(self, user, path, callback=None):
+        path = self.unify_path(path)
+        access_token = user.get_dropbox_token()
+        post_args = {'root': DropboxMixin.ACCESS_TYPE, 'path': path}
+        # make dropbox request
+        response = yield gen.Task(self.dropbox_request,
+            "api", "/1/fileops/delete",
+            access_token=access_token,
+            post_args=post_args)
+        if self._check_bad_response(response, callback):
+            return
+        file_meta = json.loads(response.body)
+        is_dir, f_path = file_meta['is_dir'], file_meta['path']
+        if is_dir:
+            # TODO: try to avoid full collection scan
+            # to include root_path.startswith(f_path) elements
+            yield motor.Op(DropboxFile.remove_entries, self.db,
+                {"$or": [{"_id": f_path},
+                    {"root_path":
+                        {'$regex': '^%s.*' % f_path, '$options': 'i'}}]},
+                collection=user.name)
+        else:
+            yield motor.Op(DropboxFile.remove_entries, self.db,
+                {"_id": f_path}, collection=user.name)
         callback({'status': ErrCode.ok})

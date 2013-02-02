@@ -83,3 +83,19 @@ class DropboxCreateDir(DropboxHandler):
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.dbox_create_dir, user, path)
             self.finish_json_request(data)
+
+
+class DropboxDelete(DropboxHandler):
+    """Delete file or directory"""
+
+    @tornado.web.asynchronous
+    @gen.engine
+    @tornado.web.authenticated
+    def post(self):
+        path = self.get_argument("path", None)
+        if not path:
+            self.finish_json_request({'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user)
+            data = yield gen.Task(self.dbox_delete, user, path)
+            self.finish_json_request(data)

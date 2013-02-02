@@ -31,9 +31,6 @@
         <textarea name="file_content" id="file_content" cols="300" rows="10" style="height:30px;width:500px"></textarea>
         <div>File url:</div><div id="file_url"></div>
         <div>
-            <input type="file" id="upload_file_field" name="myfile1" size="20">
-        </div>
-        <div>
             <button id="file_save"
                     class="btn btn-success btn-small cme-button-tooltip" href="#">
                 <span id="btn_file_save">AJAX save file</span>
@@ -55,6 +52,20 @@
             <button id="sio_create_dir"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
             <span id="btn_sio_create_dir">SocketIO create_dir</span>
+            </button>
+        </div>
+
+        <div style="padding-top:10px;">
+            <div>
+                <span>Delete path:</span><input id='delete_path' type="text" value="">
+            </div>
+            <button id="delete"
+                    class="btn btn-success btn-small cme-button-tooltip" href="#">
+                <span id="btn_delete">AJAX delete</span>
+            </button>
+            <button id="sio_delete"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_delete">SocketIO delete</span>
             </button>
         </div>
 
@@ -88,6 +99,9 @@
     }
     function getCreateDirName(){
         return $('#create_dir_name').val()
+    }
+    function getDeletePath(){
+        return $('#delete_path').val()
     }
     </script>
     <!-- AJAX -->
@@ -126,7 +140,6 @@
     })
     $('#file_save').click(function(){
         var url = $("#file_url").html();
-        var attach = $("#upload_file_field").val()
         if (url.length != 0){
             alert("File is not text");
         } else {
@@ -158,12 +171,33 @@
                     "path": dir_name
                 },
                 function(response) {
-                    console.log("__SOCKET_IO: create dir_________");
+                    console.log("__ AJAX: create dir_________");
                     for (f in response){
                         console.log(f+":")
                         console.log(response[f])
                     }
                     console.log("_______ AJAX: create dir end_________");
+                })
+        }
+
+    })
+    $('#delete').click(function(){
+        var path = getDeletePath();
+        if (path.length == 0){
+            alert("Path not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_delete')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "path": path
+                },
+                function(response) {
+                    console.log("__AJAX: delete path_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: delete path end_________");
                 })
         }
 
