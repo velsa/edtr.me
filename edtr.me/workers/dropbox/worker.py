@@ -29,7 +29,7 @@ TEXT_MIMES = (
 
 
 class DropboxWorkerMixin(DropboxMixin):
-    def unify_path(self, path):
+    def _unify_path(self, path):
         while len(path) > 1 and path.endswith('/'):
             path = path[:-1]
         if len(path) > 1 and not path.startswith('/'):
@@ -97,7 +97,7 @@ class DropboxWorkerMixin(DropboxMixin):
         if recurse:
             callback({'status': ErrCode.not_implemented})
         else:
-            path = self.unify_path(path)
+            path = self._unify_path(path)
             cursor = self.db[user.name].find({"root_path": path},
                 fields=DropboxFile.public_exclude_fields())
             files = yield motor.Op(cursor.to_list, DropboxFile.FIND_LIST_LEN)
@@ -135,7 +135,7 @@ class DropboxWorkerMixin(DropboxMixin):
         return None
 
     def _get_file_url(self, path, api_url):
-        path = self.unify_path(path)
+        path = self._unify_path(path)
         return "/1/{api_url}/{{root}}{path}".format(
             api_url=api_url,
             path=urllib.quote(path.encode('utf8')))
@@ -151,7 +151,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_get_file(self, user, path, callback=None):
-        path = self.unify_path(path)
+        path = self._unify_path(path)
         for i in range(2):
             # first try to find file_meta in database
             file_meta = yield motor.Op(DropboxFile.find_one, self.db,
@@ -260,7 +260,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_create_dir(self, user, path, callback=None):
-        path = self.unify_path(path)
+        path = self._unify_path(path)
         # make dropbox request
         access_token = user.get_dropbox_token()
         post_args = {
@@ -280,7 +280,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_delete(self, user, path, callback=None):
-        path = self.unify_path(path)
+        path = self._unify_path(path)
         # make dropbox request
         access_token = user.get_dropbox_token()
         post_args = {
@@ -306,4 +306,37 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             yield motor.Op(DropboxFile.remove_entries, self.db,
                 {"_id": f_path}, collection=user.name)
+        callback({'status': ErrCode.ok})
+
+    @gen.engine
+    def wk_dbox_move(self, user, from_path, to_path, callback=None):
+        from_path = self._unify_path(from_path)
+        to_path = self._unify_path(to_path)
+        # make dropbox request
+        access_token = user.get_dropbox_token()
+        post_args = {
+            'root': DropboxMixin.ACCESS_TYPE,
+            'from_path': from_path.encode(DEFAULT_ENCODING),
+            'to_path': to_path.encode(DEFAULT_ENCODING),
+        }
+        response = yield gen.Task(self.dropbox_request,
+            "api", "/1/fileops/move",
+            access_token=access_token,
+            post_args=post_args)
+        if self._check_bad_response(response, callback):
+            return
+        file_meta = json.loads(response.body)
+        is_dir, new_path = file_meta['is_dir'], file_meta['path']
+        if is_dir:
+            # TODO: try to avoid full collection scan
+            # to include root_path.startswith(new_path) elements
+            yield motor.Op(DropboxFile.remove_entries, self.db,
+                {"$or": [{"_id": from_path},
+                    {"root_path":
+                        {'$regex': '^%s.*' % from_path, '$options': 'i'}}]},
+                collection=user.name)
+        else:
+            yield motor.Op(DropboxFile.remove_entries, self.db,
+                {"_id": from_path}, collection=user.name)
+        yield motor.Op(self._save_meta, file_meta, user.name)
         callback({'status': ErrCode.ok})

@@ -73,6 +73,24 @@
         <span id="btn_sio_delete">SocketIO delete</span>
         </button>
     </div>
+
+    <div class="section">
+        <div>Move element</div>
+        <div>
+            <span>From path:</span><input id='move_from_path' type="text" value="">
+        </div>
+        <div>
+            <span>To path:</span><input id='move_to_path' type="text" value="">
+        </div>
+        <button id="move_elem"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_move_elem">AJAX move</span>
+        </button>
+        <button id="sio_move_elem"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_move_elem">SocketIO move</span>
+        </button>
+    </div>
 {% endblock %}
 
 {% block extra_footer %}
@@ -105,6 +123,12 @@
     }
     function getDeletePath(){
         return $('#delete_path').val()
+    }
+    function getMoveFrom(){
+        return $('#move_from_path').val()
+    }
+    function getMoveTo(){
+        return $('#move_to_path').val()
     }
     </script>
     <!-- AJAX -->
@@ -205,6 +229,31 @@
         }
 
     })
+    $('#move_elem').click(function(){
+        var from_path = getMoveFrom();
+        var to_path = getMoveTo();
+        if (from_path.length == 0){
+            alert("From path not specified");
+        } else if (to_path.length == 0){
+            alert("To path not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_move')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "from_path": from_path,
+                    "to_path": to_path
+                },
+                function(response) {
+                    console.log("__AJAX: move_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: move end_________");
+                })
+        }
+
+    })
     </script>
 
     <!-- SOCKETIO -->
@@ -272,6 +321,16 @@
             console.log("__SOCKET_IO: Delete path end_________");
         });
 
+        s.on('dbox_move', function(response) {
+            console.log("__SOCKET_IO: Move_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: Move end_________");
+        });
+
         // Start event
         $('#debug_socketion').click(function() {
             s.emit('dbox_get_tree', '/');
@@ -309,6 +368,19 @@
                 alert("Path not specified");
             } else {
                 s.emit('dbox_delete_path', path);
+            }
+            return false;
+        });
+
+        $('#sio_move_elem').click(function() {
+            var from_path = getMoveFrom();
+            var to_path = getMoveTo();
+            if (from_path.length == 0){
+                alert("From path not specified");
+            } else if (to_path.length == 0){
+                alert("To path not specified");
+            } else {
+                s.emit('dbox_move', from_path, to_path);
             }
             return false;
         });
