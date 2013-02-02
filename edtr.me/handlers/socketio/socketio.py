@@ -111,3 +111,13 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
             data = yield gen.Task(self.dbox_create_dir, user, path)
             self.emit_as_json('create_dir', data)
+
+    @event
+    @gen.engine
+    def delete_path(self, path):
+        if not path:
+            self.emit_as_json('delete_path', {'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
+            data = yield gen.Task(self.dbox_delete, user, path)
+            self.emit_as_json('delete_path', data)

@@ -259,6 +259,16 @@
             console.log("__SOCKET_IO: Create dir end_________");
         });
 
+        s.on('delete_path', function(response) {
+            console.log("__SOCKET_IO: Delete path_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: Delete path end_________");
+        });
+
         // Start event
         $('#debug_socketion').click(function() {
             s.emit('get_tree', '/');
@@ -286,6 +296,16 @@
                 alert("Dir name not specified");
             } else {
                 s.emit('create_dir', dir_name);
+            }
+            return false;
+        });
+
+        $('#sio_delete').click(function() {
+            var path = getDeletePath();
+            if (path.length == 0){
+                alert("Path not specified");
+            } else {
+                s.emit('delete_path', path);
             }
             return false;
         });
