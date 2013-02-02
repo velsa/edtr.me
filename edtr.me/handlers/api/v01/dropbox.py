@@ -26,7 +26,7 @@ class DropboxGetTree(DropboxHandler):
     def post(self):
         path = self.get_argument("path", "/")
         user = yield gen.Task(self.get_edtr_current_user)
-        result = yield gen.Task(self.dbox_get_tree, user, path)
+        result = yield gen.Task(self.wk_dbox_get_tree, user, path)
 
         self.finish_json_request(result)
 
@@ -45,7 +45,7 @@ class DropboxGetFile(DropboxHandler):
             self.finish_json_request({'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
-            data = yield gen.Task(self.dbox_get_file, user, path)
+            data = yield gen.Task(self.wk_dbox_get_file, user, path)
             self.finish_json_request(data)
 
 
@@ -64,7 +64,7 @@ class DropboxSaveFile(DropboxHandler):
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             text_content = self.get_argument("content", None)
-            data = yield gen.Task(self.dbox_save_file, user, path,
+            data = yield gen.Task(self.wk_dbox_save_file, user, path,
                 text_content)
             self.finish_json_request(data)
 
@@ -81,7 +81,7 @@ class DropboxCreateDir(DropboxHandler):
             self.finish_json_request({'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
-            data = yield gen.Task(self.dbox_create_dir, user, path)
+            data = yield gen.Task(self.wk_dbox_create_dir, user, path)
             self.finish_json_request(data)
 
 
@@ -97,5 +97,5 @@ class DropboxDelete(DropboxHandler):
             self.finish_json_request({'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
-            data = yield gen.Task(self.dbox_delete, user, path)
+            data = yield gen.Task(self.wk_dbox_delete, user, path)
             self.finish_json_request(data)

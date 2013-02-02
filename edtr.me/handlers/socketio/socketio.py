@@ -73,51 +73,51 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
 
     @event
     @gen.engine
-    def get_tree(self, path):
+    def dbox_get_tree(self, path):
         # TODO maybe set common user fields as self.field
         # to not make database call to find user
         user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-        result = yield gen.Task(self.dbox_get_tree, user, path)
-        self.emit_as_json('get_tree', result)
+        result = yield gen.Task(self.wk_dbox_get_tree, user, path)
+        self.emit_as_json('dbox_get_tree', result)
 
     @event
     @gen.engine
-    def get_file(self, path):
+    def dbox_get_file(self, path):
         if not path:
-            self.emit_as_json('get_file', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_get_file', {'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            result = yield gen.Task(self.dbox_get_file, user, path)
-            self.emit_as_json('get_file', result)
+            result = yield gen.Task(self.wk_dbox_get_file, user, path)
+            self.emit_as_json('dbox_get_file', result)
 
     @event
     @gen.engine
-    def save_file(self, path, content):
+    def dbox_save_file(self, path, content):
 
         if not path:
-            self.emit_as_json('save_file', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_save_file', {'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            data = yield gen.Task(self.dbox_save_file, user, path,
+            data = yield gen.Task(self.wk_dbox_save_file, user, path,
                 content)
-            self.emit_as_json('save_file', data)
+            self.emit_as_json('dbox_save_file', data)
 
     @event
     @gen.engine
-    def create_dir(self, path):
+    def dbox_create_dir(self, path):
         if not path:
-            self.emit_as_json('create_dir', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_create_dir', {'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            data = yield gen.Task(self.dbox_create_dir, user, path)
-            self.emit_as_json('create_dir', data)
+            data = yield gen.Task(self.wk_dbox_create_dir, user, path)
+            self.emit_as_json('dbox_create_dir', data)
 
     @event
     @gen.engine
-    def delete_path(self, path):
+    def dbox_delete_path(self, path):
         if not path:
-            self.emit_as_json('delete_path', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_delete_path', {'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            data = yield gen.Task(self.dbox_delete, user, path)
-            self.emit_as_json('delete_path', data)
+            data = yield gen.Task(self.wk_dbox_delete, user, path)
+            self.emit_as_json('dbox_delete_path', data)

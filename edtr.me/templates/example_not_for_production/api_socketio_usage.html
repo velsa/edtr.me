@@ -2,7 +2,14 @@
 
 {% block body_container %}
     {{ super() }}
-    <div style="padding-bottom:50px;">
+    <style type="text/css">
+    .section{
+        border:2px double black;
+        padding-top:10px;
+        margin:4px;
+    }
+    </style>
+    <div class="section">
         <button id="debug"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
             <span id="btn_debug">AJAX Metadata</span>
@@ -13,20 +20,18 @@
         </button>
     </div>
 
-    <div>
+    <div class="section">
+        <div>
+            <span>File path to get:</span><input id="file_input" type="text" name="fname" value="/1.txt"/>
+        </div>
         <button id="file_get"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
-            <span id="btn_file_get">AJAX File</span>
+            <span id="btn_file_get">AJAX get file</span>
         </button>
         <button id="sio_file_get"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
-            <span id="btn_sio_file_get">SocketIO File</span>
+            <span id="btn_sio_file_get">SocketIO get file</span>
         </button>
-    </div>
-    <div>
-        <span>File path to get:</span><input id="file_input" type="text" name="fname" value="/1.txt"/>
-    </div>
-    <div>
         <div>File contents:</div>
         <textarea name="file_content" id="file_content" cols="300" rows="10" style="height:30px;width:500px"></textarea>
         <div>File url:</div><div id="file_url"></div>
@@ -40,35 +45,33 @@
             <span id="btn_sio_file_save">SocketIO save file</span>
             </button>
         </div>
-
-        <div style="padding-top:10px;">
-            <div>
-                <span>Create dir:</span><input id='create_dir_name' type="text" value="">
-            </div>
-            <button id="create_dir"
-                    class="btn btn-success btn-small cme-button-tooltip" href="#">
-                <span id="btn_create_dir">AJAX create_dir</span>
-            </button>
-            <button id="sio_create_dir"
-                class="btn btn-success btn-small cme-button-tooltip" href="#">
-            <span id="btn_sio_create_dir">SocketIO create_dir</span>
-            </button>
+    </div>
+    <div class="section">
+        <div>
+            <span>Create dir:</span><input id='create_dir_name' type="text" value="">
         </div>
-
-        <div style="padding-top:10px;">
-            <div>
-                <span>Delete path:</span><input id='delete_path' type="text" value="">
-            </div>
-            <button id="delete"
-                    class="btn btn-success btn-small cme-button-tooltip" href="#">
-                <span id="btn_delete">AJAX delete</span>
-            </button>
-            <button id="sio_delete"
+        <button id="create_dir"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
-            <span id="btn_sio_delete">SocketIO delete</span>
-            </button>
-        </div>
+            <span id="btn_create_dir">AJAX create_dir</span>
+        </button>
+        <button id="sio_create_dir"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+        <span id="btn_sio_create_dir">SocketIO create_dir</span>
+        </button>
+    </div>
 
+    <div class="section">
+        <div>
+            <span>Delete path:</span><input id='delete_path' type="text" value="">
+        </div>
+        <button id="delete"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_delete">AJAX delete</span>
+        </button>
+        <button id="sio_delete"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+        <span id="btn_sio_delete">SocketIO delete</span>
+        </button>
     </div>
 {% endblock %}
 
@@ -217,7 +220,7 @@
         });
 
         // Event response
-        s.on('get_tree', function(response) {
+        s.on('dbox_get_tree', function(response) {
             console.log("__SOCKET_IO__")
             var response = JSON.parse(response)
             for (f in response){
@@ -227,7 +230,7 @@
             console.log("__SOCKET_IO__ end")
         });
 
-        s.on('get_file', function(response) {
+        s.on('dbox_get_file', function(response) {
             clearFileContents();
             console.log("__SOCKET_IO Get file__")
             var response = JSON.parse(response)
@@ -239,7 +242,7 @@
             console.log("__SOCKET_IO Get file__ end")
         });
 
-        s.on('save_file', function(response) {
+        s.on('dbox_save_file', function(response) {
             console.log("__SOCKET_IO Save file__")
             var response = JSON.parse(response)
             for (f in response){
@@ -249,7 +252,7 @@
             console.log("__SOCKET_IO Save file__ end")
         });
 
-        s.on('create_dir', function(response) {
+        s.on('dbox_create_dir', function(response) {
             console.log("__SOCKET_IO: Create dir_________");
             var response = JSON.parse(response);
             for (f in response){
@@ -259,7 +262,7 @@
             console.log("__SOCKET_IO: Create dir end_________");
         });
 
-        s.on('delete_path', function(response) {
+        s.on('dbox_delete_path', function(response) {
             console.log("__SOCKET_IO: Delete path_________");
             var response = JSON.parse(response);
             for (f in response){
@@ -271,12 +274,12 @@
 
         // Start event
         $('#debug_socketion').click(function() {
-            s.emit('get_tree', '/');
+            s.emit('dbox_get_tree', '/');
             return false;
         });
 
         $('#sio_file_get').click(function() {
-            s.emit('get_file', getFilePath());
+            s.emit('dbox_get_file', getFilePath());
             return false;
         });
 
@@ -285,7 +288,7 @@
             if (url.length != 0){
                 alert("File is not text");
             } else {
-                s.emit('save_file', getFilePath(), $("#file_content").val());
+                s.emit('dbox_save_file', getFilePath(), $("#file_content").val());
             }
             return false;
         });
@@ -295,7 +298,7 @@
             if (dir_name.length == 0){
                 alert("Dir name not specified");
             } else {
-                s.emit('create_dir', dir_name);
+                s.emit('dbox_create_dir', dir_name);
             }
             return false;
         });
@@ -305,7 +308,7 @@
             if (path.length == 0){
                 alert("Path not specified");
             } else {
-                s.emit('delete_path', path);
+                s.emit('dbox_delete_path', path);
             }
             return false;
         });

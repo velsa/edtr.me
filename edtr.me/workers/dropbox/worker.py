@@ -88,7 +88,7 @@ class DropboxWorkerMixin(DropboxMixin):
         callback({'status': ErrCode.ok})
 
     @gen.engine
-    def dbox_get_tree(self, user, path, recurse=False, callback=None):
+    def wk_dbox_get_tree(self, user, path, recurse=False, callback=None):
         # Update metadata from dropbox to database
         r = yield gen.Task(self._update_delta_from_dropbox, user)
         if r['status'] != ErrCode.ok:
@@ -150,7 +150,7 @@ class DropboxWorkerMixin(DropboxMixin):
         return False
 
     @gen.engine
-    def dbox_get_file(self, user, path, callback=None):
+    def wk_dbox_get_file(self, user, path, callback=None):
         path = self.unify_path(path)
         for i in range(2):
             # first try to find file_meta in database
@@ -229,7 +229,7 @@ class DropboxWorkerMixin(DropboxMixin):
         self.db[colln].save(meta_data, callback=callback)
 
     @gen.engine
-    def dbox_save_file(self, user, path, text_content, callback=None):
+    def wk_dbox_save_file(self, user, path, text_content, callback=None):
         file_meta = yield motor.Op(DropboxFile.find_one, self.db,
             {"_id": path}, collection=user.name)
         # Not allow to spam api very often
@@ -259,7 +259,7 @@ class DropboxWorkerMixin(DropboxMixin):
         callback({'status': ErrCode.ok})
 
     @gen.engine
-    def dbox_create_dir(self, user, path, callback=None):
+    def wk_dbox_create_dir(self, user, path, callback=None):
         path = self.unify_path(path)
         # make dropbox request
         access_token = user.get_dropbox_token()
@@ -279,7 +279,7 @@ class DropboxWorkerMixin(DropboxMixin):
         callback({'status': ErrCode.ok})
 
     @gen.engine
-    def dbox_delete(self, user, path, callback=None):
+    def wk_dbox_delete(self, user, path, callback=None):
         path = self.unify_path(path)
         # make dropbox request
         access_token = user.get_dropbox_token()
