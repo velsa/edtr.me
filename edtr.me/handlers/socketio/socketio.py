@@ -83,8 +83,6 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     @event
     @gen.engine
     def get_file(self, path):
-        # TODO maybe set common user fields as self.field
-        # to not make database call to find user
         if not path:
             self.emit_as_json('get_file', {'status': ErrCode.bad_request})
         else:
@@ -97,9 +95,19 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     def save_file(self, path, content):
 
         if not path:
-            self.emit_as_json({'status': ErrCode.bad_request})
+            self.emit_as_json('save_file', {'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
             data = yield gen.Task(self.dbox_save_file, user, path,
                 content)
             self.emit_as_json('save_file', data)
+
+    @event
+    @gen.engine
+    def create_dir(self, path):
+        if not path:
+            self.emit_as_json('create_dir', {'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
+            data = yield gen.Task(self.dbox_create_dir, user, path)
+            self.emit_as_json('create_dir', data)
