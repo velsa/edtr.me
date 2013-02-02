@@ -91,3 +91,15 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
             result = yield gen.Task(self.dbox_get_file, user, path)
             self.emit_as_json('get_file', result)
+
+    @event
+    @gen.engine
+    def save_file(self, path, content):
+
+        if not path:
+            self.emit_as_json({'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
+            data = yield gen.Task(self.dbox_save_file, user, path,
+                content)
+            self.emit_as_json('save_file', data)

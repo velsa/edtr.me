@@ -31,6 +31,9 @@
         <textarea name="file_content" id="file_content" cols="300" rows="10" style="height:30px;width:500px"></textarea>
         <div>File url:</div><div id="file_url"></div>
         <div>
+            <input type="file" id="upload_file_field" name="myfile1" size="20">
+        </div>
+        <div>
             <button id="file_save"
                     class="btn btn-success btn-small cme-button-tooltip" href="#">
                 <span id="btn_file_save">AJAX save file</span>
@@ -78,7 +81,7 @@
                 "path": "/"
             },
             function(response) {
-                console.log("_______AJAX: update_db_tree_________");
+                console.log("__SOCKET_IO: update_db_tree_________");
                 for (f in response){
                     console.log(f+":")
                     console.log(response[f])
@@ -105,6 +108,7 @@
     })
     $('#file_save').click(function(){
         var url = $("#file_url").html();
+        var attach = $("#upload_file_field").val()
         if (url.length != 0){
             alert("File is not text");
         } else {
@@ -162,6 +166,17 @@
             console.log("__SOCKET_IO Get file__ end")
         });
 
+        s.on('save_file', function(response) {
+            console.log("__SOCKET_IO: dropbox_get_file_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            setFileContents(response);
+            console.log("__SOCKET_IO: dropbox_get_file end_________");
+        });
+
         // Start event
         $('#debug_socketion').click(function() {
             s.emit('get_tree', '/');
@@ -170,6 +185,16 @@
 
         $('#sio_file_get').click(function() {
             s.emit('get_file',  getFilePath());
+            return false;
+        });
+
+        $('#sio_file_save').click(function() {
+            var url = $("#file_url").html();
+            if (url.length != 0){
+                alert("File is not text");
+            } else {
+                s.emit('save_file',  getFilePath(), $("#file_content").val());
+            }
             return false;
         });
     });
