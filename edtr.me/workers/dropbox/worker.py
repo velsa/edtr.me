@@ -80,13 +80,9 @@ class DropboxWorkerMixin(DropboxMixin):
                             DropboxFile.remove_entries, self.db,
                             {"_id": e_path}, collection=user.name)
                     else:
-                        entry['_id'] = entry.pop('path')
-                        entry['root_path'] = os.path.dirname(entry['_id'])
-                        db_file = DropboxFile(**entry)
                         # TODO
                         # maybe there is a way to save files in one db call
-                        yield motor.Op(
-                            db_file.save, self.db, collection=user.name)
+                        yield motor.Op(self._save_meta, entry, user.name, False)
             user.dbox_cursor = cursor
             yield motor.Op(user.save, self.db)
         callback({'status': ErrCode.ok})
@@ -224,6 +220,15 @@ class DropboxWorkerMixin(DropboxMixin):
                 'expires': url_expires})
 
     @gen.engine
+    def _save_meta(self, meta_data, colln, update=True,
+      callback=None):
+        meta_data['_id'] = meta_data.pop('path')
+        meta_data['root_path'] = os.path.dirname(meta_data['_id'])
+        if update:
+            meta_data['last_updated'] = datetime.now()
+        self.db[colln].save(meta_data, callback=callback)
+
+    @gen.engine
     def dbox_save_file(self, user, path, text_content, callback=None):
         file_meta = yield motor.Op(DropboxFile.find_one, self.db,
             {"_id": path}, collection=user.name)
@@ -249,14 +254,20 @@ class DropboxWorkerMixin(DropboxMixin):
         if self._check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        file_meta['_id'] = file_meta.pop('path')
-        file_meta['root_path'] = os.path.dirname(file_meta['_id'])
-        file_meta['last_updated'] = datetime.now()
-        db_file = DropboxFile(**file_meta)
-        yield motor.Op(
-            db_file.save, self.db, collection=user.name)
+        yield motor.Op(self._save_meta, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
     @gen.engine
-    def dbox_create_dir(self, user, root, path, callback=None):
-        callback({'status': ErrCode.not_implemented})
+    def dbox_create_dir(self, user, path, callback=None):
+        access_token = user.get_dropbox_token()
+        post_args = {'root': DropboxMixin.ACCESS_TYPE, 'path': path}
+        # make dropbox request
+        response = yield gen.Task(self.dropbox_request,
+            "api", "/1/fileops/create_folder",
+            access_token=access_token,
+            post_args=post_args)
+        if self._check_bad_response(response, callback):
+            return
+        file_meta = json.loads(response.body)
+        yield motor.Op(self._save_meta, file_meta, user.name)
+        callback({'status': ErrCode.ok})

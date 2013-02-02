@@ -46,7 +46,6 @@
 
         <div style="padding-top:10px;">
             <div>
-                <span>Create dir root:</span><input id='create_dir_root' type="text" value="/">
                 <span>Create dir:</span><input id='create_dir_name' type="text" value="">
             </div>
             <button id="create_dir"
@@ -89,9 +88,6 @@
     }
     function getCreateDirName(){
         return $('#create_dir_name').val()
-    }
-    function getCreateDirRoot(){
-        return $('#create_dir_root').val()
     }
     </script>
     <!-- AJAX -->
@@ -153,16 +149,12 @@
     })
     $('#create_dir').click(function(){
         var dir_name = getCreateDirName();
-        var dir_root = getCreateDirRoot();
         if (dir_name.length == 0){
             alert("Dir name not specified");
-        } else if(dir_root.length ==0){
-            alert("Dir root not specified");
         } else {
             $.post("{{reverse_url('dropbox_create_dir')}}",
                 {
                     "_xsrf": getCookie("_xsrf"),
-                    "root": dir_root,
                     "path": dir_name
                 },
                 function(response) {
