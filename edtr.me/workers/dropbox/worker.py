@@ -254,15 +254,19 @@ class DropboxWorkerMixin(DropboxMixin):
         if self._check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
+        # TODO: save meta of all transitional folders
         yield motor.Op(self._save_meta, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
     @gen.engine
     def dbox_create_dir(self, user, path, callback=None):
         path = self.unify_path(path)
-        access_token = user.get_dropbox_token()
-        post_args = {'root': DropboxMixin.ACCESS_TYPE, 'path': path}
         # make dropbox request
+        access_token = user.get_dropbox_token()
+        post_args = {
+            'root': DropboxMixin.ACCESS_TYPE,
+            'path': path.encode(DEFAULT_ENCODING),
+        }
         response = yield gen.Task(self.dropbox_request,
             "api", "/1/fileops/create_folder",
             access_token=access_token,
@@ -277,9 +281,12 @@ class DropboxWorkerMixin(DropboxMixin):
     @gen.engine
     def dbox_delete(self, user, path, callback=None):
         path = self.unify_path(path)
-        access_token = user.get_dropbox_token()
-        post_args = {'root': DropboxMixin.ACCESS_TYPE, 'path': path}
         # make dropbox request
+        access_token = user.get_dropbox_token()
+        post_args = {
+            'root': DropboxMixin.ACCESS_TYPE,
+            'path': path.encode(DEFAULT_ENCODING),
+        }
         response = yield gen.Task(self.dropbox_request,
             "api", "/1/fileops/delete",
             access_token=access_token,
