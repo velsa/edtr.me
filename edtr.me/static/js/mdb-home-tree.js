@@ -958,6 +958,7 @@ var edtrTree = {
 
     //
     // Perform requested file action in ztree:
+    // Called either from modal dialog or by server
     //
     // action:          add_file, add_subdir,
     //                  remove_file, remove_subdir,
@@ -1002,7 +1003,7 @@ var edtrTree = {
         }
 
         // Get parent node
-        var parent_node = edtrTree.ztree.getNodesByParam("id", path)[0],
+        var parent_node = edtrTree.ztree.getNodeByParam("id", path),
             node;
         if (!parent_node) {
             if (need_server_action)
@@ -1028,7 +1029,6 @@ var edtrTree = {
             edtrTree.move_node_in_parent(node, parent_node);
             // TODO: perform server action
         } else {
-            // debugger;
             // Remove or Rename
             node = edtrTree.ztree.getNodesByParam("name", filename, parent_node)[0];
             if (!node) {
@@ -1074,7 +1074,7 @@ var edtrTree = {
             editor_type: content_type
         }, function(editor_data, textStatus, jqXHR) {
             // Retrieve file from dropbox (server provides us with unique media url)
-            serverComm.get_dropbox_file(node.id, function(err, file_data) {
+            serverComm.get_dropbox_file(node.id, function(file_data) {
                 /*
                  // TODO: try jQuery Autocomplete instead
                  set_search_words(data);
@@ -1096,8 +1096,8 @@ var edtrTree = {
                 }
                 // TODO: need a method in edtrCodemirror to replace data
                 // or even better - to create a new tab
-                edtrTree.editor = new edtrCodemirror(file_type, data);
-                messagesBar.show_notification("File <b>"+file_url+"</b> was loaded into the editor");
+                edtrTree.editor = new edtrCodemirror(content_type, file_data);
+                messagesBar.show_notification("File <b>"+node.id+"</b> was loaded into the editor");
             });
         })
         .error(function(data) {

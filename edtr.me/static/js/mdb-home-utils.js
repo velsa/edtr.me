@@ -322,9 +322,9 @@ var serverComm = {
 
     get_request:            function (source, request, params, callback) {
         params["_xsrf"] = this.get_cookie("_xsrf");
-        $.post(serverComm.get_request_url(source, request), params, callback)
+        $.get(serverComm.get_request_url(source, request), params, callback)
         .fail(function() {
-            messagesBar.show_internal_error("serverComm.post_request: fail",
+            messagesBar.show_internal_error("serverComm.get_request: fail",
                 "source: "+source+", request:"+request);
             console.log(params);
         });
@@ -336,10 +336,7 @@ var serverComm = {
             path:   path
         }, function(data, textStatus, jqXHR) {
             console.log("media", data);
-            $.get(data.url, {_xsrf: serverComm.get_cookie("_xsrf")}, function(data) {
-                callback.apply(undefined, // value for this
-                    data);
-            });
+            callback.apply(undefined, data);
         });
     },
 
