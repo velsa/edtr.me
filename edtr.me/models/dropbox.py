@@ -1,6 +1,9 @@
 import dateutil.parser
-from schematics.types import (StringType, IntType, BooleanType)
+from schematics.types import (StringType, IntType, BooleanType, DateTimeType)
 from models.base import BaseModel
+from schematics.serialize import (blacklist)
+
+PUBLIC_EXCLUDE = 'last_updated',
 
 
 class DropboxFile(BaseModel):
@@ -18,8 +21,23 @@ class DropboxFile(BaseModel):
     root = StringType()
     mime_type = StringType()
     size = StringType()
+    last_updated = DateTimeType()
     url_trans = StringType()
     url_expires = StringType()
+
+    FIND_LIST_LEN = 250
+
+    class Options:
+        roles = {
+            'public': blacklist(PUBLIC_EXCLUDE),
+        }
+
+    @classmethod
+    def public_exclude_fields(cls):
+        d = {}
+        for f in PUBLIC_EXCLUDE:
+            d[f] = False
+        return d
 
     def set_url_expires(self, date):
         parsed = dateutil.parser.parse(date)

@@ -352,7 +352,6 @@ span.CodeMirror-matchhighlight {
     opacity:            1;
 }
 
-
 /*
 *   Message bars
 */
@@ -389,6 +388,16 @@ span.CodeMirror-matchhighlight {
 }
 
 /*
+ * Loading animation
+ */
+.file-loading {
+    opacity:                1 !important;
+    background-color:       rgba(55,55,55,0.3);
+    background-image:       url('/static/images/file-loader.gif');
+    background-repeat:      no-repeat;
+    background-position:    50% 50%;
+}
+/*
 *   Image carousel
 *   TODO: align image vertically (HOW ??!!)
 */
@@ -419,7 +428,7 @@ span.CodeMirror-matchhighlight {
     border:             3px solid rgba(0, 0, 0, 0.3);
 }
 .modal-backdrop {
-    opacity:            0.2;
+    opacity:            0.3;
 }
 .modal-header {
     padding:            15px 15px 5px;;

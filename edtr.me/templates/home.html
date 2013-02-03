@@ -134,7 +134,7 @@
     {{ super() }}
     <div class="main-container">
         <!--
-            Helper divs
+            Misc divs
         -->
         <!-- Modal dialogs -->
         <div id="modal_placeholder"></div>
@@ -143,6 +143,13 @@
         </div>
         <!-- Bar for messages, errors and info -->
         <div id="messages_bar"></div>
+
+        <!-- Loading animation -->
+        <div class="modal-backdrop file-loading" style="display:none"></div>
+        <!-- Editor and it's toolbar --> 
+        <div id="editor_html" style="display:none">
+            {% include "editor/cm_markdown.html" %}
+        </div>
 
         <!-- Context menu for ztree nodes -->
         <div class="tree-context-menu"></div>

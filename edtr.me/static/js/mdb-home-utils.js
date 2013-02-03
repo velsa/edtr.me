@@ -296,6 +296,22 @@ var edtrSplitters = {
 var serverComm = {
     timer_interval:     1000,
     api_v:              "/api/0.1/",
+    human_status: {
+        0:      "success",
+        1:      "directory",
+        2:      "image",
+        3:      "binary",
+        4:      "bad request",
+        5:      "called to often",
+        20770:  "unknown error",
+        20771:  "not implemented",
+        30770:  "server failure"
+    },
+    max_success_status: 3,
+
+    init:                   function() {
+        $( document ).ajaxError(serverComm._ajax_failed);
+    },
 
     get_cookie:             function (name) {
         var c = document.cookie.match("\\b" + name + "=([^;]*)\\b");
@@ -310,33 +326,41 @@ var serverComm = {
         // "?reload="+(new Date()).getTime(),
     },
 
+    _ajax_failed:           function(event, jqxhr, settings, exception) {
+        debugger;
+        messagesBar.show_internal_error("serverComm._ajax_failed",
+            "url: "+settin.url+", exception:"+exception);
+    },
+
     post_request:           function (source, request, params, callback) {
         params["_xsrf"] = this.get_cookie("_xsrf");
         $.post(serverComm.get_request_url(source, request), params, callback)
-        .fail(function() {
-            messagesBar.show_internal_error("serverComm.post_request: fail",
-                "source: "+source+", request:"+request);
+        .fail(function(jqXHR, textStatus, data) {
             console.log(params);
+            callback.call($(this), data, textStatus, jqXHR);
         });
     },
 
     get_request:            function (source, request, params, callback) {
         params["_xsrf"] = this.get_cookie("_xsrf");
         $.get(serverComm.get_request_url(source, request), params, callback)
-        .fail(function() {
-            messagesBar.show_internal_error("serverComm.get_request: fail",
-                "source: "+source+", request:"+request);
+        .fail(function(jqXHR, textStatus, data) {
             console.log(params);
+            callback.call($(this), data, textStatus, jqXHR);
         });
     },
 
     get_dropbox_file:         function (path, callback) {
-        // Get media url from server
+        // Get file content from server
         this.post_request("dropbox", "get_file", {
             path:   path
         }, function(data, textStatus, jqXHR) {
-            console.log("media", data);
-            callback.apply(undefined, data);
+            if (textStatus !== "success") {
+                callback.call($(this), 30770); // server failure
+            } else {
+                console.log("get_dropbox_file", path, data.status);
+                callback.call($(this), data.status, data.content);
+            }
         });
     },
 

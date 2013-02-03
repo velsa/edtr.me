@@ -7,6 +7,9 @@
 
 // Class definition
 function edtrCodemirror(content_type, content) {
+    // Pointer to ourselves
+    var $this;
+
     //
     // CALLBACKS (must be defined BEFORE usage !)
     //
@@ -422,15 +425,15 @@ function edtrCodemirror(content_type, content) {
             $this.set_saved_state("NOT SAVED");
         }
         // Update preview on timer (no need for preview when in fullscreen)
-        if (!$this.is_codemirror_fullscreen && !$this.is_timer) {
-            $this.is_timer = true;
+        if (!$this.is_codemirror_fullscreen && !$this.is_preview_timer) {
+            $this.is_preview_timer = true;
             setTimeout(function() {
                 // Generate preview
                 $this.preview_elem.html(marked($this.cm_editor.getValue()));
                 // Get anchors from generated preview
                 $this.aTags = $this.preview_elem.find("a.marked-anchor");
                 $this.scroll_to_anchor();
-                $this.is_timer = false;
+                $this.is_preview_timer = false;
             }, 100);
         }
     };
@@ -453,70 +456,59 @@ function edtrCodemirror(content_type, content) {
             $this.cm_editor.setMarker(n, "<span style=\"color: #add8e6;\">&gt;</span> %N%");
     };
 
-    //
-    // INITIALIZATION (constructor)
-    //
-    this.is_codemirror_fullscreen=      false;
-    this.is_hidden=          true;
-    this.is_saved=           true;
-    this.tab_character=                 "\t";
-    this.tab_spaces=                    Array(4).join(" "); // should equal to tab_character
-    this.list_character=                "-";
-    this.cm_editor=                     null;
-    this.dom_elem=                      null;
-    this.preview_elem=                  null;
-    this.content_type=                  null;
-    this.saved_state=                   -1; // 0 - not saved, 1 - saving, 2 - saved
-    
-    // store pointer to ourselves to be able
-    // to access object from callbacks
-    var $this=this;
+    this.add_tab                = function(content_type, full_path, filename, data) {
+        if (content_type !== "markdown") {
+            messagesBar.show_error("ERROR: content "+content_type+" is not supported");
+            return false;
+        }
+        
+        // If content_type changed it means that home-tree has replaced
+        // editor's HTML and preview-container
+        // TODO: do we need to remove previous codemirror's bindings ?
+        //if ($this.content_type !== content_type) {
+        $this.content_type = content_type;
+        $this.cm_editor.setValue(data);
+        $this.cm_editor.focus();
 
-    if (content_type !== "markdown") {
-        messagesBar.show_error("ERROR: content "+content_type+" is not supported");
-        return false;
-    }
-    
-    // If content_type changed it means that home-tree has replaced
-    // editor's HTML and preview-container
-    // TODO: do we need to remove previous codemirror's bindings ?
-    if (this.content_type !== content_type) {
-        this.dom_elem = $(".cme-textarea");
-        //console.log(this.dom_elem);
-        this.content_type = content_type;
+        $this.set_saved_state("SAVED");
 
-        this.preview_container = $(".preview-container");
-        this.preview_elem = this.preview_container.contents().find('body');
+        if ($this.preview_timer_id)
+            clearTimeout($this.preview_timer_id);
+    };
+
+    this.init                   = function(dom_textarea, dom_preview) {
+        //
+        // INITIALIZATION (constructor)
+        //
+        this.is_codemirror_fullscreen   = false;
+        this.is_hidden                  = false;
+        this.is_preview_timer           = false;
+        this.preview_timer_id           = null;
+        // TODO: Get those from folder/general settings
+        this.tab_character              = "\t";
+        this.tab_spaces                 = Array(4).join(" "); // should equal to tab_character
+        this.list_character             = "-";
+        
+        this.set_saved_state("SAVED");
+
+        this.dom_elem           = dom_textarea;
+        this.preview_container  = dom_preview;
+        // We use contents() to search within iframe
+        this.preview_elem       = this.preview_container.contents().find('body');
+        this.preview_elem_head  = this.preview_container.contents().find('head');
+
         /* Allows last line to be positioned above the bottom */
         this.preview_elem.css("margin-bottom", "90px");
-        this.preview_elem_head = this.preview_container.contents().find('head');
         // TODO: load this from settings
         this.preview_elem_head.
             append("<link rel=\"stylesheet\" href=\"/static/css/md_preview/github.css?reload=" +
                 (new Date()).getTime() + "\">");
 
-        //$(".preview-area");
 
-        // Timer for updating preview
-        this.is_timer = false;
-        if (this.timerID !== undefined && this.timerID)
-            clearTimeout(this.timerID);
-        this.timerID = null;
-
-        // tab_character and tab_spaces for padding
-        
-        // TODO: Get those from folder/general settings
-        // tab_character = "\t";
-        // tab_spaces = "";
-        // list_character = "-";
-        //for (var i=0; i<4; i++) tab_spaces += " ";
+        // TODO: get those from general settings
         var cm_settings = {
             // TODO: all settings should accord to content_type
-            mode:               "gfm", // "gfm" is broken ?!
-
-            // TODO: Get those from folder/general settings
-            // gutter:             true,
-            // fixedGutter:        true,
+            mode:               "gfm",
             lineNumbers:        true,
             lineWrapping:       true,
             matchBrackets:      true,
@@ -528,9 +520,9 @@ function edtrCodemirror(content_type, content) {
             indentWithTabs:     true,
             electricChars:      false,
             autoCloseTags:      true,   // TODO: apparently works only in text/html mode
-                                        // makw it work in gfm mode as well
+                                        // make it work in gfm mode as well
 
-            // TODO = find Mac equivalents
+            // TODO: find Mac equivalents
             extraKeys: {
                 // General
                 "Ctrl-F11":     this.toggle_width,
@@ -578,50 +570,41 @@ function edtrCodemirror(content_type, content) {
           sanitize:         false
         });
 
-        // Add bootstrap class to codemirror so it will behave
-        // correctly on resizes
-        //$('.CodeMirror-wrap').addClass('span9');
-    } else {
-        // TODO: do we need to do anything else if editor is of the same type ?
-    }
+        //
+        // Toolbar handlers
+        //
+        $('#tbb_header').on("click", this.rotate_header);
+        $('#tbb_bold').on("click", this.toggle_bold);
+        $('#tbb_italic').on("click", this.toggle_italic);
+        $('#tbb_code').on("click", this.toggle_code);
+        // --
+        $('#tbb_ulist').on("click", this.unordered_list);
+        $('#tbb_olist').on("click", this.ordered_list);
+        $('#tbb_quote').on("click", this.blockquote);
+        // --
+        $('#tbb_divider').on("click", this.divider_hr);
+        // --
+        $('#tbb_image_url').on("click", this.insert_image_url);
+        $('#tbb_url').on("click", this.insert_url);
+        // ----
+        $('#tbb_width').on("click", this.toggle_width);
+        $('#tbb_fullscreen').on("click", this.toggle_fullscreen);
 
-    // Show codemirror
-    //$('#cme_wide_toggle').html(toggle_left);
+        // Buttons
+        $('#btn_preview').on("click", this.preview_codemirror);
+        $('#btn_save').on("click", this.save_codemirror);
 
-    // ON CLICK Toolbar handlers
-    $('#tbb_header').on("click", this.rotate_header);
-    $('#tbb_bold').on("click", this.toggle_bold);
-    $('#tbb_italic').on("click", this.toggle_italic);
-    $('#tbb_code').on("click", this.toggle_code);
-    // --
-    $('#tbb_ulist').on("click", this.unordered_list);
-    $('#tbb_olist').on("click", this.ordered_list);
-    $('#tbb_quote').on("click", this.blockquote);
-    // --
-    $('#tbb_divider').on("click", this.divider_hr);
-    // --
-    $('#tbb_image_url').on("click", this.insert_image_url);
-    $('#tbb_url').on("click", this.insert_url);
-    // ----
-    $('#tbb_width').on("click", this.toggle_width);
-    $('#tbb_fullscreen').on("click", this.toggle_fullscreen);
+        // TOOLTIPS for toolbar
+        $(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
+        // And buttons
+        $(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
 
-    // And buttons
-    $('#btn_preview').on("click", this.preview_codemirror);
-    $('#btn_save').on("click", this.save_codemirror);
+        return this;
+    };
 
-    // TOOLTIPS for toolbar
-    $(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
-    // And buttons
-    $(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
-
-    this.cm_editor.setValue(content);//search_words.join("\n"));
-    this.cm_editor.focus();
-
-    // Set correct flags
-    this.is_hidden = false;
-    this.set_saved_state("SAVED");
-
+    // store pointer to ourselves to be able
+    // to access object from callbacks
+    $this=this;
     return this;
 }
 

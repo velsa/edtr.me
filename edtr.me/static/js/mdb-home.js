@@ -76,6 +76,9 @@ $(document).ready(function() {
     // We pass container for messages and element to adjust width to
     messagesBar.init($('#messages_bar'), $('.main-view-right'));
 
+    // Prepare server communications (TODO: init sockets here)
+    serverComm.init();
+
     // Show tree on page load
     // We pass tree and editor containers
     edtrTree.init($('#db_tree'), $(".main-view-right"));

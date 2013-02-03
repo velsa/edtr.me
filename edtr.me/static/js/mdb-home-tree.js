@@ -428,8 +428,8 @@ var edtrTree = {
             return;
         }
         var dom_elem = $("#"+node.tId);
-        console.log(e.pageX, e.pageY, node);
-        console.log(dom_elem.position().left, dom_elem.position().top);
+        // console.log(e.pageX, e.pageY, node);
+        // console.log(dom_elem.position().left, dom_elem.position().top);
         $(".tree-context-menu").css({
             left:   e.pageX-10,
             top:    e.pageY-40
@@ -1068,13 +1068,13 @@ var edtrTree = {
                 "No editor defined for file type <strong>"+ext+"</strong>");
             return;
         }
-        // Get HTML for editor and its toolbar
-        // TODO: server should also return settings dict for editor
-        $.get("/get_editor", {
-            editor_type: content_type
-        }, function(editor_data, textStatus, jqXHR) {
-            // Retrieve file from dropbox (server provides us with unique media url)
-            serverComm.get_dropbox_file(node.id, function(file_data) {
+
+        $('.file-loading').show();
+        // Retrieve file from dropbox (server provides us with unique media url)
+        serverComm.get_dropbox_file(node.id, function(status, file_data) {
+            debugger;
+            $('.file-loading').hide();
+            if (status <= serverComm.max_success_status) {
                 /*
                  // TODO: try jQuery Autocomplete instead
                  set_search_words(data);
@@ -1089,19 +1089,27 @@ var edtrTree = {
                 //
                 // Insert editor HTML code (toolbar, textarea, buttons) into content div
                 // TODO: remove previous codemirror and all bindings (?)
-                if (!edtrTree.editor || edtrTree.editor.content_type !== content_type) {
-                    edtrTree.dom_editor.html(editor_data.html);
+                if (edtrTree.editor) {
+                    if (edtrTree.editor.content_type !== content_type) {
+                        // TODO: change toolbar ?
+                        console.log(edtrTree.editor.content_type);
+                        messagesBar.show_notification_warning("Content type <b>"+content_type+
+                            "</b> is not yet supported");
+                        return;
+                    }
                 } else {
-                    // TODO: do we need to do anything else if editor is of the same type ?
+                    edtrTree.dom_editor.html($("#editor_html").html());
+                    edtrTree.editor = new edtrCodemirror();
+                    edtrTree.editor.init(
+                        edtrTree.dom_editor.find(".cme-textarea"),
+                        $('body').find(".preview-container"));
                 }
-                // TODO: need a method in edtrCodemirror to replace data
-                // or even better - to create a new tab
-                edtrTree.editor = new edtrCodemirror(content_type, file_data);
+                edtrTree.editor.add_tab(content_type, node.id, node.name, file_data);
                 messagesBar.show_notification("File <b>"+node.id+"</b> was loaded into the editor");
-            });
-        })
-        .error(function(data) {
-            messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
+            } else {
+                messagesBar.show_error("Error loading file <b>"+node.id+"</b>: "+
+                    serverComm.human_status[status]);
+            }
         });
     }
 
