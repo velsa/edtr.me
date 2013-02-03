@@ -116,3 +116,20 @@ class DropboxMove(DropboxHandler):
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.wk_dbox_move, user, from_path, to_path)
             self.finish_json_request(data)
+
+
+class DropboxSave(DropboxHandler):
+    """Copies a file or folder to a new location."""
+
+    @tornado.web.asynchronous
+    @gen.engine
+    @tornado.web.authenticated
+    def post(self):
+        from_path = self.get_argument("from_path", None)
+        to_path = self.get_argument("to_path", None)
+        if not from_path or not to_path:
+            self.finish_json_request({'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user)
+            data = yield gen.Task(self.wk_dbox_copy, user, from_path, to_path)
+            self.finish_json_request(data)

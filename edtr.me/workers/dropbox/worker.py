@@ -230,6 +230,32 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             yield motor.Op(DropboxFile.remove_entries, self.db,
                 {"_id": from_path}, collection=user.name)
+        # TODO: update meta all transitional folders. For example:
+        # move /a to /b, but /a contains several included folders
+        # here is saved only meta of /b, and not of included folders in /b
+        # maybe just call to /delta, and update from its response
+        yield motor.Op(self._save_meta, file_meta, user.name)
+        callback({'status': ErrCode.ok})
+
+    @gen.engine
+    def wk_dbox_copy(self, user, from_path, to_path, callback=None):
+        from_path = self._unify_path(from_path)
+        to_path = self._unify_path(to_path)
+        # make dropbox request
+        access_token = user.get_dropbox_token()
+        post_args = {
+            'root': DropboxMixin.ACCESS_TYPE,
+            'from_path': from_path.encode(DEFAULT_ENCODING),
+            'to_path': to_path.encode(DEFAULT_ENCODING),
+        }
+        response = yield gen.Task(self.dropbox_request,
+            "api", "/1/fileops/copy",
+            access_token=access_token,
+            post_args=post_args)
+        if self._check_bad_response(response, callback):
+            return
+        file_meta = json.loads(response.body)
+        # TODO: save meta of all included folders, if exists
         yield motor.Op(self._save_meta, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
