@@ -3,17 +3,29 @@
 //
 //
 var edtrTree = {
-    // TODO: get those from user settings !
-    editable_exts:      [ 'md', 'txt', 'html', 'css', 'js'  ],
-    image_exts:         [ 'gif', 'jpg', 'jpeg', 'png', 'bmp' ],
+    // TODO: edit/extend those via user settings
+    editor_type:      {
+        'md':           'markdown',
+        'txt':          'markdown',
+        'css':          'html',
+        'htm':          'html',
+        'html':         'html',
+        'js':           'javascript',
+        'gif':          'image',
+        'jpg':          'image',
+        'jprg':         'image',
+        'png':          'image',
+        'bmp':          'image'
+    },
     dom_db_tree:        null,
     ztree:              null,
     ztree_settings:     null,
     selected_node:      null,
 
 
-    init:                   function (tree_elem) {
-        edtrTree.dom_db_tree = $('#db_tree');
+    init:                   function (tree_elem, editor_elem) {
+        edtrTree.dom_db_tree = tree_elem;
+        edtrTree.dom_editor = editor_elem;
 
         // TODO: take those from user settings
         edtrTree.ztree_settings = {
@@ -23,6 +35,9 @@ var edtrTree = {
                 removeHoverDom: edtrTree.on_unhover
             },
             edit: {
+                // Drag moves nodes without checking anything
+                // TODO: find a way to perform necessary checks (e.g. overwrite)
+                // before the drap is completed
                 enable:         true,
                 showRemoveBtn:  false,
                 showRenameBtn:  false,
@@ -46,9 +61,12 @@ var edtrTree = {
             callback: {
                 onClick:        edtrTree.on_click,
                 onDblClick:     edtrTree.on_double_click,
+                onRightClick:   edtrTree.on_right_click,
                 onExpand:       edtrTree.on_node_expand,
                 beforeDrop:     edtrTree.before_drop,
-                onDrop:         edtrTree.on_drop
+                onDrop:         edtrTree.on_drop,
+                onAsyncSuccess: edtrTree.on_async_success,
+                onAsyncError:   edtrTree.on_async_error
             },
             async: {
                 enable:         true,
@@ -200,6 +218,22 @@ var edtrTree = {
         }
     },
 
+    // Go through all node's children recursively and perform
+    // callback on each (excluding the node itself !)
+    // returns number of callbacks performed
+    traverse_tree:          function (node, callback) {
+        if (!node.children)
+            return 0;
+        var count = 0;
+        for (var i in node.children) {
+            callback.call(edtrTree, node.children[i]);
+            count++;
+            if (node.children[i].isParent && node.children[i].children)
+                count += edtrTree.traverse_tree(node.children[i], callback);
+        }
+        return count;
+    },
+
     // Move node to alphabetical position within parent
     move_node_in_parent:    function (node, parent_node) {
         if (!parent_node.isParent)
@@ -238,9 +272,13 @@ var edtrTree = {
 
     // Called by zTree after receiving ajax response for node
     process_server_json:    function (ztree, parent_node, data) {
-        var nodes = [],
+        var nodes = [], root, cut_len;
+
+        if (!parent_node)
+            root = '/';
+        else
             root = parent_node.id,
-            cut_len = root[root.length-1] === '/' ? root.length : root.length+1;
+        cut_len = root[root.length-1] === '/' ? root.length : root.length+1;
 
         // Build tree nodes from server data
         for (var i=0; i < data.tree.length; i++) {
@@ -307,13 +345,13 @@ var edtrTree = {
     toggle_checkboxes:          function() {
         // Also update menu items
         if (edtrTree.is_checkbox_mode()) {
-            $("#sb_view_multiselect").prop("checked", false);
-            $("#sb_view_clear_checkboxes").parent().addClass("disabled");
+            $(".sb-view-multiselect").prop("checked", false);
+            $(".sb-view-clear-checkboxes").parent().addClass("disabled");
             edtrTree.ztree.setting.check.enable = false;
         }
         else {
-            $("#sb_view_multiselect").prop("checked", true);
-            $("#sb_view_clear_checkboxes").parent().removeClass("disabled");
+            $(".sb-view-multiselect").prop("checked", true);
+            $(".sb-view-clear-checkboxes").parent().removeClass("disabled");
             edtrTree.ztree.setting.check.enable = true;
         }
         edtrTree.clear_clipboard();
@@ -372,6 +410,8 @@ var edtrTree = {
     // Called by zTree on mouse click
     //
     on_click:               function(e, ztree, node, flag) {
+        // console.log("click", node.id);
+        $(".tree-context-menu").removeClass("open");
         edtrTree.dom_db_tree.focus();
         // Alt-Click inserts path to clicked node into editor
         if (e && e.altKey) {
@@ -382,26 +422,63 @@ var edtrTree = {
         }
     },
 
+    on_right_click:         function(e, ztree, node) {
+        if (!node) {
+            $(".tree-context-menu").removeClass("open");
+            return;
+        }
+        var dom_elem = $("#"+node.tId);
+        console.log(e.pageX, e.pageY, node);
+        console.log(dom_elem.position().left, dom_elem.position().top);
+        $(".tree-context-menu").css({
+            left:   e.pageX-10,
+            top:    e.pageY-40
+        });
+        edtrTree.ztree.selectNode(node);
+        $(".tree-context-menu").addClass("open");
+        var remove_menu = function() {
+            $(".tree-context-menu").removeClass("open");
+            $('body').off("click", remove_menu);
+        };
+        $('body').on("click", remove_menu);
+    },
+
     //
     // Called by zTree on mouse double click
+    // and also when Enter is pressed
     //
-    on_double_click:        function(e, ztree, node, flag) {
+    on_double_click:        function(e, ztree, node) {
         // Doubleclick was not on node - ignore
         if (!node) return;
+
+        // Override argument (in case we were called from keyboard callback)
+        node = edtrTree.get_selected_node();
+
+        // Ignore double clicks on directories
+        if (node.isParent)
+            return;
 
         // If codemirror is opened and text in it was not saved
         // ask confirmation from user to close it
         if (edtrTree.editor && !edtrTree.editor.is_saved) {
             // Confirmation dialog
-            modalDialog.show_confirm_modal("save_continue_lose", function(button_id) {
+            // Save for callback
+            modalDialog.params = {};
+            modalDialog.params.action   = "save_continue_lose";
+            modalDialog.params.callback = function(button_id) {
                 if (button_id == "scl_save") {
                     //edtrTree.editor.save_codemirror();
                 } else if (button_id == "scl_lose") {
                     //edtrTree.db_tree_select(elem);
+                } else {
+                    // Cancel open operation
+                    return;
                 }
-            });
+                edtrTree.open_editor(node);
+            };
+            modalDialog.show_confirm_modal();
         } else {
-            //edtrTree.db_tree_select(elem);
+            edtrTree.open_editor(node);
         }
     },
 
@@ -425,138 +502,64 @@ var edtrTree = {
     //
     // Called by zTree before user drops node
     //
-    before_drop:             function(tree_id, nodes, to_node, move_type) {
+    before_drop:             function(tree_id, nodes, to_node, move_type, is_copy) {
         console.log("before drop", nodes[0].name, to_node.name, move_type);
         if (move_type === "inner") {
             // Allow drag only into directory
-            if (to_node.isParent) return true;
-            else return false;
+            if (!to_node.isParent) return false;
         } else {
-            // Moving within the same directory is ignored
-            if (to_node.getParentNode().id === nodes[0].getParentNode().id)
-                return false;
+            // Adjust paste node to parent
+            to_node = to_node.getParentNode();
         }
-        return true;
+
+        // Imitate paste
+        edtrTree.clipped = {
+            action:     is_copy ? "copy" : "cut",
+            nodes:      nodes,
+            paste_node: null
+        };
+        return edtrTree.set_paste_node(to_node);
     },
 
     //
     // Called by zTree after user drops node
     //
-    on_drop:                function(event, tree_id, nodes, to_node, move_type) {
+    on_drop:                function(event, tree_id, nodes, to_node, move_type, is_copy) {
         console.log("drop", nodes[0].name, to_node.name, move_type);
-        edtrTree.move_node_in_parent(nodes[0], nodes[0].getParentNode());
+        var recursive_node_fix = function(index) {
+            // Break out of recursion
+            if (index == nodes.length)
+                return;
+            // Fix node's id. May also present confirmation dialog to user
+            edtrTree.fix_node_after_paste(nodes[index], function() {
+                // Fix next node recursively, to allow modal dialogs and callbacks
+                recursive_node_fix(index+1);
+            });
+        };
+        recursive_node_fix(0);
     },
 
     // Called when any tree node is expanded
     on_node_expand:         function(event, tree_id, node) {
         // Launch callback set by expand_node()
         if (edtrTree.on_expand_callback) {
-            edtrTree.on_expand_callback();
+            edtrTree.on_expand_callback.call(edtrTree);
             edtrTree.on_expand_callback = null;
         }
     },
     // Wrapper for ztree expandNode
     // Launches callback when tree node is expanded, but only ONCE !
-    // Used by modal dialogs to show in dom only when node's children are loaded
+    // Used by modal dialogs to display only when node's children are loaded
     expand_node:            function(node, callback) {
-        edtrTree.on_expand_callback = callback;
-        edtrTree.ztree.expandNode(node, true, false, true, true);
+        if (node.open) {
+            callback.call(edtrTree);
+        }
+        else {
+            edtrTree.on_expand_callback = callback;
+            edtrTree.ztree.expandNode(node, true, false, true, true);
+        }
     },
 
-
-    //
-    // File / Directory operations with modal dialogs
-    //
-    add_node_via_modal:     function(action) {
-        // Save for callback
-        edtrTree.modal_params = {};
-        edtrTree.modal_params.action   = action;
-        edtrTree.modal_params.filename = "";
-
-        var selected_node = edtrTree.get_selected_node(),
-            node = null;
-        // Always expand the directory we're about to add to
-        if (selected_node.isParent) {
-            edtrTree.modal_params.header   = selected_node.id;
-            edtrTree.modal_params.path     = edtrTree.modal_params.header;
-            // Dir is selected - use it as root
-            node = selected_node;
-        } else {
-            // File is selected - use it's dir (obviously, node is already expanded)
-            edtrTree.modal_params.header   = selected_node.getParentNode().id;
-            edtrTree.modal_params.path     = edtrTree.modal_params.header;
-        }
-        // If node is already expanded - launch modal
-        if (!node || node.open)
-            modalDialog.show_file_modal();
-        else
-            // Expand node and only then launch modal
-            edtrTree.expand_node(node, modalDialog.show_file_modal);
-    },
-
-    // User requested action
-    // We may need to display confirmation dialog
-    // We store all dialog params in edtrTree.modal_params
-    // And modal uses it to display correct dialog and data
-    //
-    // action:      add_file, add_subdir, rename, remove, copy, cut, paste
-    //
-    node_action:            function(action) {
-        // Allowed actions for checkbox mode are: remove and clipboard operations
-        if (edtrTree.is_checkbox_mode()) {
-            var nodes = edtrTree.get_filtered_checked_nodes(),
-                i, text="";
-            // Perform action on checkboxes only if at least one is checked
-            if (nodes.length) {
-                switch(action) {
-                    case "remove":
-                        for (i=0; i < nodes.length; i++)
-                            text += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
-                        edtrTree.modal_params = {};
-                        edtrTree.modal_params.action   = action + "_checked";
-                        edtrTree.modal_params.header   = text;
-                        edtrTree.modal_params.path     = null;
-                        edtrTree.modal_params.filename = nodes;
-                        modalDialog.show_file_modal();
-                        return;
-                    case "copy":
-                    case "cut":
-                        edtrTree.clipboard_action(action, nodes);
-                        return;
-                }
-            } // if nodes checked
-        } // if in checkbox mode
-
-        // Paste works on root, so we process it first
-        if (action === "paste") {
-            edtrTree.smart_paste();
-            return;
-        }
-        
-        // Selection mode
-        var selected_node = edtrTree.get_selected_node();
-
-        // Ignore operations on root
-        if (selected_node.id === '/') {
-            messagesBar.show_notification_warning("Will not "+action+" root folder.");
-            return;
-        }
-
-        // Save for callback
-        edtrTree.modal_params = {};
-        edtrTree.modal_params.action   = action + (selected_node.isParent ? "_subdir" : "_file");
-        edtrTree.modal_params.header   = action === "remove" ? selected_node.id : selected_node.name;
-        edtrTree.modal_params.path     = selected_node.getParentNode().id;
-        edtrTree.modal_params.filename = selected_node.name;
-
-        // Always expand the directory we're about to remove
-        if (action === "remove" && selected_node.isParent && !selected_node.open)
-            edtrTree.expand_node(selected_node, modalDialog.show_file_modal);
-        else if($.inArray(action, ["copy", "cut"]) > -1)
-            edtrTree.clipboard_action(action, [selected_node]);
-        else
-            modalDialog.show_file_modal();
-    },
 
     // Remove clipboard and clear tree highlighting set by clipboard()
     clear_clipboard:           function() {
@@ -581,7 +584,10 @@ var edtrTree = {
         } else {
             text = "You don't have clipped files.";
         }
-        modalDialog.show_info_modal(modal_id, text);
+        modalDialog.params = {};
+        modalDialog.params.action   = modal_id;
+        modalDialog.params.text     = text;
+        modalDialog.show_info_modal();
     },
 
     //
@@ -601,7 +607,7 @@ var edtrTree = {
         }
     },
     //
-    // Perform paste. We do it in two steps:
+    // Smart paste is done in two steps:
     // First, paste_node is set and then paste() is be called
     // this allows using paste() as callback for edtrTree.expand_node()
     //
@@ -616,8 +622,6 @@ var edtrTree = {
         if (!node.isParent)
             node = node.getParentNode();
         if (!edtrTree.set_paste_node(node)) {
-            messagesBar.show_notification_warning("Can't paste clipboard into <strong>"+
-                node.id+"</strong>");
             return;
         } else {
             // Open folder (if needed) and paste into it
@@ -632,11 +636,20 @@ var edtrTree = {
         // If we don't have a clipboard or paste is not into folder - break out
         if (!edtrTree.clipped || !node.isParent)
             return false;
-        // We shouldn't paste into ourselves or into the same parent
-        for (var i=0; i < edtrTree.clipped.nodes.length; i++)
-            if (edtrTree.clipped.nodes[i].id === node.id ||
-                edtrTree.clipped.nodes[i].getParentNode().id === node.id)
+        // Check if we can perform the paste
+        for (var i in edtrTree.clipped.nodes) {
+            // We shouldn't paste into ourselves or into the same parent
+            if (edtrTree.clipped.nodes[i].id === node.id) {
+                messagesBar.show_notification_warning("Can't paste <strong>"+
+                    node.id+"</strong> into itself");
                 return false;
+            } else if (edtrTree.clipped.nodes[i].getParentNode().id === node.id) {
+                messagesBar.show_notification_warning("Can't paste <strong>"+node.id+
+                    "</strong> into <strong>"+
+                    edtrTree.clipped.nodes[i].getParentNode().id+"</strong>");
+                return false;
+            }
+        }
         edtrTree.clipped.paste_node = node;
         return true;
     },
@@ -652,23 +665,294 @@ var edtrTree = {
         if (edtrTree.clipped) {
             console.log("paste", edtrTree.clipped.nodes, "to",
                 edtrTree.clipped.paste_node, "via", edtrTree.clipped.action);
-            for (var i in edtrTree.clipped.nodes) {
-                var ztree_action, new_node;
-                if (edtrTree.clipped.action === "copy")
-                    ztree_action = edtrTree.ztree.copyNode;
-                else
-                    ztree_action = edtrTree.ztree.moveNode;
-                edtrTree.clipped.nodes[i]
-                new_node = ztree_action(
-                        edtrTree.clipped.paste_node,
-                        edtrTree.clipped.nodes[i],
-                        "inner", false);
-                edtrTree.move_node_in_parent(new_node, edtrTree.clipped.paste_node);
+            // debugger;
+            var ztree_action;
+            if (edtrTree.clipped.action === "copy")
+                ztree_action = edtrTree.ztree.copyNode;
+            else
+                ztree_action = edtrTree.ztree.moveNode;
+            // Paste node by index using ztree_action and perform
+            // necessary checks
+            var recursive_paste_node = function(ztree_action, index, callback) {
+                // Break out of recursion
+                if (edtrTree.clipped.nodes.length == index) {
+                    callback.apply(edtrTree);
+                    return;
+                }
+                // Perform requested action on node
+                var new_node = ztree_action(edtrTree.clipped.paste_node,
+                    edtrTree.clipped.nodes[index], "inner", false);
+                // Fix node's id. May also present confirmation dialog to user
+                edtrTree.fix_node_after_paste(new_node, function() {
+                    // Node's action is done - move on to the next node recursively
+                    recursive_paste_node(ztree_action, index+1, callback);
+                });
+            };
+            // We use recursive paste to allow modal dialogs and callbacks
+            recursive_paste_node(ztree_action, 0, function() {
+                // Called when recursion is done
+                edtrTree.clear_clipboard();
+                // Restore keyboard focus
+                edtrTree.dom_db_tree.focus();
+            });
+        }
+    },
+
+    // Check for overwrites and fix node's and it children's ids
+    // Also move node alphabetically within its parent
+    fix_node_after_paste: function(node, callback) {
+        // Check for overwrites
+        var nodes = edtrTree.clipped.paste_node.children,
+            confirm_callback  = function(arg) {
+                // The submit button was clicked
+                if (arg.button) {
+                    // Remove old node
+                    old_node = edtrTree.ztree.getNodeByParam("id", node.id);
+                    edtrTree.ztree.removeNode(old_node);
+                    // Fix new one
+                    fix_node();
+                } else {
+                    // Dialog was dismissed, meaning user declines copy/move
+                    // Restore original node
+                    if (edtrTree.clipped.action === "copy") {
+                        // Cancel copy
+                        edtrTree.ztree.removeNode(node);
+                    }
+                    else {
+                        // Cancel move
+                        var old_parent_id = node.id.substr(0, node.id.length-node.name.length-1),
+                            old_parent;
+                        if (old_parent_id === "") old_parent_id = "/";
+                        old_parent = edtrTree.ztree.getNodeByParam("id", old_parent_id);
+                        edtrTree.ztree.moveNode(old_parent, node, "inner", true);
+                        edtrTree.move_node_in_parent(node, old_parent);
+                    }
+                    callback.apply(edtrTree);
+                }
+            },
+            fix_node = function() {
+                // Fix node id to new path
+                node.id = edtrTree.clipped.paste_node.id;
+                if (node.id !== "/") node.id += "/";
+                node.id += node.name;
+                // and do the same for its children
+                if (node.isParent) {
+                    edtrTree.traverse_tree(node, function(child) {
+                        child.id = edtrTree.clipped.paste_node.id +
+                            child.id.split(node.id).pop();
+                        edtrTree.ztree.updateNode(child);
+                    });
+                }
+                edtrTree.move_node_in_parent(node, edtrTree.clipped.paste_node);
                 // TODO: perform server action here
+                callback.apply(edtrTree);
+            };
+
+        // Go through nodes and see if we overwrite anything
+        for (var i in nodes) {
+            // Same name, but different path - it's an overwrite
+            if (node.name === nodes[i].name &&
+                node.id !== nodes[i].id) {
+                // TODO: present confirmation dialog for overwriting existing node
+                modalDialog.params = {};
+                modalDialog.params.action   = "overwrite_confirm";
+                modalDialog.params.text1    = nodes[i].id;
+                modalDialog.params.text2    = node.id;
+                modalDialog.params.callback = confirm_callback;
+                modalDialog.show_confirm_modal();
+                // messagesBar.show_notification_warning("Can't overwrite <strong>"+
+                //     nodes[i].id+"</strong> with <strong>"+
+                //     node.id+"</strong> (TODO !)");
+                // Node will be fixed in comfirm_callback if confirmed by user
+                return;
             }
-            edtrTree.clear_clipboard();
-            // Restore keyboard focus
-            edtrTree.dom_db_tree.focus();
+        }
+
+        // No overwrites - fix the node
+        fix_node();
+    },
+
+    // zTree calls those when ajax request completes
+    on_async_error:         function(event, ztree, node, request, status, http_error) {
+        edtrTree.process_ajaxing_nodes(false, node);
+    },
+    on_async_success:       function(event, ztree, node, axaj_data) {
+        edtrTree.process_ajaxing_nodes(true, node);
+    },
+    process_ajaxing_nodes:  function(is_success, node) {
+        // console.log("loaded", node.id);
+        if (edtrTree.ajaxing_nodes) {
+            // Remove completed node from pool
+            var i = edtrTree.ajaxing_nodes.indexOf(node);
+            if (i == -1)
+                messagesBar.show_internal_error("edtrTree.process_ajaxing_nodes", "Can't find node "+node.id);
+            else
+                edtrTree.ajaxing_nodes.splice(i, 1);
+            if (edtrTree.ajaxing_nodes.length === 0) {
+                edtrTree.ajaxing_nodes = null;
+                edtrTree.ajaxing_callback.apply(edtrTree);
+            }
+        }
+    },
+
+    // Call refresh on all opened nodes and call callback function when done
+    //
+    refresh_opened_nodes:     function(callback) {
+        var old_parent, old_children, old_selection_id,
+            refresh_level, node,
+            refresh_children = function() {
+                // debugger;
+                edtrTree.ajaxing_nodes = [];
+                edtrTree.ajaxing_callback = refresh_children;
+                // Refresh every opened child (if it still exists in new tree)
+                for (var k in old_children) {
+                    // Refresh level by level
+                    if (old_children[k].level != refresh_level)
+                        continue;
+                    node = edtrTree.ztree.getNodeByParam("id", old_children[k].id);
+                    if (node) {
+                        edtrTree.ajaxing_nodes.push(node);
+                        edtrTree.ztree.reAsyncChildNodes(node, "refresh",
+                            !old_children[k].open);
+                    }
+                }
+                refresh_level++;
+                // No more nodes to refresh - apply callback
+                if (!edtrTree.ajaxing_nodes.length) {
+                    edtrTree.ajaxing_nodes = null;
+                    // Restore selection, if previous selected node is gone - select '/'
+                    node = edtrTree.ztree.getNodeByParam("id", old_selection_id);
+                    if (node)
+                        edtrTree.ztree.selectNode(node);
+                    else
+                        edtrTree.ztree.selectNode(edtrTree.ztree.getNodes()[0]);
+                    callback.apply(edtrTree);
+                }
+            };
+        // Save children before refresh
+        old_parent = edtrTree.ztree.getNodes()[0];
+        old_children = [];
+        edtrTree.traverse_tree(old_parent, function(node) {
+            // Save only loaded dirs
+            if (node.isParent && node.children)
+                old_children.push({
+                    id:     node.id,
+                    level:  node.level,
+                    open:   node.open
+                });
+        });
+        // Refresh root folder and when it is done - refresh its children
+        edtrTree.ajaxing_nodes = [ old_parent ];
+        edtrTree.ajaxing_callback = old_children.length ? refresh_children : callback;
+        refresh_level = 1;
+        old_selection_id = edtrTree.get_selected_node().id;
+        edtrTree.ztree.reAsyncChildNodes(old_parent, "refresh", false);
+    },
+
+    // User requested action
+    // We may need to display confirmation dialog
+    // We store all dialog params in modalDialog.params
+    // And modal uses it to display correct dialog and data
+    //
+    // action:      add_file, add_subdir, rename, remove, copy, cut, paste
+    //
+    node_action:            function(action) {
+        var i, text;
+        // Allowed actions for checkbox mode are: remove and clipboard operations
+        if (edtrTree.is_checkbox_mode()) {
+            var nodes = edtrTree.get_filtered_checked_nodes();
+            text="";
+            // Perform action on checkboxes only if at least one is checked
+            if (nodes.length) {
+                switch(action) {
+                    case "remove":
+                        for (i=0; i < nodes.length; i++)
+                            text += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
+                        modalDialog.params = {};
+                        modalDialog.params.action   = action + "_checked";
+                        modalDialog.params.header   = text;
+                        modalDialog.params.path     = null;
+                        modalDialog.params.filename = nodes;
+                        modalDialog.show_file_modal();
+                        return;
+                    case "copy":
+                    case "cut":
+                        edtrTree.clipboard_action(action, nodes);
+                        return;
+                }
+            } // if nodes checked
+        } // if in checkbox mode
+
+        // Paste works on root, so we process it first
+        // Since it can be also called via keyboard, it calculates selected_node by itself
+        if (action === "paste") {
+            edtrTree.smart_paste();
+            return;
+        }
+        
+        //
+        // Selection mode
+        //
+        var selected_node = edtrTree.get_selected_node();
+
+        // Refresh selected node
+        if (action === "refresh") {
+            edtrTree.ztree.reAsyncChildNodes(selected_node, "refresh", false);
+            return;
+        }
+
+        // Ignore all operations on root, except "add_"
+        if ($.inArray(action, ["add_file", "add_subdir"]) == -1 && selected_node.id === '/') {
+            messagesBar.show_notification_warning("Will not "+action+" root folder.");
+            return;
+        }
+
+        modalDialog.params = {};
+        modalDialog.params.no_names = [];
+
+        switch (action) {
+            case "remove":
+                // Always expand the directory we're about to remove
+                modalDialog.params.action   = action + (selected_node.isParent ? "_subdir" : "_file");
+                modalDialog.params.header   = selected_node.id;
+                modalDialog.params.path     = selected_node.getParentNode();
+                modalDialog.params.filename = selected_node.name;
+                if (selected_node.isParent)
+                    edtrTree.expand_node(selected_node, modalDialog.show_file_modal);
+                else
+                    modalDialog.show_file_modal();
+                break;
+            case "add_file":
+            case "add_subdir":
+                if (!selected_node.isParent)
+                    // File is selected - use it's dir for adding
+                    selected_node = selected_node.getParentNode();
+                modalDialog.params.action   = action;
+                modalDialog.params.header   = selected_node.id;
+                modalDialog.params.path     = selected_node.id;
+                modalDialog.params.filename = "";
+                // Expand node and only then launch modal
+                edtrTree.expand_node(selected_node, function() {
+                    // Create list of files in the parent directory to disallow user
+                    // naming the file with any of existing names
+                    for (var k in selected_node.children)
+                        modalDialog.params.no_names.push(selected_node.children[k].name);
+                    modalDialog.show_file_modal();
+                });
+                break;
+            case "copy":
+            case "cut":
+                edtrTree.clipboard_action(action, [selected_node]);
+                break;
+            case "rename":
+                var parent = selected_node.getParentNode();
+                modalDialog.params.action   = action + (selected_node.isParent ? "_subdir" : "_file");
+                modalDialog.params.header   = selected_node.name;
+                modalDialog.params.path     = parent.id;
+                modalDialog.params.filename = selected_node.name;
+                for (i in parent.children)
+                    modalDialog.params.no_names.push(parent.children[i].name);
+                modalDialog.show_file_modal();
         }
     },
 
@@ -679,7 +963,6 @@ var edtrTree = {
     //                  remove_file, remove_subdir,
     //                  rename_file, rename_subdir,
     //                  remove_checked,
-    //                  move_node, copy_node
     // path:            path to directory where filename resides
     // filename:        file name to perform action on
     // filename_new:    file name to rename to (if action is rename)
@@ -704,26 +987,15 @@ var edtrTree = {
         // It is possible that user would perform an action on single node while in checkbox mode
         // in this case, filename will be string and not an array of objects
         if (edtrTree.is_checkbox_mode() && typeof filename !== "string") {
-            switch (action) {
-                case "remove_checked":
-                    // filename contains array of nodes to remove
-                    for (i=0; i < filename.length; i++)
-                        edtrTree.ztree.removeNode(filename[i]);
-                    edtrTree.ztree.checkAllNodes(false);
-                    edtrTree.ztree.selectNode(edtrTree.ztree.getNodes()[0], false);
-                    break;
-                case "copy":
-                    console.log(filename);
-                    return;
-                case "cut":
-                    console.log(filename);
-                    return;
-                case "paste":
-                    console.log(filename);
-                    return;
-                default:
-                    messagesBar.show_internal_error("edtrTree.file_action", "Unknown action: "+action);
-                    return false;
+            if (action === "remove_checked") {
+                // filename contains array of nodes to remove
+                for (i=0; i < filename.length; i++)
+                    edtrTree.ztree.removeNode(filename[i]);
+                edtrTree.ztree.checkAllNodes(false);
+                edtrTree.ztree.selectNode(edtrTree.ztree.getNodes()[0], false);
+            } else {
+                messagesBar.show_internal_error("edtrTree.file_action", "Unknown action: "+action);
+                return false;
             }
             // TODO: perform server action
             return true;
@@ -745,7 +1017,7 @@ var edtrTree = {
         var full_path = path === '/' ? '/' + filename_new : path + '/' + filename_new;
 
         // Process action in ztree
-        if (action.substr(0,3) === "add") {
+        if ($.inArray(action, ["add_file", "add_subdir"]) > -1) {
             // Add
             node = [{
                 id:         full_path,
@@ -781,77 +1053,56 @@ var edtrTree = {
         }
 
         return;
-        // Request file contents from server
-        // TODO: get direct link to dropbox from server and fetch file
-        // $.post('/async/do_dropbox/', {
-        //         action:     action,
-        //         path:       path,
-        //         filename:   filename
-        //     }, function(data) {
-        //         if (data['status'] != 'success') {
-        //             messagesBar.show_error(data['message']);
-        //         } else {
-        //             // Wait for result from server
-        //             serverComm.get_server_result(data.task_id,
-        //                 modal_result_success, modal_result_error);
-        //         }
-        //     }).error(function(data) {
-        //         messagesBar.show_error("Can't communicate with server ! Please refresh the page.");
-        //     });
     },
 
     //
     // Open CodeMirror replacing textarea and load selected file into it
     // TODO: should be a method of edtrCodemirror object
     //
-    open_editor:            function() {
+    open_editor:            function(node) {
         // Load editor code for correct extension
-        // TODO: replace 'markdown' with
-        // 'css', 'html', 'js', depending on file extension
-        var file_type = 'markdown';
-        var editor_html, editor_tb_html;
-        $.get("/get_editor",
-        {
-            editor_type: file_type
-        }, function(data, textStatus, jqXHR) {
-            // Put data values into global vars to access them in callback
-            editor_html = data.editor_html;
-            editor_tb_html = data.editor_tb_html;
-            var file_url = $.cookie('mdb_source_url');
-            file_url = "/static/test.md";
-            // Load file contents
-            $.get(file_url+"?reload="+(new Date()).getTime(),
-                function(data, textStatus, jqXHR) {
-                    /*
-                     // TODO: try jQuery Autocomplete instead
-                     set_search_words(data);
-                     alert(search_words_attr);
-                     $('#text_search').attr('data-source', search_words_attr);
-                     $('#text_search').typeahead();
-                     //{source: search_words});
-                     */
-                    /*
-                    console.log(textStatus);
-                    console.log(data);
-                    console.log(jqXHR);
-                    */
-                    // TODO: server should also return settings dict for editor
-                    // Insert editor HTML code (toolbar, textarea, buttons) into content div
-                    // TODO: remove previous codemirror and all bindings (?)
-                    if (!edtrTree.editor || edtrTree.editor.content_type !== file_type) {
-                        $(".main-view-right").html(editor_html);
-                        //$("#editor_toolbar").html(editor_tb_html);
-                        //empty().prepend(editor_html);
-                    } else {
-                        // TODO: do we need to do anything else if editor is of the same type ?
-                    }
-                    edtrTree.editor = new edtrCodemirror(file_type, data);
-                    messagesBar.show_notification("File <b>"+file_url+"</b> was loaded into the editor");
-                });
-            }
-        ).error(function(data) {
-                messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
+        var ext = edtrHelper.get_filename_ext(node.name),
+            content_type = edtrTree.editor_type[ext];
+        if (!content_type) {
+            messagesBar.show_notification_warning(
+                "No editor defined for file type <strong>"+ext+"</strong>");
+            return;
+        }
+        // Get HTML for editor and its toolbar
+        // TODO: server should also return settings dict for editor
+        $.get("/get_editor", {
+            editor_type: content_type
+        }, function(editor_data, textStatus, jqXHR) {
+            // Retrieve file from dropbox (server provides us with unique media url)
+            serverComm.get_dropbox_file(node.id, function(err, file_data) {
+                /*
+                 // TODO: try jQuery Autocomplete instead
+                 set_search_words(data);
+                 alert(search_words_attr);
+                 $('#text_search').attr('data-source', search_words_attr);
+                 $('#text_search').typeahead();
+                 //{source: search_words});
+                 */
+                // console.log(textStatus);
+                // console.log(data);
+                // console.log(jqXHR);
+                //
+                // Insert editor HTML code (toolbar, textarea, buttons) into content div
+                // TODO: remove previous codemirror and all bindings (?)
+                if (!edtrTree.editor || edtrTree.editor.content_type !== content_type) {
+                    edtrTree.dom_editor.html(editor_data.html);
+                } else {
+                    // TODO: do we need to do anything else if editor is of the same type ?
+                }
+                // TODO: need a method in edtrCodemirror to replace data
+                // or even better - to create a new tab
+                edtrTree.editor = new edtrCodemirror(file_type, data);
+                messagesBar.show_notification("File <b>"+file_url+"</b> was loaded into the editor");
             });
+        })
+        .error(function(data) {
+            messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
+        });
     }
 
 
@@ -935,38 +1186,6 @@ var edtrTree = {
     //     }).error(function(data) {
     //             messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
     //         });
-    // },
-
-    // Retrieve new dropbox tree structure from from server
-    // and update #db_tree element
-    // update_db_tree:         function(hide_tree) {
-    //     syncIcon.start_sync_rotation();
-
-    //     // Reset TreeView cookies (we use them as global vars)
-    //     $.cookie('mdb_preview_url', ""); // url, opened when Preview button is clicked
-    //     $.cookie('mdb_current_dbpath', "/"); // selected item
-    //     $.cookie('mdb_current_is_folder', "true"); // true if dir selected
-    //     $.cookie('mdb_current_dir_dbpath', "/"); // parent dir of selected item
-    //     $.cookie('mdb_is_treeview_selected', "false"); // true if user clicked on treeview item
-
-    //     // Disallow some file/dir actions until first click
-    //     $("#action_delete, #action_rename").css('cursor', 'no-drop');
-
-    //     // Show text while updating
-    //     if (hide_tree) {
-    //         edtrTree.dom_db_tree.html("<br/><h4 style='text-align: center; background: white'>Syncing with Dropbox...</h4>");
-    //     }
-    //     // Get new data from server
-    //     $.get('/async/update_db_tree/', function(data) {
-    //         if (data.status != 'success') {
-    //             syncIcon.stop_sync_rotation();
-    //             messagesBar.show_error(data.message);
-    //             return false;
-    //         }
-    //         // Wait for result from server
-    //         serverComm.get_server_result(data.task_id,
-    //             edtrTree.db_tree_update_success, edtrTree.db_tree_update_failed);
-    //     });
     // },
 
     // Helper to highlight given db_path

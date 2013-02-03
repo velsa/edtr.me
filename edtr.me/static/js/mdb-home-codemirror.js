@@ -611,7 +611,6 @@ function edtrCodemirror(content_type, content) {
     $('#btn_save').on("click", this.save_codemirror);
 
     // TOOLTIPS for toolbar
-    // TODO: THOSE DON'T WORK BECAUSE #editor_area is overflow: hidden
     $(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
     // And buttons
     $(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });

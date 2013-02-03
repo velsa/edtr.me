@@ -13,51 +13,57 @@
                 <a href="#">Files:</a>
             </li>
  -->
-            <li class="dropdown" style="text-transform: none;">
+            <li class="dropdown menu-file" style="text-transform: none;">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                     File<b class="caret"></b>
                 </a>
                 <ul class="dropdown-menu">
                     <li>
-                        <a class="sb_add" data-action="add_file" href="#">
+                        <a class="sb-add" data-action="add_file" href="#">
                             <i class="icon-file icon-black"></i>
                             New File...<strong class="shortcut">Alt-N</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb_add" data-action="add_subdir" href="#">
+                        <a class="sb-add" data-action="add_subdir" href="#">
                             <i class="icon-folder-close icon-black"></i>
                             New Directory...<strong class="shortcut">Alt-Shift-N</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb_edit" data-action="rename" href="#">
+                        <a class="sb-edit" data-action="rename" href="#">
                             <i class="icon-pencil icon-black"></i>
                             Rename...<strong class="shortcut">Alt-R</strong>
                         </a>
                     </li>
-                    <li>
-                        <a class="sb_edit" data-action="remove" href="#">
+                    <li class="disabled">
+                        <a class="sb-edit" data-action="remove" href="#">
                             <i class="icon-plus-sign icon-black"></i>
                             Duplicate<strong class="shortcut">Alt-D</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb_edit" data-action="remove" href="#">
+                        <a class="sb-edit" data-action="remove" href="#">
                             <i class="icon-trash icon-black"></i>
                             Delete...<strong class="shortcut">Alt-Del</strong>
                         </a>
                     </li>
                     <li class="divider"></li>
                     <li>
-                        <a class="sb_file" data-action="info" href="#">
+                        <a class="sb-file" data-action="refresh" href="#">
+                            <i class="icon-trash icon-refresh"></i>
+                            Refresh selected<strong class="shortcut">Alt-Space</strong>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="sb-file" data-action="info" href="#">
                             <i class="icon-trash icon-info-sign"></i>
                             Show info...<strong class="shortcut">Space</strong>
                         </a>
                     </li>
                 </ul>
             </li>
-            <li class="dropdown" style="text-transform: none;">
+            <li class="dropdown menu-edit" style="text-transform: none;">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                     Edit<b class="caret"></b>
                 </a>
@@ -82,51 +88,51 @@
                     </li>
                 </ul>
             </li>
-            <li class="dropdown" style="text-transform: none;">
+            <li class="dropdown menu-view" style="text-transform: none;">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                     View<b class="caret"></b>
                 </a>
                 <ul class="dropdown-menu">
                     <li>
-                        <a id="sb_view_show_clipboard" data-action="show_clipboard" href="#">
+                        <a class="sb-view-show-clipboard" data-action="show_clipboard" href="#">
                             <i class="icon-eye-open icon-black"></i>
                             Show clipped files...<strong class="shortcut">Alt-P</strong>
                         </a>
                     </li>
                     <li>
-                        <a id="sb_view_clear_clipboard" href="#">
+                        <a class="sb-view-clear-clipboard" href="#">
                             <i class="icon-eye-close icon-black"></i>
                             Clear clipped files
                         </a>
                     </li>
                     <li class="divider"></li>
                     <li class="disabled">
-                        <a id="sb_view_clear_checkboxes" href="#">
+                        <a class="sb-view-clear-checkboxes" href="#">
                             <i class="icon-remove-circle icon-black"></i>
                             Clear all checkboxes<strong class="shortcut">Alt-Shift-C</strong>
                         </a>
                     </li>
                     <li>
                         <label style="padding-right: 20px;"> 
-                            <input type="checkbox" id="sb_view_multiselect"> 
+                            <input type="checkbox" class="sb-view-multiselect"> 
                             Toggle checkboxes<strong class="shortcut">Alt-T</strong>
                         </label>
                     </li>
                 </ul>
             </li>
-            <li class="dropdown" style="text-transform: none;">
+            <li class="dropdown menu-web" style="text-transform: none;">
                 <a class="dropdown-toggle" data-toggle="dropdown" href="#">
                     Web<b class="caret"></b>
                 </a>
                 <ul class="dropdown-menu">
                     <li>
-                        <a id="sb_web_publish" data-action="show_clipboard" href="#">
+                        <a class="sb-web-publish" data-action="publish_selected" href="#">
                             <i class="icon-globe icon-black"></i>
                             Publish selected
                         </a>
                     </li>
                     <li>
-                        <a id="sb_view_clear_clipboard" href="#">
+                        <a class="sb-web-unpublish" data-action="unpublish_selected" href="#">
                             <i class="icon-remove-sign icon-black"></i>
                             Unpublish selected
                         </a>
@@ -135,7 +141,9 @@
             </li>
             <li class="sync-button-li">
                 <img src="{{ static_url('images/refresh-static.gif') }}" 
-                    alt="()" class="sync-button">
+                    alt="()" class="sync-button edtr-tooltip"
+                    title="Refresh opened directories"
+                    >
             </li>
         </ul>
     </li>

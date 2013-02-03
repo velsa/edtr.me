@@ -8,21 +8,27 @@ body {
    height:              100%;
 }
 
+.tooltip {
+    font-weight:        normal;
+    text-transform:     none;
+    display:            inline-table !important;
+}
+
 /* Add disabled state for items in sidebar
  */
-.nav  li.disabled {
-  opacity:              0.4;
-  pointer-events:       none;
-}
-.nav li.disabled a:hover {
-  cursor:               default;
-  text-decoration:      none;
-  background-color:     inherit;
-}
 .dropdown-toggle {
     font-size:          12px;
     padding-left:       6px !important;
     padding-right:      6px !important;
+}
+.dropdown-menu li.disabled {
+  opacity:              0.4;
+  pointer-events:       none;
+}
+.dropdown-menu li.disabled a:hover {
+  cursor:               default;
+  text-decoration:      none;
+  background-color:     inherit;
 }
 .dropdown-menu label {
     font-size:          11px;    
@@ -36,10 +42,15 @@ body {
     margin-right:       2px;
     vertical-align:     top;
 }
-.dropdown .shortcut {
+.dropdown-menu .shortcut {
     float:              right;
     padding-left:       30px;
 }
+.tree-context-menu {
+    position:           absolute;
+    font-size:          11px !important;
+}
+
 
 
 /*
@@ -234,7 +245,6 @@ body {
 .sync-button {
     cursor:             pointer;
     margin-top:         10px;
-    margin-left:        20px;
     border:             none;
 }
 
@@ -341,7 +351,6 @@ span.CodeMirror-matchhighlight {
     border:             0 solid #BBBBBB;
     opacity:            1;
 }
-
 
 
 /*

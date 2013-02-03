@@ -14,7 +14,6 @@ class EdtrmeApp(tornado.web.Application):
         mongo_addr = kwargs.get('mongo_addr', mongo_address)
         mongo_db = kwargs.get('mongo_db', MONGO_DB)
         db = motor.MotorClient(**mongo_addr).open_sync()[mongo_db]
-        db.accounts.ensure_index("username", unique=True)
         super(EdtrmeApp, self).__init__(
             url_patterns, db=db, *args, **dict(settings, **kwargs))
 

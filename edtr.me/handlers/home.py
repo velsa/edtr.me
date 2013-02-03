@@ -9,7 +9,6 @@ from models.accounts import UserModel
 from handlers.base import BaseHandler
 
 from workers.dropbox import DropboxWorkerMixin
-from models.accounts import UserModel
 from handlers.base import BaseHandler
 
 logger = logging.getLogger('edtr_logger')
@@ -24,11 +23,7 @@ class HomeHandler(BaseHandler, DropboxWorkerMixin):
     @gen.engine
     @tornado.web.authenticated
     def get(self):
-        username = self.current_user
-
-        # find user with specified username
-        user = yield motor.Op(
-            UserModel.find_one, self.db, {"username": username})
+        user = yield gen.Task(self.get_edtr_current_user)
 
         if not user:
             self.set_current_user(None)
@@ -62,7 +57,7 @@ class HomeHandler(BaseHandler, DropboxWorkerMixin):
 
 
 class GetEditorHandler(BaseHandler):
-    """ Handler for serving correct editor and toolbar html to browser
+    """ Handler for serving correct editor (with toolbar) to browser
     """
     def initialize(self, **kwargs):
         super(GetEditorHandler, self).initialize(**kwargs)
@@ -70,10 +65,8 @@ class GetEditorHandler(BaseHandler):
     def get(self, *args, **kwargs):
         editor_type = self.get_argument("editor_type", None)
         editor_tmpl = "editor/cm_" + editor_type + ".html"
-        editor_tb_tmpl = "editor/cm_" + editor_type + "_tb.html"
         context = self.get_template_namespace()
         self.write({
-                "editor_html":      jinja_env.get_template(editor_tmpl).render(context),
-                "editor_tb_html":   jinja_env.get_template(editor_tb_tmpl).render(context)
+                "html":      jinja_env.get_template(editor_tmpl).render(context),
             })
         self.flush()

@@ -2,15 +2,27 @@
 
 {% block body_container %}
     {{ super() }}
-    <button id="debug"
-            class="btn btn-success btn-small cme-button-tooltip" href="#">
-        <span id="btn_debug">Debug AJAX</span>
-    </button>
+    <div style="padding-bottom:50px;">
+        <button id="debug"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_debug">AJAX Metadata</span>
+        </button>
+        <button id="file_get"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_file_get">AJAX File</span>
+        </button>
+    </div>
 
-    <button id="debug_socketion"
-            class="btn btn-success btn-small cme-button-tooltip" href="#">
-        <span id="btn_debug_socketio">Debug socketio</span>
-    </button>
+    <div>
+        <button id="debug_socketion"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_debug_socketio">SocketIO Metadata</span>
+        </button>
+        <button id="sio_file_get"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_file_get">SocketIO File</span>
+        </button>
+    </div>
 {% endblock %}
 
 {% block extra_footer %}
@@ -22,18 +34,33 @@
         return c ? c[1] : undefined;
     }
     $('#debug').click(function(){
-        $.post('/api/0.1/dropbox/get_tree/',
+        $.post("{{reverse_url('dropbox_get_path')}}",
             {
                 "_xsrf": getCookie("_xsrf"),
                 "path": "/"
             },
             function(response) {
-                console.log("_______update_db_tree_________");
+                console.log("_______AJAX: update_db_tree_________");
                 for (f in response){
                     console.log(f+":")
                     console.log(response[f])
                 }
-                console.log("_______ update_db_tree end_________");
+                console.log("_______ AJAX: update_db_tree end_________");
+            })
+    })
+    $('#file_get').click(function(){
+        $.post("{{reverse_url('dropbox_get_file')}}",
+            {
+                "_xsrf": getCookie("_xsrf"),
+                "path": "/1.txt"
+            },
+            function(response) {
+                console.log("_______AJAX: dropbox_get_file_________");
+                for (f in response){
+                    console.log(f+":")
+                    console.log(response[f])
+                }
+                console.log("_______ AJAX: dropbox_get_file end_________");
             })
     })
     </script>
@@ -61,9 +88,24 @@
             console.log("__SOCKET_IO__ end")
         });
 
+        s.on('get_file', function(response) {
+            console.log("__SOCKET_IO Get file__")
+            var response = JSON.parse(response)
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO Get file__ end")
+        });
+
         // Start event
         $('#debug_socketion').click(function() {
             s.emit('get_tree', '/');
+            return false;
+        });
+
+        $('#sio_file_get').click(function() {
+            s.emit('get_file', '/1.txt');
             return false;
         });
     });

@@ -37,7 +37,7 @@ class LoginHandler(BaseHandler):
     def post(self):
         username = self.get_argument("username", None)
         usr = yield motor.Op(
-            UserModel.find_one, self.db, {"username": username})
+            UserModel.find_one, self.db, {"_id": username})
         if usr:
             password = self.get_argument("password", None)
             if usr.check_password(password):
@@ -75,7 +75,7 @@ class RegisterHandler(BaseHandler):
             return
 
         usr = UserModel()
-        usr.username = self.get_argument("username", None)
+        usr.name = self.get_argument("username", None)
         usr.password = password
 
         result = usr.validate()
@@ -84,7 +84,7 @@ class RegisterHandler(BaseHandler):
             try:
                 yield motor.Op(usr.save, self.db)
                 # user save succeeded
-                self.set_current_user(usr.username)
+                self.set_current_user(usr.name)
                 # create user dropbox collection
                 yield motor.Op(
                     usr.create_dropbox_collection, self.db)
@@ -106,7 +106,7 @@ class UserNameAvailabilityHandler(BaseHandler):
     @gen.engine
     def get(self, username):
         user = yield motor.Op(
-            UserModel.find_one, self.db, {"username": username})
+            UserModel.find_one, self.db, {"_id": username})
         self.set_header("Content-Type", "text/plain")
         if user:
             self.write('error')

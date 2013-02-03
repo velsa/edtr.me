@@ -23,6 +23,8 @@ class BaseHandler(tornado.web.RequestHandler):
             context = {}
         context.update(self.get_template_namespace())
         self.write(jinja_env.get_template(template).render(context))
+        # Always set _xsrf cookie
+        self.xsrf_token
         self.flush()
 
     def set_current_user(self, user):
@@ -40,7 +42,7 @@ class BaseHandler(tornado.web.RequestHandler):
         username = self.current_user
         # TODO cache
         user = yield motor.Op(
-            UserModel.find_one, self.db, {"username": username})
+            UserModel.find_one, self.db, {"_id": username})
         callback(user)
 
     def render_async(self, tmpl, context):

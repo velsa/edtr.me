@@ -3,38 +3,45 @@ $(document).ready(function() {
     // $('.navbar_li').removeClass('active');
     // $('#navbar_home').addClass('active');
 
+    // Tree context menu
+    $(".tree-context-menu").html($(".menu-file").find(".dropdown-menu").clone());
+    $(".tree-context-menu").find(".dropdown-menu").append(
+        "<li class='divider'></li>" +
+        $(".menu-edit").find(".dropdown-menu").html() +
+        "<li class='divider'></li>" +
+        $(".menu-web").find(".dropdown-menu").html()
+    );
+
     //
     // Sidebar Actions (View)
     //
     // Toggle checkboxes in tree
-    $("#sb_view_multiselect").on("click", function(e) {
+    $(".sb-view-multiselect").on("click", function(e) {
         edtrTree.toggle_checkboxes();
         // e.stopPropagation();
         // e.preventDefault();
     });
     // Clear all checkboxes in tree
-    $("#sb_view_clear_checkboxes").on("click", edtrTree.clear_checkboxes);
+    $(".sb-view-clear-checkboxes").on("click", edtrTree.clear_checkboxes);
     // Clear clipboard
-    $("#sb_view_clear_clipboard").on("click", edtrTree.clear_clipboard);
+    $(".sb-view-clear-clipboard").on("click", edtrTree.clear_clipboard);
     // Show clipboard contents
-    $("#sb_view_show_clipboard").on("click", function() {
+    $(".sb-view-show-clipboard").on("click", function() {
         edtrTree.show_clipboard($(this).data("action"));
     });
 
     //
-    // Sidebar Actions (Edit)
+    // Sidebar Actions (File)
     //
-    // Add New file/subdir
-    $(".sb_add").on("click", function() {
-        edtrTree.add_node_via_modal($(this).data("action"));
-    });
-    // Rename/Remove file/subdir
-    $(".sb_edit, .sb_clipboard").on("click", function() {
+    // Add/Copy/Cut/Paste/Rename/Remove/Refresh file/subdir, Show info for file/subdir
+    $(".sb-add, .sb-edit, .sb-file, .sb-clipboard").on("click", function() {
         edtrTree.node_action($(this).data("action"));
     });
 
+    // Setup tooltips
+    $(".edtr-tooltip").tooltip({ placement: "right", html: true, delay: { show: 1000, hide: 300 } });
 
-    // Update shortcut modifiers in all menus
+    // Update shortcut modifiers in all menus according to browser OS
     var modifier = "Ctrl-";
     if (navigator.platform.startsWith("Mac"))
         modifier = "&#8984;";
@@ -52,8 +59,12 @@ $(document).ready(function() {
     //
     syncIcon.init($('.sync-button'), function() {
         // Called when icon is clicked
-        // Ask server to refresh dropbox data
-        edtrTree.update_db_tree(false);
+        syncIcon.start_sync_rotation();
+        // Ask server to refresh tree data
+        edtrTree.refresh_opened_nodes(function() {
+            // Called when refresh is done
+            syncIcon.stop_sync_rotation();
+        });
     });
 
     // Vertical and horizontal splitter hooks
@@ -62,10 +73,12 @@ $(document).ready(function() {
         return;
     });
 
+    // We pass container for messages and element to adjust width to
     messagesBar.init($('#messages_bar'), $('.main-view-right'));
 
     // Show tree on page load
-    edtrTree.init();
+    // We pass tree and editor containers
+    edtrTree.init($('#db_tree'), $(".main-view-right"));
     //edtrTree.update_db_tree(true);
 
     /*
@@ -75,7 +88,7 @@ $(document).ready(function() {
     show_success("<b>Wow ! Great !</b> Everything worked as expected !");
     messagesBar.show_notification("<b>Hello there !</b> Nice to see you here :)");
     */
-    edtrTree.open_editor();
+    //edtrTree.open_editor();
 
     // Set keyboard focus to the tree
     // HACK: if we run it without timeout, focus is set to iframe (preview)

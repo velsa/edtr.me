@@ -6,6 +6,7 @@ import motor
 from settings import settings
 from workers.dropbox import DropboxWorkerMixin
 from models.accounts import UserModel
+from utils.error import ErrCode
 
 
 class SocketError:
@@ -41,7 +42,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
             max_age_days=settings['cookie_expires'])
         # TODO cache
         user = yield motor.Op(
-            UserModel.find_one, self.db, {"username": username})
+            UserModel.find_one, self.db, {"_id": username})
         if user:
             callback(user)
         else:
@@ -76,9 +77,17 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         # TODO maybe set common user fields as self.field
         # to not make database call to find user
         user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-        path_tree = yield gen.Task(self.dbox_get_tree, user, path)
-        output = {
-            'status': 'success',
-            'tree': path_tree,
-        }
-        self.emit_as_json('get_tree', output)
+        result = yield gen.Task(self.dbox_get_tree, user, path)
+        self.emit_as_json('get_tree', result)
+
+    @event
+    @gen.engine
+    def get_file(self, path):
+        # TODO maybe set common user fields as self.field
+        # to not make database call to find user
+        if not path:
+            self.emit_as_json('get_file', {'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
+            result = yield gen.Task(self.dbox_get_file, user, path)
+            self.emit_as_json('get_file', result)

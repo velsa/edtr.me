@@ -161,6 +161,8 @@ var edtrSplitters = {
         this.vl_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
+            if (!$this_es.lsb_is_visible)
+                return;
             $(window).on("mousemove", function(e) {
                 $this_es.is_dragging = true;
                 var new_width = e.clientX-5;
@@ -192,6 +194,8 @@ var edtrSplitters = {
         this.h_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
+            if (!$this_es.preview_is_visible)
+                return;
             // $this_es.preview_container.contents().find('body').on("mousemove", function(e) {
             //     //e.preventDefault(); // disable text selection during drag
             //     console.log(e.pageY);
@@ -303,14 +307,40 @@ var serverComm = {
 
     get_request_url:        function (source, request) {
         return this.api_v + source + '/' + request + '/';
+        // "?reload="+(new Date()).getTime(),
     },
 
-    get_tree:               function (from, path, callback) {
-        $.post(serverComm.get_request_url("dropbox", "get_tree"),
-            {
-                "_xsrf": this.get_cookie("_xsrf"),
-                "path": path
-            }, callback);
+    post_request:           function (source, request, params, callback) {
+        params["_xsrf"] = this.get_cookie("_xsrf");
+        $.post(serverComm.get_request_url(source, request), params, callback)
+        .fail(function() {
+            messagesBar.show_internal_error("serverComm.post_request: fail",
+                "source: "+source+", request:"+request);
+            console.log(params);
+        });
+    },
+
+    get_request:            function (source, request, params, callback) {
+        params["_xsrf"] = this.get_cookie("_xsrf");
+        $.post(serverComm.get_request_url(source, request), params, callback)
+        .fail(function() {
+            messagesBar.show_internal_error("serverComm.post_request: fail",
+                "source: "+source+", request:"+request);
+            console.log(params);
+        });
+    },
+
+    get_dropbox_file:         function (path, callback) {
+        // Get media url from server
+        this.post_request("dropbox", "get_file", {
+            path:   path
+        }, function(data, textStatus, jqXHR) {
+            console.log("media", data);
+            $.get(data.url, {_xsrf: serverComm.get_cookie("_xsrf")}, function(data) {
+                callback.apply(undefined, // value for this
+                    data);
+            });
+        });
     },
 
     get_server_result:      function( task_id, callback_ok, callback_error ) {

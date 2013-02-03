@@ -39,8 +39,8 @@ class RegisterTest(BaseTest):
         self.assertEqual(resp.code, 302)
         self.assertEqual(resp.headers['Location'], self.reverse_url('home'))
         # check, user is created
-        user = self.db_find_one({'username': username})
-        self.assertEqual(user['username'], username)
+        user = self.db_find_one({'_id': username})
+        self.assertEqual(user['_id'], username)
 
     def test_invalid_signup_data(self):
         # TODO
@@ -60,7 +60,7 @@ class LoginTest(BaseTest):
     def test_login_user_dropbox_redirect(self,
         m_get_current_user, m_authorize_redirect):
         m_get_current_user.return_value = 'testuser'
-        self.db_save({'username': 'testuser'})
+        self.db_save({'_id': 'testuser'})
         self.get(self.reverse_url('home'))
         self.assertEqual(m_authorize_redirect.called, True)
 
@@ -128,7 +128,7 @@ class LoginTest(BaseTest):
         m_get_current_user.return_value = username
 
         # prepare database
-        self.db_save({'username': username})
+        self.db_save({'_id': username})
 
         ### test sequence
         # fetch user page
@@ -149,7 +149,7 @@ class LoginTest(BaseTest):
         self.assertEqual(fetch_mock_called[_DROPBOX_ACCOUNT_INFO_URL], True)
         self.assertEqual(resp.code, 302)
         self.assertEqual(self.reverse_url('home'), resp.headers['Location'])
-        user = self.db_find_one({'username': username})
+        user = self.db_find_one({'_id': username})
 
         # self.assertEqual(user['token_string'], '|'.join(
         #     [oauth_access_token, oauth_access_token_secret]))
@@ -169,7 +169,7 @@ class LoginTest(BaseTest):
         email = 'test@test.com'
         m_get_current_user.return_value = username
         self.db_save({
-            'username': username,
+            '_id': username,
             'first_name': first_name,
             'last_name': last_name,
             'email': email,
