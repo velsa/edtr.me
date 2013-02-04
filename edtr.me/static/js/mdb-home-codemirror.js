@@ -476,7 +476,7 @@ function edtrCodemirror(content_type, content) {
             clearTimeout($this.preview_timer_id);
     };
 
-    this.init                   = function(dom_textarea, dom_preview) {
+    this.init                   = function(dom_container, dom_preview) {
         //
         // INITIALIZATION (constructor)
         //
@@ -491,7 +491,10 @@ function edtrCodemirror(content_type, content) {
         
         this.set_saved_state("SAVED");
 
-        this.dom_elem           = dom_textarea;
+        // debugger;
+        // Cache dom elements
+        this.dom_elem           = dom_container;
+        this.dom_textarea       = dom_container.find(".cme-textarea");
         this.preview_container  = dom_preview;
         // We use contents() to search within iframe
         this.preview_elem       = this.preview_container.contents().find('body');
@@ -551,7 +554,7 @@ function edtrCodemirror(content_type, content) {
             }
         };
 
-        this.cm_editor = CodeMirror.fromTextArea(this.dom_elem.get(0), cm_settings);
+        this.cm_editor = CodeMirror.fromTextArea(this.dom_textarea[0], cm_settings);
 
         // .ON events
         this.cm_editor.on("change", this.on_change);
@@ -559,7 +562,7 @@ function edtrCodemirror(content_type, content) {
         // onGutterClick:      this.on_gutter_clicked,
 
         // Hides original text area, just in case
-        this.dom_elem.hide();
+        // this.dom_elem.hide();
 
         // Set default options for marked
         marked.setOptions({
@@ -573,31 +576,31 @@ function edtrCodemirror(content_type, content) {
         //
         // Toolbar handlers
         //
-        $('#tbb_header').on("click", this.rotate_header);
-        $('#tbb_bold').on("click", this.toggle_bold);
-        $('#tbb_italic').on("click", this.toggle_italic);
-        $('#tbb_code').on("click", this.toggle_code);
+        this.dom_elem.find('#tbb_header').on("click", this.rotate_header);
+        this.dom_elem.find('#tbb_bold').on("click", this.toggle_bold);
+        this.dom_elem.find('#tbb_italic').on("click", this.toggle_italic);
+        this.dom_elem.find('#tbb_code').on("click", this.toggle_code);
         // --
-        $('#tbb_ulist').on("click", this.unordered_list);
-        $('#tbb_olist').on("click", this.ordered_list);
-        $('#tbb_quote').on("click", this.blockquote);
+        this.dom_elem.find('#tbb_ulist').on("click", this.unordered_list);
+        this.dom_elem.find('#tbb_olist').on("click", this.ordered_list);
+        this.dom_elem.find('#tbb_quote').on("click", this.blockquote);
         // --
-        $('#tbb_divider').on("click", this.divider_hr);
+        this.dom_elem.find('#tbb_divider').on("click", this.divider_hr);
         // --
-        $('#tbb_image_url').on("click", this.insert_image_url);
-        $('#tbb_url').on("click", this.insert_url);
+        this.dom_elem.find('#tbb_image_url').on("click", this.insert_image_url);
+        this.dom_elem.find('#tbb_url').on("click", this.insert_url);
         // ----
-        $('#tbb_width').on("click", this.toggle_width);
-        $('#tbb_fullscreen').on("click", this.toggle_fullscreen);
+        this.dom_elem.find('#tbb_width').on("click", this.toggle_width);
+        this.dom_elem.find('#tbb_fullscreen').on("click", this.toggle_fullscreen);
 
         // Buttons
-        $('#btn_preview').on("click", this.preview_codemirror);
-        $('#btn_save').on("click", this.save_codemirror);
+        this.dom_elem.find('#btn_preview').on("click", this.preview_codemirror);
+        this.dom_elem.find('#btn_save').on("click", this.save_codemirror);
 
         // TOOLTIPS for toolbar
-        $(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
+        this.dom_elem.find(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
         // And buttons
-        $(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
+        this.dom_elem.find(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
 
         return this;
     };

@@ -398,10 +398,23 @@ span.CodeMirror-matchhighlight {
     background-position:    50% 50%;
 }
 /*
-*   Image carousel
+*   Fancy box
 *   TODO: align image vertically (HOW ??!!)
 */
-.carousel {
+.fancybox-nav {
+    width: 60px;       
+}
+.fancybox-nav span {
+    visibility: visible;
+}
+.fancybox-next {
+    right: -60px;
+}
+.fancybox-prev {
+    left: -60px;
+}
+
+/*.carousel {
     min-height:         530px;
     padding:            10px;
 }
@@ -419,7 +432,7 @@ span.CodeMirror-matchhighlight {
     max-height:         530px;
     margin:             auto;
 }
-
+*/
 /*
 *   Modal dialogs
 */

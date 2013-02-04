@@ -23,6 +23,11 @@
     <link rel="stylesheet" href="{{ static_url('codemirror/theme/solarized.css') }}">
     <link rel="stylesheet" href="{{ static_url('codemirror/theme/twilight.css') }}">
 
+    <!-- JQuery FancyBox CSS
+     -->
+    <link rel="stylesheet" href="{{ static_url('fancybox/source/jquery.fancybox.css') }}">
+
+
     <!--     zTree styles
     -->    
     <link rel="stylesheet" href="{{ static_url('ztree/css/zTreeStyle/zTreeStyle.css') }}">
@@ -93,9 +98,9 @@
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
      -->
 
-    <!-- JQuery JSTree - not good looking and unreadable docs
-    <script src="{{ static_url('jstree/jquery.jstree.js') }}"></script>
+    <!-- JQuery FancyBox
      -->
+    <script src="{{ static_url('fancybox/source/jquery.fancybox.js') }}"></script>
 
     <!-- JQuery zTree
      -->
@@ -146,8 +151,8 @@
 
         <!-- Loading animation -->
         <div class="modal-backdrop file-loading" style="display:none"></div>
-        <!-- Editor and it's toolbar --> 
-        <div id="editor_html" style="display:none">
+        <!-- Editors (include specific toolbar) --> 
+        <div id="markdown_editor_html" style="display:none">
             {% include "editor/cm_markdown.html" %}
         </div>
 

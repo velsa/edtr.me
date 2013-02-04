@@ -359,50 +359,53 @@ var serverComm = {
                 callback.call($(this), 30770); // server failure
             } else {
                 console.log("get_dropbox_file", path, data.status);
+                // TODO: check status == 2
+                if (data.url)
+                    data.content = data.url;
                 callback.call($(this), data.status, data.content);
             }
         });
-    },
-
-    get_server_result:      function( task_id, callback_ok, callback_error ) {
-        // // Check for special task_ids, those can be emitted by blocking calls
-        // // on the server, which don't need to be polled for result
-        // if ( task_id.startsWith('TASK COMPLETED') ) {
-        //     // Task completed ! Hooray !
-        //     callback_ok(task_id);
-        //     return;
-        // } else if ( task_id.startsWith('TASK FAILED') ) {
-        //     // Task completed ! Hooray !
-        //     callback_error(task_id);
-        //     return;
-        // }
-        // Poll server for result from async operation
-        $.post("/get_result/", {
-            task_id: task_id
-        }, function(data) {
-            if (data['status'] != 'success') {
-                // Serious error
-                callback_error(data['messages'][0]);
-            } else {
-                if (data['result'] == 'FAILURE') {
-                    // Task failed, oh-oh
-                    for (var i=0; i < data['messages'].length; i++)
-                        callback_error(data['messages'][i]);
-                } else if (data['result'] == 'SUCCESS') {
-                    // Task completed ! Hooray !
-                    callback_ok(data['messages'][0]);
-                } else  if (data['result'] == 'PENDING') {
-                    // Task not completed yet, restart timer
-                    if (data['messages'].length)
-                        messagesBar.show_notification(data['messages'][0]);
-                    setTimeout(function() {
-                        this.get_server_result(task_id, callback_ok, callback_error);
-                    }, this.timer_interval);
-                } else { // Unrecognized result ?!
-                    messagesBar.show_internal_error("serverComm.get_server_result",
-                        "Unrecognized result: "+data['result']);
-                }
-            }
-        });
     }
+
+    // get_server_result:      function( task_id, callback_ok, callback_error ) {
+    //     // // Check for special task_ids, those can be emitted by blocking calls
+    //     // // on the server, which don't need to be polled for result
+    //     // if ( task_id.startsWith('TASK COMPLETED') ) {
+    //     //     // Task completed ! Hooray !
+    //     //     callback_ok(task_id);
+    //     //     return;
+    //     // } else if ( task_id.startsWith('TASK FAILED') ) {
+    //     //     // Task completed ! Hooray !
+    //     //     callback_error(task_id);
+    //     //     return;
+    //     // }
+    //     // Poll server for result from async operation
+    //     $.post("/get_result/", {
+    //         task_id: task_id
+    //     }, function(data) {
+    //         if (data['status'] != 'success') {
+    //             // Serious error
+    //             callback_error(data['messages'][0]);
+    //         } else {
+    //             if (data['result'] == 'FAILURE') {
+    //                 // Task failed, oh-oh
+    //                 for (var i=0; i < data['messages'].length; i++)
+    //                     callback_error(data['messages'][i]);
+    //             } else if (data['result'] == 'SUCCESS') {
+    //                 // Task completed ! Hooray !
+    //                 callback_ok(data['messages'][0]);
+    //             } else  if (data['result'] == 'PENDING') {
+    //                 // Task not completed yet, restart timer
+    //                 if (data['messages'].length)
+    //                     messagesBar.show_notification(data['messages'][0]);
+    //                 setTimeout(function() {
+    //                     this.get_server_result(task_id, callback_ok, callback_error);
+    //                 }, this.timer_interval);
+    //             } else { // Unrecognized result ?!
+    //                 messagesBar.show_internal_error("serverComm.get_server_result",
+    //                     "Unrecognized result: "+data['result']);
+    //             }
+    //         }
+    //     });
+    // }
 };

@@ -218,6 +218,12 @@ var edtrTree = {
         }
     },
 
+    // Helper
+    get_node_type:          function(node) {
+        var ext = edtrHelper.get_filename_ext(node.name);
+        return edtrTree.editor_type[ext];
+    },
+
     // Go through all node's children recursively and perform
     // callback on each (excluding the node itself !)
     // returns number of callbacks performed
@@ -460,7 +466,8 @@ var edtrTree = {
 
         // If codemirror is opened and text in it was not saved
         // ask confirmation from user to close it
-        if (edtrTree.editor && !edtrTree.editor.is_saved) {
+        if (edtrTree.editor && !edtrTree.editor.is_saved &&
+            edtrTree.get_node_type(node) !== "image") {
             // Confirmation dialog
             // Save for callback
             modalDialog.params = {};
@@ -1061,8 +1068,7 @@ var edtrTree = {
     //
     open_editor:            function(node) {
         // Load editor code for correct extension
-        var ext = edtrHelper.get_filename_ext(node.name),
-            content_type = edtrTree.editor_type[ext];
+        var content_type = edtrTree.get_node_type(node);
         if (!content_type) {
             messagesBar.show_notification_warning(
                 "No editor defined for file type <strong>"+ext+"</strong>");
@@ -1072,7 +1078,6 @@ var edtrTree = {
         $('.file-loading').show();
         // Retrieve file from dropbox (server provides us with unique media url)
         serverComm.get_dropbox_file(node.id, function(status, file_data) {
-            debugger;
             $('.file-loading').hide();
             if (status <= serverComm.max_success_status) {
                 /*
@@ -1089,19 +1094,25 @@ var edtrTree = {
                 //
                 // Insert editor HTML code (toolbar, textarea, buttons) into content div
                 // TODO: remove previous codemirror and all bindings (?)
+                if (content_type === "image") {
+                    // file_data contains dropbox url to image
+                    edtrTree.show_img_gallery(node, file_data);
+                    return;
+                }
+
                 if (edtrTree.editor) {
                     if (edtrTree.editor.content_type !== content_type) {
-                        // TODO: change toolbar ?
+                        // TODO: close previous editor
                         console.log(edtrTree.editor.content_type);
                         messagesBar.show_notification_warning("Content type <b>"+content_type+
                             "</b> is not yet supported");
                         return;
                     }
                 } else {
-                    edtrTree.dom_editor.html($("#editor_html").html());
+                    edtrTree.dom_editor.html($("#"+content_type+"_editor_html").html());
                     edtrTree.editor = new edtrCodemirror();
                     edtrTree.editor.init(
-                        edtrTree.dom_editor.find(".cme-textarea"),
+                        edtrTree.dom_editor,
                         $('body').find(".preview-container"));
                 }
                 edtrTree.editor.add_tab(content_type, node.id, node.name, file_data);
@@ -1111,7 +1122,102 @@ var edtrTree = {
                     serverComm.human_status[status]);
             }
         });
+    },
+
+    //
+    // Open jQuery lightbox and show gallery with images in the
+    // same directory as selected one
+    //
+    // node:        clicked node
+    // first_url:   url to the node's image (on dropbox)
+    //
+    show_img_gallery:       function(node, first_url) {
+        // Build a list of images in the same directory
+        // var siblings = node.getParentNode().children,
+        //     images = [],
+        //     i, pos;
+        // for (i in siblings) {
+        //     if (!siblings[i].isParent) {
+        //         var ext             = edtrHelper.get_filename_ext(siblings[i].name),
+        //             content_type    = edtrTree.editor_type[ext];
+        //         if (content_type === "image") {
+        //             images.push({
+        //                 node:   siblings[i],
+        //                 title:  siblings[i].name,
+        //                 href:   null
+        //             });
+        //             if (siblings[i].name === node.name) {
+        //                 pos = images.length-1;
+        //                 images[pos].href = first_url;
+        //             }
+        //         }
+        //     }
+        // }
+
+        // Show nice image box
+        $.fancybox(
+            [{ href: first_url, title: node.name }],
+            // images,
+            {
+                openEffect  : 'none',
+                closeEffect : 'none',
+                nextEffect  : 'none',
+                prevEffect  : 'none',
+                padding     : 0,
+                margin      : 50
+                // preload     : 1,
+                // index       : pos,
+                // helpers     : { buttons: {} },
+                // beforeLoad   : function() {
+                //     var index;
+
+                //     index = $(this)[0].index;
+
+                //     if (!images[index].href) {
+                //         // Retrieve image url from server
+                //         serverComm.get_dropbox_file(images[index].node.id, function(status, url) {
+                //             images[index].href = url;
+                //             console.log(images[index].href);
+                //         });
+                //         return false;
+                //     }
+                //     console.log(index, images[index].href);
+
+                //     // // debugger;
+                //     // if (i%2)
+                //     //     images[i].href="https://dl.dropbox.com/0/view/9rorxkd89hiie0k/Apps/edtr/images/3cows.jpg";
+                //     // else {
+                //     //     images[i].href="https://stripe.com/img/frontpage/blueprints.png";
+                //     // }
+                //     $(this)[0].href = images[index].href;
+                //     //i++;
+                //     return true;
+                // },
+                // afterLoad   : function(current, previous) {
+                // },
+                // beforeShow  : function() {
+                //     // $.fancybox.inner.attr("tabindex", "-1");
+                //     // $.fancybox.inner.focus();
+                //     // debugger;
+                //     // if (i%2)
+                //     //     $.fancybox.inner.html('<img src="https://stripe.com/img/frontpage/api-cloud.png">');
+                //     // else
+                //     //     $.fancybox.inner.html('<img src="https://stripe.com/img/frontpage/blueprints.png">');
+                //     // i++;
+                //     // var id = $.fancybox.inner.find('iframe').attr('id');
+                    
+                //     // // Create video player object and add event listeners
+                //     // var player = new YT.Player(id, {
+                //     //     events: {
+                //     //         'onReady': onPlayerReady,
+                //     //         'onStateChange': onPlayerStateChange
+                //     //     }
+                //     // });
+                // }
+            }
+        );
     }
+
 
 
 
@@ -1167,33 +1273,6 @@ var edtrTree = {
     //         }
     //     }
     //     //return false;
-    // },
-
-    //
-    // Open jQuery carousel with clicked image as active
-    //
-    // show_img_gallery:       function() {
-    //     // Load images carousel (all images from current dir)
-    //     $.post("/get_content_div/", {
-    //         content_type: 'img_gallery',
-    //         db_path: $.cookie('mdb_current_dbpath'),
-    //         is_folder: $.cookie('mdb_current_is_folder'),
-    //         dir_path: $.cookie('mdb_current_dir_dbpath')
-    //     }, function(data) {
-    //         if (data.status != 'success') {
-    //             messagesBar.show_error(data.message);
-    //         } else {
-    //             $('#content_area').html(data.html);
-    //             // Every time image slides
-    //             $('#img_carousel').on('slid', function() {
-    //                 // We update the selection in tree view
-    //                 var db_path = $('.carousel .active').data("dbpath");
-    //                 edtrTree.highlight_db_tree_item_by_db_path(db_path);
-    //             });
-    //         }
-    //     }).error(function(data) {
-    //             messagesBar.show_error("<b>CRITICAL</b> Server Error ! Please refresh the page.");
-    //         });
     // },
 
     // Helper to highlight given db_path
