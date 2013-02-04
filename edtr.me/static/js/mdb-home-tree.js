@@ -1109,9 +1109,12 @@ var edtrTree = {
                         return;
                     }
                 } else {
+                    // Set correct dom structure (editor and toolbar)
                     edtrTree.dom_editor.html($("#"+content_type+"_editor_html").html());
+                    // Create new editor and save node with it
                     edtrTree.editor = new edtrCodemirror();
                     edtrTree.editor.init(
+                        node,
                         edtrTree.dom_editor,
                         $('body').find(".preview-container"));
                 }

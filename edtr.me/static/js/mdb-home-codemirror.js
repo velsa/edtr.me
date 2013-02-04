@@ -476,7 +476,7 @@ function edtrCodemirror(content_type, content) {
             clearTimeout($this.preview_timer_id);
     };
 
-    this.init                   = function(dom_container, dom_preview) {
+    this.init                   = function(tree_node, dom_container, dom_preview) {
         //
         // INITIALIZATION (constructor)
         //
@@ -491,7 +491,8 @@ function edtrCodemirror(content_type, content) {
         
         this.set_saved_state("SAVED");
 
-        // debugger;
+        this.node               = tree_node;
+
         // Cache dom elements
         this.dom_elem           = dom_container;
         this.dom_textarea       = dom_container.find(".cme-textarea");
