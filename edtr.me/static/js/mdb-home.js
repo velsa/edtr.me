@@ -82,7 +82,6 @@ $(document).ready(function() {
     // Show tree on page load
     // We pass tree and editor containers
     edtrTree.init($('#db_tree'), $(".main-view-right"));
-    //edtrTree.update_db_tree(true);
 
     /*
     show_info("<b>Goodbye.</b> Come back again...");
