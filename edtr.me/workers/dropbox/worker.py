@@ -9,6 +9,7 @@ import pytz
 
 from utils.async_dropbox import DropboxMixin
 from models.dropbox import DropboxFile
+import utils.gl
 from utils.error import ErrCode
 logger = logging.getLogger('edtr_logger')
 
@@ -29,8 +30,21 @@ TEXT_MIMES = (
 
 
 def dbox_periodic_update():
-    # TODO: add dropbox delta check
-    print "Syncing with dropbox"
+    # TODO: fetch only needed fields
+    cursor = utils.gl.DB.instance().accounts.find()
+    cursor.each(callback=dbox_sync_user)
+
+
+def dbox_sync_user(user, error):
+    if error:
+        try:
+            raise error
+        except:
+            logger.exception("dbox_sync_user error:")
+    elif user:
+        print user['_id']
+    else:
+        logger.error("dbox_sync_user user not found")
 
 
 class DropboxWorkerMixin(DropboxMixin):

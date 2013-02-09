@@ -9,6 +9,7 @@ from settings import settings, mongo_address, MONGO_DB
 from urls import url_patterns
 from tornado.ioloop import PeriodicCallback
 from workers.dropbox import dbox_periodic_update
+import utils.gl
 
 
 class EdtrmeApp(tornado.web.Application):
@@ -16,6 +17,7 @@ class EdtrmeApp(tornado.web.Application):
         mongo_addr = kwargs.get('mongo_addr', mongo_address)
         mongo_db = kwargs.get('mongo_db', MONGO_DB)
         db = motor.MotorClient(**mongo_addr).open_sync()[mongo_db]
+        utils.gl.DB.set_instance(db)
         super(EdtrmeApp, self).__init__(
             url_patterns, db=db, *args, **dict(settings, **kwargs))
 
