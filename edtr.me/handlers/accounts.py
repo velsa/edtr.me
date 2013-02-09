@@ -36,8 +36,7 @@ class LoginHandler(BaseHandler):
     @gen.engine
     def post(self):
         username = self.get_argument("username", None)
-        usr = yield motor.Op(
-            UserModel.find_one, self.db, {"_id": username})
+        usr = yield motor.Op(UserModel.find_one, self.db, {"_id": username})
         if usr:
             password = self.get_argument("password", None)
             if usr.check_password(password):
@@ -86,8 +85,7 @@ class RegisterHandler(BaseHandler):
                 # user save succeeded
                 self.set_current_user(usr.name)
                 # create user dropbox collection
-                yield motor.Op(
-                    usr.create_dropbox_collection, self.db)
+                yield motor.Op(usr.create_dropbox_collection, self.db)
                 self.redirect(self.reverse_url("home"))
                 return
             except DuplicateKeyError:
@@ -105,8 +103,7 @@ class UserNameAvailabilityHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.engine
     def get(self, username):
-        user = yield motor.Op(
-            UserModel.find_one, self.db, {"_id": username})
+        user = yield motor.Op(UserModel.find_one, self.db, {"_id": username})
         self.set_header("Content-Type", "text/plain")
         if user:
             self.write('error')
