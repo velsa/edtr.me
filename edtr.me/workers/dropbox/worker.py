@@ -28,6 +28,11 @@ TEXT_MIMES = (
 )
 
 
+def dbox_periodic_update():
+    # TODO: add dropbox delta check
+    print "Syncing with dropbox"
+
+
 class DropboxWorkerMixin(DropboxMixin):
     @gen.engine
     def wk_dbox_get_tree(self, user, path, recurse=False, callback=None):

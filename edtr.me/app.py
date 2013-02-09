@@ -7,6 +7,8 @@ from tornado.options import options
 import motor
 from settings import settings, mongo_address, MONGO_DB
 from urls import url_patterns
+from tornado.ioloop import PeriodicCallback
+from workers.dropbox import dbox_periodic_update
 
 
 class EdtrmeApp(tornado.web.Application):
@@ -24,12 +26,16 @@ def main():
         from handlers.socketio.socketio import EdtrConnection
         app = EdtrmeApp(socket_io_port=options.port)
         EdtrConnection.application = app
-        server.SocketServer(app)
+        server.SocketServer(app, auto_start=False)
     else:
         app = EdtrmeApp()
         http_server = tornado.httpserver.HTTPServer(app)
         http_server.listen(options.port)
-        tornado.ioloop.IOLoop.instance().start()
+
+    ince = tornado.ioloop.IOLoop.instance()
+    # Periodic sync with dropbox
+    PeriodicCallback(dbox_periodic_update, options.dbox_time, ince).start()
+    ince.start()
 
 if __name__ == "__main__":
     main()
