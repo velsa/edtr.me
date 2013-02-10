@@ -9,6 +9,7 @@ import pytz
 
 from utils.async_dropbox import DropboxMixin
 from models.dropbox import DropboxFile
+from models.accounts import UserModel
 import utils.gl
 from utils.error import ErrCode
 logger = logging.getLogger('edtr_logger')
@@ -31,10 +32,52 @@ TEXT_MIMES = (
 
 def dbox_periodic_update():
     # TODO: fetch only needed fields
-    cursor = utils.gl.DB.instance().accounts.find()
+    cursor = utils.gl.DB.instance().accounts.find(
+        {'dbox_access_token': {'$exists': True}})
     cursor.each(callback=dbox_sync_user)
 
 
+def delta_called_recently(user):
+    last_delta = user.last_delta
+    if last_delta:
+        last_delta_time = datetime.now() - last_delta
+        if last_delta_time.total_seconds() < DELTA_PERIOD_SEC:
+            return True
+    return False
+
+
+def check_bad_response(response, callback=None):
+    if response.code != 200:
+        error = 'undefined'
+        if 'error' in response.body:
+            error = json.loads(response.body)['error']
+        result = {
+            "status": ErrCode.bad_request,
+            'http_code': response.code,
+            'error': error,
+        }
+        logger.error(result)
+        if callback:
+            callback(result)
+        return result
+    return None
+
+
+@gen.engine
+def save_meta(db, meta_data, colln, update=True, callback=None):
+    meta_data['_id'] = meta_data.pop('path')
+    meta_data['root_path'] = os.path.dirname(meta_data['_id'])
+    if update:
+        meta_data['last_updated'] = datetime.now()
+    db[colln].save(meta_data, callback=callback)
+
+
+def has_dbox_access(user):
+    access = user.dbox_access_token
+    return bool(access)
+
+
+@gen.engine
 def dbox_sync_user(user, error):
     if error:
         try:
@@ -42,7 +85,51 @@ def dbox_sync_user(user, error):
         except:
             logger.exception("dbox_sync_user error:")
     elif user:
-        print user['_id']
+        user = UserModel(**user)
+        # check, that update_delta is not called very often
+        if not delta_called_recently(user) and has_dbox_access(user):
+            dbox = DropboxMixin()
+            db = utils.gl.DB.instance()
+            # Get delta metadata from dropbox
+            access_token = user.get_dropbox_token()
+            post_args = {}
+            if user.dbox_cursor:
+                post_args['cursor'] = user.dbox_cursor
+            has_more = True
+            cursor = None
+            while has_more:
+                # make dropbox request
+                user.last_delta = datetime.now()
+                # TODO find a way to call save one time in this func
+                yield motor.Op(user.save, db, manipulate=False)
+                response = yield gen.Task(dbox.dropbox_request,
+                    "api", "/1/delta",
+                    access_token=access_token,
+                    post_args=post_args)
+                if check_bad_response(response):
+                    return
+                dbox_delta = json.loads(response.body)
+                has_more = dbox_delta['has_more']
+                cursor = dbox_delta['cursor']
+                if dbox_delta['reset']:
+                    logger.debug(
+                        "Reseting user all files for '{0}'".format(user.name))
+                    yield motor.Op(db[user.name].drop)
+                for e_path, entry in dbox_delta['entries']:
+                    if entry is None:
+                        # TODO
+                        # maybe there is a way to delete files in one db call
+                        yield motor.Op(
+                            DropboxFile.remove_entries, db,
+                            {"_id": e_path}, collection=user.name)
+                    else:
+                        # TODO
+                        # maybe there is a way to save files in one db call
+                        yield motor.Op(save_meta, db, entry, user.name, False)
+            user.dbox_cursor = cursor
+            yield motor.Op(user.save, db, manipulate=False)
+        # callback({'status': ErrCode.ok})
+        # print user['_id']
     else:
         logger.error("dbox_sync_user user not found")
 

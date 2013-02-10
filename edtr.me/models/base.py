@@ -38,9 +38,9 @@ class BaseModel(Model):
         c = cls.check_collection(collection)
         db[c].remove(params, callback=callback)
 
-    def save(self, db, collection=None, callback=None):
+    def save(self, db, collection=None, callback=None, **kwargs):
         c = self.check_collection(collection)
-        db[c].save(to_python(self), callback=callback)
+        db[c].save(to_python(self), callback=callback, **kwargs)
 
     @classmethod
     def find(cls, cursor, model=True, callback=None):
