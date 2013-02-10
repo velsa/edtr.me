@@ -91,6 +91,24 @@
             <span id="btn_sio_move_elem">SocketIO move</span>
         </button>
     </div>
+
+    <div class="section">
+        <div>Copy element</div>
+        <div>
+            <span>From path:</span><input id='copy_from_path' type="text" value="">
+        </div>
+        <div>
+            <span>To path:</span><input id='copy_to_path' type="text" value="">
+        </div>
+        <button id="copy_elem"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_copy_elem">AJAX copy</span>
+        </button>
+        <button id="sio_copy_elem"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_copy_elem">SocketIO copy</span>
+        </button>
+    </div>
 {% endblock %}
 
 {% block extra_footer %}
@@ -129,6 +147,12 @@
     }
     function getMoveTo(){
         return $('#move_to_path').val()
+    }
+    function getCopyFrom(){
+        return $('#copy_from_path').val()
+    }
+    function getCopyTo(){
+        return $('#copy_to_path').val()
     }
     </script>
     <!-- AJAX -->
@@ -254,6 +278,31 @@
         }
 
     })
+    $('#copy_elem').click(function(){
+        var from_path = getCopyFrom();
+        var to_path = getCopyTo();
+        if (from_path.length == 0){
+            alert("From path not specified");
+        } else if (to_path.length == 0){
+            alert("To path not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_copy')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "from_path": from_path,
+                    "to_path": to_path
+                },
+                function(response) {
+                    console.log("__AJAX: copy_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: copy end_________");
+                })
+        }
+
+    })
     </script>
 
     <!-- SOCKETIO -->
@@ -331,6 +380,16 @@
             console.log("__SOCKET_IO: Move end_________");
         });
 
+        s.on('dbox_copy', function(response) {
+            console.log("__SOCKET_IO: copy_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: copy end_________");
+        });
+
         // Start event
         $('#debug_socketion').click(function() {
             s.emit('dbox_get_tree', '/');
@@ -381,6 +440,19 @@
                 alert("To path not specified");
             } else {
                 s.emit('dbox_move', from_path, to_path);
+            }
+            return false;
+        });
+
+        $('#sio_copy_elem').click(function() {
+            var from_path = getCopyFrom();
+            var to_path = getCopyTo();
+            if (from_path.length == 0){
+                alert("From path not specified");
+            } else if (to_path.length == 0){
+                alert("To path not specified");
+            } else {
+                s.emit('dbox_copy', from_path, to_path);
             }
             return false;
         });

@@ -232,7 +232,8 @@ body {
     right:              4px;
     left:               6px;
     border:             1px solid #ddd;
-    overflow:           auto;
+    overflow-y:         auto;
+    overflow-x:         hidden;
 }
 .form-search {
     padding:            4px 0 0 4px;
@@ -388,7 +389,7 @@ span.CodeMirror-matchhighlight {
 }
 
 /*
- * Loading animation
+ * Rotating animation in modal divs
  */
 .file-loading {
     opacity:                1 !important;
@@ -397,6 +398,23 @@ span.CodeMirror-matchhighlight {
     background-repeat:      no-repeat;
     background-position:    50% 50%;
 }
+.file-saving {
+    position:               absolute;
+    opacity:                1 !important;
+    background-color:       rgba(55,55,55,0.3);
+    background-image:       url('/static/images/file-saver.gif');
+    background-repeat:      no-repeat;
+    background-position:    50% 50%;
+}
+.server-action {
+    position:               absolute;
+    opacity:                1 !important;
+    background-color:       rgba(55,55,55,0.3);
+    background-image:       url('/static/images/file-saver.gif');
+    background-repeat:      no-repeat;
+    background-position:    50% 50%;
+}
+
 /*
 *   Fancy box
 *   TODO: align image vertically (HOW ??!!)

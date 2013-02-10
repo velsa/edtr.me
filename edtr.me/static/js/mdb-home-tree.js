@@ -471,17 +471,22 @@ var edtrTree = {
             // Confirmation dialog
             // Save for callback
             modalDialog.params = {};
+            modalDialog.params.text1    = edtrTree.editor.node.id;
+            modalDialog.params.text2    = node.id;
             modalDialog.params.action   = "save_continue_lose";
             modalDialog.params.callback = function(args) {
                 if (args.button == "scl_save") {
-                    //edtrTree.editor.save_codemirror();
+                    edtrTree.editor.save_codemirror(function(is_saved) {
+                        if (is_saved)
+                            edtrTree.open_editor(node);
+                    });
                 } else if (args.button == "scl_lose") {
-                    //edtrTree.db_tree_select(elem);
+                    edtrTree.open_editor(node);
                 } else {
                     // Cancel open operation
+                    edtrTree.editor.focus();
                     return;
                 }
-                edtrTree.open_editor(node);
             };
             modalDialog.show_confirm_modal();
         } else {
@@ -696,9 +701,12 @@ var edtrTree = {
                 });
             };
             // We use recursive paste to allow modal dialogs and callbacks
+            edtrTree.show_loading_node(edtrTree.clipped.paste_node, true);
             recursive_paste_node(ztree_action, 0, function() {
+                edtrTree.show_loading_node(edtrTree.clipped.paste_node, false);
                 // Called when recursion is done
                 edtrTree.clear_clipboard();
+                edtrTree.ztree.checkAllNodes(false);
                 // Restore keyboard focus
                 edtrTree.dom_db_tree.focus();
             });
@@ -720,39 +728,62 @@ var edtrTree = {
                     fix_node();
                 } else {
                     // Dialog was dismissed, meaning user declines copy/move
-                    // Restore original node
-                    if (edtrTree.clipped.action === "copy") {
-                        // Cancel copy
-                        edtrTree.ztree.removeNode(node);
-                    }
-                    else {
-                        // Cancel move
-                        var old_parent_id = node.id.substr(0, node.id.length-node.name.length-1),
-                            old_parent;
-                        if (old_parent_id === "") old_parent_id = "/";
-                        old_parent = edtrTree.ztree.getNodeByParam("id", old_parent_id);
-                        edtrTree.ztree.moveNode(old_parent, node, "inner", true);
-                        edtrTree.move_node_in_parent(node, old_parent);
-                    }
-                    callback.apply(edtrTree);
+                    cancel_fix();
                 }
             },
-            fix_node = function() {
-                // Fix node id to new path
-                node.id = edtrTree.clipped.paste_node.id;
-                if (node.id !== "/") node.id += "/";
-                node.id += node.name;
-                // and do the same for its children
-                if (node.isParent) {
-                    edtrTree.traverse_tree(node, function(child) {
-                        child.id = edtrTree.clipped.paste_node.id +
-                            child.id.split(node.id).pop();
-                        edtrTree.ztree.updateNode(child);
-                    });
+            cancel_fix = function() {
+                // Restore original node
+                if (edtrTree.clipped.action === "copy") {
+                    // Cancel copy
+                    edtrTree.ztree.removeNode(node);
                 }
-                edtrTree.move_node_in_parent(node, edtrTree.clipped.paste_node);
-                // TODO: perform server action here
+                else {
+                    // Cancel move
+                    var old_parent_id = node.id.substr(0, node.id.length-node.name.length-1),
+                        old_parent;
+                    if (old_parent_id === "") old_parent_id = "/";
+                    old_parent = edtrTree.ztree.getNodeByParam("id", old_parent_id);
+                    edtrTree.ztree.moveNode(old_parent, node, "inner", true);
+                    edtrTree.move_node_in_parent(node, old_parent);
+                }
                 callback.apply(edtrTree);
+            },
+            fix_node = function() {
+                var server_data = {}, new_path, server_action;
+                // Calculate new node path
+                new_path = edtrTree.clipped.paste_node.id;
+                if (node.id !== "/") new_path += "/";
+                new_path += node.name;
+                server_data.path = node.id;
+                server_data.from_path = node.id;
+                server_data.to_path = new_path;
+                if (edtrTree.clipped.action === "copy")
+                    server_action = "copy";
+                else
+                    server_action = "move";
+                // Perform server action and if successful do the tree action
+                serverComm.action("dropbox", server_action, server_data, function(data) {
+                    // Error should be already displayed
+                    if (data.status > serverComm.max_success_status) {
+                        cancel_fix();
+                        return;
+                    }
+                    // Fix node id to new path
+                    node.id = new_path;
+                    edtrTree.ztree.updateNode(node);
+                    // TODO: if file is opened in editor - rename tab
+                    
+                    // and do the same for its children
+                    if (node.isParent) {
+                        edtrTree.traverse_tree(node, function(child) {
+                            child.id = edtrTree.clipped.paste_node.id +
+                                child.id.split(node.id).pop();
+                            edtrTree.ztree.updateNode(child);
+                        });
+                    }
+                    edtrTree.move_node_in_parent(node, edtrTree.clipped.paste_node);
+                    callback.apply(edtrTree);
+                });
             };
 
         // Go through nodes and see if we overwrite anything
@@ -799,6 +830,26 @@ var edtrTree = {
                 edtrTree.ajaxing_nodes = null;
                 edtrTree.ajaxing_callback.apply(edtrTree);
             }
+        }
+    },
+
+    // Show/hide node loading animation
+    show_loading_node: function(node, state) {
+        var node_ico = "#" + node.tId + "_ico",
+            dom_ico = edtrTree.dom_db_tree.find(node_ico);
+        if (state) {
+            if (node.is_loading)
+                console.log("show_loading_node: already loading ?!");
+            node.is_loading = true;
+            node.saved_class = dom_ico.attr("class");
+            dom_ico.attr("class", "button ico_loading");
+        } else {
+            if (!node.is_loading) {
+                console.log("show_loading_node: already stopped ?!");
+                node.saved_class = "button";
+            }
+            node.is_loading = false;
+            dom_ico.attr("class", node.saved_class);
         }
     },
 
@@ -890,6 +941,16 @@ var edtrTree = {
             } // if nodes checked
         } // if in checkbox mode
 
+        //
+        // Single node selection mode
+        //
+        var selected_node = edtrTree.get_selected_node();
+
+        if (selected_node.is_loading) {
+            messagesBar.show_notification_warning("Please wait for previous action to complete");
+            return;
+        }
+
         // Paste works on root, so we process it first
         // Since it can be also called via keyboard, it calculates selected_node by itself
         if (action === "paste") {
@@ -897,11 +958,6 @@ var edtrTree = {
             return;
         }
         
-        //
-        // Selection mode
-        //
-        var selected_node = edtrTree.get_selected_node();
-
         // Refresh selected node
         if (action === "refresh") {
             edtrTree.ztree.reAsyncChildNodes(selected_node, "refresh", false);
@@ -922,7 +978,7 @@ var edtrTree = {
                 // Always expand the directory we're about to remove
                 modalDialog.params.action   = action + (selected_node.isParent ? "_subdir" : "_file");
                 modalDialog.params.header   = selected_node.id;
-                modalDialog.params.path     = selected_node.getParentNode();
+                modalDialog.params.path     = selected_node.getParentNode().id;
                 modalDialog.params.filename = selected_node.name;
                 if (selected_node.isParent)
                     edtrTree.expand_node(selected_node, modalDialog.show_file_modal);
@@ -965,7 +1021,7 @@ var edtrTree = {
 
     //
     // Perform requested file action in ztree:
-    // Called either from modal dialog or by server
+    // Called from modal dialog
     //
     // action:          add_file, add_subdir,
     //                  remove_file, remove_subdir,
@@ -974,11 +1030,8 @@ var edtrTree = {
     // path:            path to directory where filename resides
     // filename:        file name to perform action on
     // filename_new:    file name to rename to (if action is rename)
-    // need_server_action:
-    //      true - ask server to perform this action (default)
-    //      false - don't ask server to perform this action (action initiated by server itself)
     //
-    file_action:            function(action, path, filename, filename_new, need_server_action) {
+    file_action:            function(action, path, filename, filename_new) {
         //console.log(action, path, filename, filename_new);
         need_server_action = typeof need_server_action !== 'undefined' ? need_server_action : true;
         var human_action = {
@@ -991,27 +1044,51 @@ var edtrTree = {
             "remove_checked":   "checked items where removed"
         }, i;
 
-        // Action is requested while in checkbox mode and on an array of objects
+        // Action is requested while in checkbox mode and on an array of nodes
         // It is possible that user would perform an action on single node while in checkbox mode
-        // in this case, filename will be string and not an array of objects
+        // in this case, filename will be string and not an array of nodes
         if (edtrTree.is_checkbox_mode() && typeof filename !== "string") {
             if (action === "remove_checked") {
-                // filename contains array of nodes to remove
-                for (i=0; i < filename.length; i++)
-                    edtrTree.ztree.removeNode(filename[i]);
-                edtrTree.ztree.checkAllNodes(false);
-                edtrTree.ztree.selectNode(edtrTree.ztree.getNodes()[0], false);
+                var nodes = filename;
+                // Remove node from server and if successful - remove from tree
+                var recursive_remove_node = function(index, callback) {
+                    // Break out of recursion
+                    if (nodes.length == index) {
+                        callback.apply(edtrTree);
+                        return;
+                    }
+                    // Perform server rename and if successful do the tree rename
+                    edtrTree.show_loading_node(nodes[index].getParentNode(), true);
+                    serverComm.action("dropbox", "delete",
+                        { path: nodes[index].id },
+                        function(data) {
+                            edtrTree.show_loading_node(nodes[index].getParentNode(), false);
+                            // Error should be already displayed
+                            if (data.status <= serverComm.max_success_status) {
+                                edtrTree.ztree.removeNode(nodes[index]);
+                                // TODO: if file is opened in editor - remove tab
+                            }
+                            // Continue recursion
+                            recursive_remove_node(index+1, callback);
+                        });
+                };
+                // We use recursive paste to allow modal dialogs and callbacks
+                recursive_remove_node(0, function() {
+                    // Called when recursion is done
+                    edtrTree.ztree.checkAllNodes(false);
+                    edtrTree.ztree.selectNode(edtrTree.ztree.getNodes()[0], false);
+                });
+                return true;
             } else {
                 messagesBar.show_internal_error("edtrTree.file_action", "Unknown action: "+action);
                 return false;
             }
-            // TODO: perform server action
-            return true;
         }
 
         // Get parent node
-        var parent_node = edtrTree.ztree.getNodeByParam("id", path),
-            node;
+        // Path in tree is always WITHOUT '/' at the end
+        var tree_path = path === '/' ? path : path.substr(0, path.length-1),
+            parent_node = edtrTree.ztree.getNodeByParam("id", tree_path);
         if (!parent_node) {
             if (need_server_action)
                 messagesBar.show_internal_error("edtrTree.file_action", "Can't find parent_node "+path);
@@ -1021,20 +1098,42 @@ var edtrTree = {
             return false;
         }
 
-        // Fix for root ('/') to avoid adding double '/'
-        var full_path = path === '/' ? '/' + filename_new : path + '/' + filename_new;
+        // path should always end with '/'
+        var full_path = path + filename_new,
+            node,
+            server_data = {path: full_path},
+            server_action;
 
         // Process action in ztree
         if ($.inArray(action, ["add_file", "add_subdir"]) > -1) {
-            // Add
-            node = [{
+            // General parameters
+            node = {
                 id:         full_path,
-                name:       filename_new,
-                isParent:   action.substr(4,7) === "subdir" ? true : false
-            }];
-            node = edtrTree.ztree.addNodes(parent_node, node, true)[0];
-            edtrTree.move_node_in_parent(node, parent_node);
-            // TODO: perform server action
+                name:       filename_new
+            };
+            // Specific parameters
+            switch(action) {
+                case "add_file":
+                    // Save empty file
+                    server_action = "save_file";
+                    server_data.content = "";
+                    node.isParent = false;
+                    break;
+                case "add_subdir":
+                    server_action = "create_dir";
+                    node.isParent = true;
+                    break;
+            }
+            // Perform server action and if successful do the tree action
+            edtrTree.show_loading_node(parent_node, true);
+            serverComm.action("dropbox", server_action, server_data, function(data) {
+                edtrTree.show_loading_node(parent_node, false);
+                // Error should be already displayed
+                if (data.status > serverComm.max_success_status)
+                    return;
+                var new_node = edtrTree.ztree.addNodes(parent_node, [node], true)[0];
+                edtrTree.move_node_in_parent(new_node, parent_node);
+            });
         } else {
             // Remove or Rename
             node = edtrTree.ztree.getNodesByParam("name", filename, parent_node)[0];
@@ -1045,21 +1144,40 @@ var edtrTree = {
             switch (action) {
                 case "rename_file":
                 case "rename_subdir":
-                    node.id     = full_path,
-                    node.name   = filename_new;
-                    edtrTree.ztree.updateNode(node);
+                    server_data.from_path   = path + filename;
+                    server_data.to_path     = full_path;
+                    // Perform server rename and if successful do the tree rename
+                    edtrTree.show_loading_node(node, true);
+                    serverComm.action("dropbox", "move", server_data, function(data) {
+                        edtrTree.show_loading_node(node, false);
+                        // Error should be already displayed
+                        if (data.status > serverComm.max_success_status)
+                            return;
+                        node.id     = full_path,
+                        node.name   = filename_new;
+                        edtrTree.ztree.updateNode(node);
+                        // TODO: if file is opened in editor - rename tab
+                    });
                     break;
                 case "remove_file":
                 case "remove_subdir":
-                    edtrTree.ztree.removeNode(node, false);
-                    edtrTree.ztree.selectNode(parent_node, false);
+                    // Perform server rename and if successful do the tree rename
+                    edtrTree.show_loading_node(parent_node, true);
+                    serverComm.action("dropbox", "delete", server_data, function(data) {
+                        edtrTree.show_loading_node(parent_node, false);
+                        // Error should be already displayed
+                        if (data.status > serverComm.max_success_status)
+                            return;
+                        edtrTree.ztree.removeNode(node, false);
+                        edtrTree.ztree.selectNode(parent_node, false);
+                        // TODO: if file is opened in editor - remove tab
+                    });
                     break;
             }
-            // TODO: perform server action
             return true;
         }
-
-        return;
+        console.log("file_action ERROR:", action, path, filename, filename_new);
+        return false;
     },
 
     //
@@ -1075,11 +1193,21 @@ var edtrTree = {
             return;
         }
 
-        $('.file-loading').show();
+        if (node.is_loading) {
+            messagesBar.show_notification_warning("Action is in progress...");
+            return;
+        }
+
         // Retrieve file from dropbox (server provides us with unique media url)
-        serverComm.get_dropbox_file(node.id, function(status, file_data) {
-            $('.file-loading').hide();
-            if (status <= serverComm.max_success_status) {
+        edtrTree.show_loading_node(node, true);
+        serverComm.action("dropbox", "get_file",
+            { path: node.id },
+            function(data) {
+                edtrTree.show_loading_node(node, false);
+                if (data.status > serverComm.max_success_status) {
+                    // Error should already be displayed
+                    return;
+                }
                 /*
                  // TODO: try jQuery Autocomplete instead
                  set_search_words(data);
@@ -1096,7 +1224,7 @@ var edtrTree = {
                 // TODO: remove previous codemirror and all bindings (?)
                 if (content_type === "image") {
                     // file_data contains dropbox url to image
-                    edtrTree.show_img_gallery(node, file_data);
+                    edtrTree.show_img_gallery(node, data.url);
                     return;
                 }
 
@@ -1114,17 +1242,12 @@ var edtrTree = {
                     // Create new editor and save node with it
                     edtrTree.editor = new edtrCodemirror();
                     edtrTree.editor.init(
-                        node,
                         edtrTree.dom_editor,
                         $('body').find(".preview-container"));
                 }
                 
-                edtrTree.editor.add_tab(content_type, node.id, node.name, file_data);
+                edtrTree.editor.add_tab(node, content_type, data.content);
                 messagesBar.show_notification("File <b>"+node.id+"</b> was loaded into the editor");
-            } else {
-                messagesBar.show_error("Error loading file <b>"+node.id+"</b>: "+
-                    serverComm.human_status[status]);
-            }
         });
     },
 

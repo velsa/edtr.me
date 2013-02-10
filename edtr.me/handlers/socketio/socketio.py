@@ -131,3 +131,13 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
             user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
             data = yield gen.Task(self.wk_dbox_move, user, from_path, to_path)
             self.emit_as_json('dbox_move', data)
+
+    @event
+    @gen.engine
+    def dbox_copy(self, from_path, to_path):
+        if not from_path or not to_path:
+            self.emit_as_json('dbox_copy', {'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
+            data = yield gen.Task(self.wk_dbox_copy, user, from_path, to_path)
+            self.emit_as_json('dbox_copy', data)

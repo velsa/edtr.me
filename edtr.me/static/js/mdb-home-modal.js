@@ -100,12 +100,11 @@ var modalDialog = {
             edtrTree.file_action(
                 // All params that we received stay the same
                 modalDialog.params.action,
-                modalDialog.params.path,
+                // Fix for root ('/') to avoid adding double '/'
+                modalDialog.params.path === '/' ? modalDialog.params.path : modalDialog.params.path+'/',
                 modalDialog.params.filename,
                 // This is sanitized user input
-                modalDialog.filename_with_correct_ext,
-                // Ask server to perform this action as well
-                true
+                modalDialog.filename_with_correct_ext
             );
         }
     },

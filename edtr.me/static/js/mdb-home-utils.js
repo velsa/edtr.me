@@ -301,11 +301,13 @@ var serverComm = {
         1:      "directory",
         2:      "image",
         3:      "binary",
-        4:      "bad request",
-        5:      "called to often",
+        4:      "not found",
+        5:      "bad request",
+        6:      "called to often",
         20770:  "unknown error",
         20771:  "not implemented",
-        30770:  "server failure"
+        30770:  "server failure",
+        30771:  "network failure"
     },
     max_success_status: 3,
 
@@ -321,48 +323,69 @@ var serverComm = {
         return c ? c[1] : undefined;
     },
 
-    get_request_url:        function (source, request) {
+    get_request_url: function (source, request) {
         return this.api_v + source + '/' + request + '/';
         // "?reload="+(new Date()).getTime(),
     },
 
-    _ajax_failed:           function(event, jqxhr, settings, exception) {
-        debugger;
+    _ajax_failed: function(event, jqxhr, settings, exception) {
+        $(".server-action").hide();
+        $('.file-loading').hide();
+        // network failure
         messagesBar.show_internal_error("serverComm._ajax_failed",
             "url: "+settings.url+", exception:"+exception);
+        if (self.on_err_callback)
+            self.on_err_callback(null, null, self.human_status[30771]);
     },
 
-    post_request:           function (source, request, params, callback) {
+    post_request: function (source, request, params, callback) {
         params["_xsrf"] = this.get_cookie("_xsrf");
+        self.on_err_callback = callback;
         $.post(serverComm.get_request_url(source, request), params, callback)
         .fail(function(jqXHR, textStatus, data) {
             console.log(params);
-            callback.call($(this), data, textStatus, jqXHR);
-        });
-    },
-
-    get_request:            function (source, request, params, callback) {
-        params["_xsrf"] = this.get_cookie("_xsrf");
-        $.get(serverComm.get_request_url(source, request), params, callback)
-        .fail(function(jqXHR, textStatus, data) {
-            console.log(params);
-            callback.call($(this), data, textStatus, jqXHR);
-        });
-    },
-
-    get_dropbox_file:         function (path, callback) {
-        // Get file content from server
-        this.post_request("dropbox", "get_file", {
-            path:   path
-        }, function(data, textStatus, jqXHR) {
             if (textStatus !== "success") {
-                callback.call($(this), 30770); // server failure
+                 // server failure
+                callback.call(null, null, human_status[30770]);
             } else {
-                console.log("get_dropbox_file", path, data.status);
+                callback.call(null, data, textStatus, jqXHR);
+            }
+        });
+    },
+
+    // get_request: function (source, request, params, callback) {
+    //     params["_xsrf"] = this.get_cookie("_xsrf");
+    //     $.get(serverComm.get_request_url(source, request), params, callback)
+    //     .fail(function(jqXHR, textStatus, data) {
+    //         console.log(params);
+    //         callback.call($(this), data, textStatus, jqXHR);
+    //     });
+    // },
+
+    // Process action using POST request to server
+    action: function(source, action_string, params, callback) {
+        this.post_request(source, action_string, params, function(data, textStatus, jqXHR) {
+            if (!data) {
+                console.log(source, action_string, "ERROR", textStatus, data);
+                data = {};
+                data.status = 30770;
+                callback.call(null, data);
+            } else if(textStatus !== "success") {
+                // pass error to callback
+                console.log(source, action_string, "ERROR", textStatus, data);
+                data.status = 30770;
+                callback.call(null, data);
+            } else {
+                // success
+                console.log(source, action_string, params, data);
+                if (data.status > serverComm.max_success_status) {
+                    messagesBar.show_error("ERROR "+source+" "+action_string+" for <b>"+params.path+"</b>: "+
+                        serverComm.human_status[data.status]+"<br>"+data.http_code+data.error);
+                }
                 // TODO: check status == 2
                 if (data.url)
                     data.content = data.url;
-                callback.call($(this), data.status, data.content);
+                callback.call(null, data);
             }
         });
     }

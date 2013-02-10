@@ -10,7 +10,11 @@ function edtrCodemirror(content_type, content) {
     //
     // CALLBACKS (must be defined BEFORE usage !)
     //
-    
+
+    this.focus = function() {
+        self.cm_editor.focus();
+    },
+
     this.hide_codemirror = function() {
         self.is_hidden = true;
         self.set_saved_state("SAVED");
@@ -79,10 +83,10 @@ function edtrCodemirror(content_type, content) {
         if (self.cm_editor.somethingSelected()) {
             // Check if we need to remove the bold markup
             var sel = self.cm_editor.getSelection();
-            if (sel.substring(0, mlen) == markup) {
+            if (sel.substring(0, mlen) === markup) {
                 //console.log(sel,mlen,markup);
                 sel = sel.substring(mlen);
-                if (sel.substr(sel.length-mlen, mlen) == markup) {
+                if (sel.substr(sel.length-mlen, mlen) === markup) {
                     sel = sel.substring(0, sel.length-mlen);
                 }
                 self.cm_editor.replaceSelection(sel);
@@ -265,7 +269,7 @@ function edtrCodemirror(content_type, content) {
                 // Calculate pos in line with respect to tab characters
                 var ins_pos = 0;
                 for (var i=0; i < cur.ch; i++)
-                    if (line[i] == '\t') ins_pos += self.tab_spaces.length;
+                    if (line[i] === '\t') ins_pos += self.tab_spaces.length;
                     else ins_pos++;
                 var pad_spaces = self.tab_spaces.length - (ins_pos % self.tab_spaces.length);
                 if (pad_spaces != self.tab_spaces.length)
@@ -331,39 +335,6 @@ function edtrCodemirror(content_type, content) {
         //return false;
     };
 
-    // Callbacks, which are called by get_server_result()
-    this.save_failed = function(message) {
-        self.set_saved_state("NOT SAVED");
-        messagesBar.show_error(message);
-    };
-    this.saved_ok = function(message) {
-        self.set_saved_state("SAVED");
-        messagesBar.show_notification(message);
-    };
-    // SAVE BUTTON: Save Markdown to Dropbox
-    this.save_codemirror = function () {
-        var text = cm_editor.getValue();
-        self.set_saved_state("SAVING");
-        $.post("/async/save/", {
-            db_path: $.cookie('mdb_current_dbpath'),
-            content: text
-        }, function(data) {
-            if (data.status != 'success') {
-                // Serious error
-                self.save_failed(data.message);
-            } else {
-                // Wait for result from server
-                serverComm.get_server_result(data.task_id,
-                    self.saved_ok, self.save_failed);
-            }
-        }).error(function(data) {
-                messagesBar.show_error("Can't communicate with server ! Please refresh the page.");
-            });
-        //return false;
-    };
-
-
-
     //
     // Scroll preview-container to corresponding anchor
     //
@@ -376,12 +347,15 @@ function edtrCodemirror(content_type, content) {
                 prev_anchor_num=0,
                 next=0,
                 ratio=0,
-                preview_offset = self.aTags.first().position().top,
+                preview_offset,
                 aTag=null;
+            if (!self.aTags.size())
+                return;
+            preview_offset = self.aTags.first().position().top;
             // Find anchor, corresponding to line_num
             for (i=0; i < self.aTags.size(); i++) {
                 anchor_num = parseInt(self.aTags.get(i).name, 10);
-                if (anchor_num == line_num) {
+                if (anchor_num === line_num) {
                     break;
                 }
                 if (anchor_num > line_num){
@@ -398,7 +372,7 @@ function edtrCodemirror(content_type, content) {
             }
             // The anchor to scroll to
             // If we're at the last tag - adjust to it
-            if (i == self.aTags.size()) --i;
+            if (i === self.aTags.size()) --i;
             aTag = self.aTags.slice(i);
             if (aTag !== null && aTag.length) {
                 var new_pos;
@@ -406,7 +380,7 @@ function edtrCodemirror(content_type, content) {
                         Math.abs(aTag.position().top-preview_offset) - 20);
                 if (new_pos !== self.preview_pos) {
                     self.preview_pos = new_pos;
-                    self.preview_elem.scrollTop(new_pos);
+                    self.dom_preview_body.scrollTop(new_pos);
                 }
             }
         }
@@ -418,7 +392,7 @@ function edtrCodemirror(content_type, content) {
     // This function will be called VERY OFTEN !
     this.on_change = function(inst, change_obj) {
         console.log(self.saved_state);
-        if (self.saved_state == 2) {
+        if (self.saved_state === 2) {
             self.set_saved_state("NOT SAVED");
         }
         // Update preview on timer (no need for preview when in fullscreen)
@@ -426,9 +400,9 @@ function edtrCodemirror(content_type, content) {
             self.is_preview_timer = true;
             setTimeout(function() {
                 // Generate preview
-                self.preview_elem.html(marked(self.cm_editor.getValue()));
+                self.dom_preview_body.html(marked(self.cm_editor.getValue()));
                 // Get anchors from generated preview
-                self.aTags = self.preview_elem.find("a.marked-anchor");
+                self.aTags = self.dom_preview_body.find("a.marked-anchor");
                 self.scroll_to_anchor();
                 self.is_preview_timer = false;
             }, 100);
@@ -437,21 +411,21 @@ function edtrCodemirror(content_type, content) {
 
     // SAVE state helpers: changes state while saving
     this.set_saved_state = function(saved) {
-        if (saved == "SAVED") {
+        if (saved === "SAVED") {
             this.saved_state = 2;
             this.is_saved = true;
-            this.dom_elem.find('#btn_save_text').text("SAVED");
-            this.dom_elem.find('#btn_save').removeClass("btn-success").attr('disabled', 'disabled');
-        } else if (saved == "SAVING") {
+            this.dom_save_btn_text.text("SAVED");
+            this.dom_save_btn.removeClass("btn-success").tooltip("hide").attr('disabled', 'disabled');
+        } else if (saved === "SAVING") {
             this.saved_state = 1;
             this.is_saved = false;
-            this.dom_elem.find('#btn_save_text').text("saving...");
-            this.dom_elem.find('#btn_save').removeClass("btn-success").attr('disabled', 'disabled');
+            this.dom_save_btn_text.text("saving...");
+            this.dom_save_btn.removeClass("btn-success").attr('disabled', 'disabled');
         } else { // "NOT SAVED"
             this.saved_state = 0;
             this.is_saved = false;
-            this.dom_elem.find('#btn_save_text').text("Save");
-            this.dom_elem.find('#btn_save').addClass("btn-success").removeAttr('disabled');
+            this.dom_save_btn_text.text("Save");
+            this.dom_save_btn.addClass("btn-success").removeAttr('disabled');
         }
     };
 
@@ -472,7 +446,43 @@ function edtrCodemirror(content_type, content) {
             self.cm_editor.setMarker(n, "<span style=\"color: #add8e6;\">&gt;</span> %N%");
     };
 
-    this.add_tab                = function(content_type, full_path, filename, data) {
+    // SAVE BUTTON and Ctrl-S:
+    // Save codemirror's contents and launch callback when done
+    // callback parameter will be true if saved ok and false if not
+    this.save_codemirror = function() {
+        if (self.saved_state !== 0)
+            return;
+        self.set_saved_state("SAVING");
+        // TODO: show spinning wheel in tab
+        self.dom_elem.find(".file-saving").show();
+        edtrTree.show_loading_node(self.node, true);
+        serverComm.action("dropbox", "save_file",
+            {
+                path: self.node.id,
+                content: self.cm_editor.getValue()
+            }, function(status) {
+                self.dom_elem.find(".file-saving").hide();
+                edtrTree.show_loading_node(self.node, false);
+                if (status > serverComm.max_success_status) {
+                    // Serious error
+                    self.set_saved_state("NOT SAVED");
+                    if (status === 6)
+                        messagesBar.show_notification_warning(serverComm.human_status[status]);
+                    else
+                        messagesBar.show_error(serverComm.human_status[status]);
+                    if (self.on_saved)
+                        self.on_saved.call(this, false);
+                } else {
+                    self.set_saved_state("SAVED");
+                    messagesBar.show_notification("Saved "+self.node.id);
+                    if (self.on_saved)
+                        self.on_saved.call(this, true);
+                }
+            });
+    };
+
+    // Add new tab with given content
+    this.add_tab                = function(tree_node, content_type, content) {
         if (content_type !== "markdown") {
             messagesBar.show_error("ERROR: content "+content_type+" is not supported");
             return false;
@@ -482,19 +492,19 @@ function edtrCodemirror(content_type, content) {
         // editor's HTML and preview-container
         // TODO: do we need to remove previous codemirror's bindings ?
         //if (self.content_type !== content_type) {
-        this.content_type = content_type;
-        this.cm_editor.setValue(data);
+
+        // TODO: node should be part of the tabs array
+        this.node           = tree_node;
+        this.content_type   = content_type;
+        this.cm_editor.setValue(content);
         this.cm_editor.focus();
 
         this.set_saved_state("SAVED");
-        setTimeout(function() {
-        }, 500);
-
         if (this.preview_timer_id)
             clearTimeout(this.preview_timer_id);
     };
 
-    this.init                   = function(tree_node, dom_container, dom_preview) {
+    this.init                   = function(dom_container, dom_preview) {
         //
         // INITIALIZATION (constructor)
         //
@@ -507,20 +517,21 @@ function edtrCodemirror(content_type, content) {
         this.tab_spaces                 = Array(4).join(" "); // should equal to tab_character
         this.list_character             = "-";
         
-        this.node               = tree_node;
-
         // Cache dom elements
         this.dom_elem           = dom_container;
         this.dom_textarea       = dom_container.find(".cme-textarea");
-        this.preview_container  = dom_preview;
+        this.dom_save_btn       = this.dom_elem.find('#btn_save');
+        this.dom_save_btn_text  = this.dom_elem.find('#btn_save_text');
+        // Preview iframe
+        this.dom_preview        = dom_preview;
         // We use contents() to search within iframe
-        this.preview_elem       = this.preview_container.contents().find('body');
-        this.preview_elem_head  = this.preview_container.contents().find('head');
+        this.dom_preview_body   = this.dom_preview.contents().find('body');
+        this.dom_preview_head   = this.dom_preview.contents().find('head');
 
         /* Allows last line to be positioned above the bottom */
-        this.preview_elem.css("margin-bottom", "90px");
+        this.dom_preview_body.css("margin-bottom", "90px");
         // TODO: load this from settings
-        this.preview_elem_head.
+        this.dom_preview_head.
             append("<link rel=\"stylesheet\" href=\"/static/css/md_preview/github.css?reload=" +
                 (new Date()).getTime() + "\">");
 
