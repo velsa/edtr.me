@@ -329,7 +329,7 @@ var serverComm = {
     _ajax_failed:           function(event, jqxhr, settings, exception) {
         debugger;
         messagesBar.show_internal_error("serverComm._ajax_failed",
-            "url: "+settin.url+", exception:"+exception);
+            "url: "+settings.url+", exception:"+exception);
     },
 
     post_request:           function (source, request, params, callback) {

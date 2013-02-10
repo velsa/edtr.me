@@ -472,10 +472,10 @@ var edtrTree = {
             // Save for callback
             modalDialog.params = {};
             modalDialog.params.action   = "save_continue_lose";
-            modalDialog.params.callback = function(button_id) {
-                if (button_id == "scl_save") {
+            modalDialog.params.callback = function(args) {
+                if (args.button == "scl_save") {
                     //edtrTree.editor.save_codemirror();
-                } else if (button_id == "scl_lose") {
+                } else if (args.button == "scl_lose") {
                     //edtrTree.db_tree_select(elem);
                 } else {
                     // Cancel open operation
@@ -1118,6 +1118,7 @@ var edtrTree = {
                         edtrTree.dom_editor,
                         $('body').find(".preview-container"));
                 }
+                
                 edtrTree.editor.add_tab(content_type, node.id, node.name, file_data);
                 messagesBar.show_notification("File <b>"+node.id+"</b> was loaded into the editor");
             } else {
