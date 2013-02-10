@@ -78,6 +78,51 @@ def has_dbox_access(user):
 
 
 @gen.engine
+def update_delta_from_dropbox(db, async_dbox, user, callback):
+    # check, that update_delta is not called very often
+    if not delta_called_recently(user):
+        # Get delta metadata from dropbox
+        access_token = user.get_dropbox_token()
+        post_args = {}
+        if user.dbox_cursor:
+            post_args['cursor'] = user.dbox_cursor
+        has_more = True
+        cursor = None
+        while has_more:
+            # make dropbox request
+            user.last_delta = datetime.now()
+            # TODO find a way to call save one time in this func
+            yield motor.Op(user.save, db)
+            response = yield gen.Task(async_dbox.dropbox_request,
+                "api", "/1/delta",
+                access_token=access_token,
+                post_args=post_args)
+            if check_bad_response(response, callback):
+                return
+            dbox_delta = json.loads(response.body)
+            has_more = dbox_delta['has_more']
+            cursor = dbox_delta['cursor']
+            if dbox_delta['reset']:
+                logger.debug(
+                    "Reseting user all files for '{0}'".format(user.name))
+                yield motor.Op(db[user.name].drop)
+            for e_path, entry in dbox_delta['entries']:
+                if entry is None:
+                    # TODO
+                    # maybe there is a way to delete files in one db call
+                    yield motor.Op(
+                        DropboxFile.remove_entries, db,
+                        {"_id": e_path}, collection=user.name)
+                else:
+                    # TODO
+                    # maybe there is a way to save files in one db call
+                    yield motor.Op(save_meta, db, entry, user.name, False)
+        user.dbox_cursor = cursor
+        yield motor.Op(user.save, db)
+    callback({'status': ErrCode.ok})
+
+
+@gen.engine
 def dbox_sync_user(user, error):
     if error:
         try:
@@ -86,50 +131,12 @@ def dbox_sync_user(user, error):
             logger.exception("dbox_sync_user error:")
     elif user:
         user = UserModel(**user)
-        # check, that update_delta is not called very often
-        if not delta_called_recently(user) and has_dbox_access(user):
-            dbox = DropboxMixin()
-            db = utils.gl.DB.instance()
-            # Get delta metadata from dropbox
-            access_token = user.get_dropbox_token()
-            post_args = {}
-            if user.dbox_cursor:
-                post_args['cursor'] = user.dbox_cursor
-            has_more = True
-            cursor = None
-            while has_more:
-                # make dropbox request
-                user.last_delta = datetime.now()
-                # TODO find a way to call save one time in this func
-                yield motor.Op(user.save, db, manipulate=False)
-                response = yield gen.Task(dbox.dropbox_request,
-                    "api", "/1/delta",
-                    access_token=access_token,
-                    post_args=post_args)
-                if check_bad_response(response):
-                    return
-                dbox_delta = json.loads(response.body)
-                has_more = dbox_delta['has_more']
-                cursor = dbox_delta['cursor']
-                if dbox_delta['reset']:
-                    logger.debug(
-                        "Reseting user all files for '{0}'".format(user.name))
-                    yield motor.Op(db[user.name].drop)
-                for e_path, entry in dbox_delta['entries']:
-                    if entry is None:
-                        # TODO
-                        # maybe there is a way to delete files in one db call
-                        yield motor.Op(
-                            DropboxFile.remove_entries, db,
-                            {"_id": e_path}, collection=user.name)
-                    else:
-                        # TODO
-                        # maybe there is a way to save files in one db call
-                        yield motor.Op(save_meta, db, entry, user.name, False)
-            user.dbox_cursor = cursor
-            yield motor.Op(user.save, db, manipulate=False)
-        # callback({'status': ErrCode.ok})
-        # print user['_id']
+        async_dbox = DropboxMixin()
+        db = utils.gl.DB.instance()
+        rst = yield gen.Task(update_delta_from_dropbox, db, async_dbox, user)
+        if rst['status'] != ErrCode.ok:
+            logger.warning("Dropbox periodic update for user {0}"
+                "ended with status = {1}".format(user.name, rst['status']))
     else:
         logger.error("dbox_sync_user user not found")
 
@@ -138,7 +145,7 @@ class DropboxWorkerMixin(DropboxMixin):
     @gen.engine
     def wk_dbox_get_tree(self, user, path, recurse=False, callback=None):
         # Update metadata from dropbox to database
-        r = yield gen.Task(self._update_delta_from_dropbox, user)
+        r = yield gen.Task(update_delta_from_dropbox, self.db, self, user)
         if r['status'] != ErrCode.ok:
             callback(r)
             return
@@ -168,9 +175,10 @@ class DropboxWorkerMixin(DropboxMixin):
                     # file not found in database and in dropbox
                     callback({'status': ErrCode.not_found})
                     return
-                elif not self._delta_called_recently(user):
+                elif not delta_called_recently(user):
                     # make sync with dropbox and check again
-                    r = yield gen.Task(self._update_delta_from_dropbox, user)
+                    r = yield gen.Task(
+                        update_delta_from_dropbox, self.db, self, user)
                     if r['status'] != ErrCode.ok:
                         callback({'status': ErrCode.not_found})
                         return
@@ -187,7 +195,7 @@ class DropboxWorkerMixin(DropboxMixin):
             response = yield gen.Task(self.dropbox_request,
                 "api-content", api_url,
                 access_token=access_token)
-            if self._check_bad_response(response, callback):
+            if check_bad_response(response, callback):
                 return
             encoding = self._get_response_encoding(response)
             yield motor.Op(file_meta.save, self.db, collection=user.name)
@@ -213,7 +221,7 @@ class DropboxWorkerMixin(DropboxMixin):
                     "api", api_url,
                     access_token=access_token,
                     post_args=post_args)
-                if self._check_bad_response(response, callback):
+                if check_bad_response(response, callback):
                     return
                 dbox_media_url = json.loads(response.body)
                 url_trans = dbox_media_url['url']
@@ -249,11 +257,11 @@ class DropboxWorkerMixin(DropboxMixin):
             access_token=access_token,
             put_body=text_content,
             overwrite='true')
-        if self._check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders
-        yield motor.Op(self._save_meta, file_meta, user.name)
+        yield motor.Op(save_meta, self.db, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
     @gen.engine
@@ -269,11 +277,11 @@ class DropboxWorkerMixin(DropboxMixin):
             "api", "/1/fileops/create_folder",
             access_token=access_token,
             post_args=post_args)
-        if self._check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders
-        yield motor.Op(self._save_meta, file_meta, user.name)
+        yield motor.Op(save_meta, self.db, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
     @gen.engine
@@ -289,7 +297,7 @@ class DropboxWorkerMixin(DropboxMixin):
             "api", "/1/fileops/delete",
             access_token=access_token,
             post_args=post_args)
-        if self._check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
         is_dir, f_path = file_meta['is_dir'], file_meta['path']
@@ -321,7 +329,7 @@ class DropboxWorkerMixin(DropboxMixin):
             "api", "/1/fileops/move",
             access_token=access_token,
             post_args=post_args)
-        if self._check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
         is_dir, new_path = file_meta['is_dir'], file_meta['path']
@@ -340,7 +348,7 @@ class DropboxWorkerMixin(DropboxMixin):
         # move /a to /b, but /a contains several included folders
         # here is saved only meta of /b, and not of included folders in /b
         # maybe just call to /delta, and update from its response
-        yield motor.Op(self._save_meta, file_meta, user.name)
+        yield motor.Op(save_meta, self.db, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
     @gen.engine
@@ -358,11 +366,11 @@ class DropboxWorkerMixin(DropboxMixin):
             "api", "/1/fileops/copy",
             access_token=access_token,
             post_args=post_args)
-        if self._check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
         # TODO: save meta of all included folders, if exists
-        yield motor.Op(self._save_meta, file_meta, user.name)
+        yield motor.Op(save_meta, self.db, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
     def _unify_path(self, path):
@@ -371,57 +379,6 @@ class DropboxWorkerMixin(DropboxMixin):
         if len(path) > 1 and not path.startswith('/'):
             path = '/' + path
         return path
-
-    def _delta_called_recently(self, user):
-        if user.last_delta:
-            last_delta_time = datetime.now() - user.last_delta
-            if last_delta_time.total_seconds() < DELTA_PERIOD_SEC:
-                return True
-        return False
-
-    @gen.engine
-    def _update_delta_from_dropbox(self, user, callback):
-        # check, that update_delta is not called very often
-        if not self._delta_called_recently(user):
-            # Get delta metadata from dropbox
-            access_token = user.get_dropbox_token()
-            post_args = {}
-            if user.dbox_cursor:
-                post_args['cursor'] = user.dbox_cursor
-            has_more = True
-            cursor = None
-            while has_more:
-                # make dropbox request
-                user.last_delta = datetime.now()
-                # TODO find a way to call save one time in this func
-                yield motor.Op(user.save, self.db)
-                response = yield gen.Task(self.dropbox_request,
-                    "api", "/1/delta",
-                    access_token=access_token,
-                    post_args=post_args)
-                if self._check_bad_response(response, callback):
-                    return
-                dbox_delta = json.loads(response.body)
-                has_more = dbox_delta['has_more']
-                cursor = dbox_delta['cursor']
-                if dbox_delta['reset']:
-                    logger.debug(
-                        "Reseting user all files for '{0}'".format(user.name))
-                    yield motor.Op(self.db[user.name].drop)
-                for e_path, entry in dbox_delta['entries']:
-                    if entry is None:
-                        # TODO
-                        # maybe there is a way to delete files in one db call
-                        yield motor.Op(
-                            DropboxFile.remove_entries, self.db,
-                            {"_id": e_path}, collection=user.name)
-                    else:
-                        # TODO
-                        # maybe there is a way to save files in one db call
-                        yield motor.Op(self._save_meta, entry, user.name, False)
-            user.dbox_cursor = cursor
-            yield motor.Op(user.save, self.db)
-        callback({'status': ErrCode.ok})
 
     def _get_response_encoding(self, response):
         encoding = 'ascii'
@@ -433,21 +390,6 @@ class DropboxWorkerMixin(DropboxMixin):
                     encoding = DROPBOX_ENCODE_MAP.get(encoding, encoding)
                     break
         return encoding
-
-    def _check_bad_response(self, response, callback=None):
-        if response.code != 200:
-            error = 'undefined'
-            if 'error' in response.body:
-                error = json.loads(response.body)['error']
-            result = {
-                "status": ErrCode.bad_request,
-                'http_code': response.code,
-                'error': error,
-            }
-            if callback:
-                callback(result)
-            return result
-        return None
 
     def _get_file_url(self, path, api_url):
         path = self._unify_path(path)
@@ -463,12 +405,3 @@ class DropboxWorkerMixin(DropboxMixin):
                     'status': ErrCode.called_too_often})
                 return True
         return False
-
-    @gen.engine
-    def _save_meta(self, meta_data, colln, update=True,
-      callback=None):
-        meta_data['_id'] = meta_data.pop('path')
-        meta_data['root_path'] = os.path.dirname(meta_data['_id'])
-        if update:
-            meta_data['last_updated'] = datetime.now()
-        self.db[colln].save(meta_data, callback=callback)
