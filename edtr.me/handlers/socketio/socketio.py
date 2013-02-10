@@ -1,3 +1,4 @@
+import logging
 from tornadio2 import SocketConnection, event
 from tornado.web import decode_signed_value, HTTPError
 from tornado import gen
@@ -7,6 +8,8 @@ from settings import settings
 from workers.dropbox import DropboxWorkerMixin
 from models.accounts import UserModel
 from utils.error import ErrCode
+from utils.gl import SocketPool
+logger = logging.getLogger('edtr_logger')
 
 
 class SocketError:
@@ -67,6 +70,12 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         xsrf_arg = request.get_argument('xsrf')
         if not xsrf_arg or request.get_cookie('_xsrf').value != xsrf_arg:
             raise HTTPError(403, SocketError.XSRF)
+        # TODO maybe store only needed user fields
+        self.user = user
+        SocketPool.add_socket(user['_id'], self.dbox_updates)
+
+    def on_close(self):
+        SocketPool.remove_socket(self.user['_id'])
 
     def on_message(self, message):
         self.send(message + "from server")
@@ -74,10 +83,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     @event
     @gen.engine
     def dbox_get_tree(self, path):
-        # TODO maybe set common user fields as self.field
-        # to not make database call to find user
-        user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-        result = yield gen.Task(self.wk_dbox_get_tree, user, path)
+        result = yield gen.Task(self.wk_dbox_get_tree, self.user, path)
         self.emit_as_json('dbox_get_tree', result)
 
     @event
@@ -86,8 +92,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         if not path:
             self.emit_as_json('dbox_get_file', {'status': ErrCode.bad_request})
         else:
-            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            result = yield gen.Task(self.wk_dbox_get_file, user, path)
+            result = yield gen.Task(self.wk_dbox_get_file, self.user, path)
             self.emit_as_json('dbox_get_file', result)
 
     @event
@@ -97,8 +102,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         if not path:
             self.emit_as_json('dbox_save_file', {'status': ErrCode.bad_request})
         else:
-            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            data = yield gen.Task(self.wk_dbox_save_file, user, path,
+            data = yield gen.Task(self.wk_dbox_save_file, self.user, path,
                 content)
             self.emit_as_json('dbox_save_file', data)
 
@@ -108,8 +112,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         if not path:
             self.emit_as_json('dbox_create_dir', {'status': ErrCode.bad_request})
         else:
-            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            data = yield gen.Task(self.wk_dbox_create_dir, user, path)
+            data = yield gen.Task(self.wk_dbox_create_dir, self.user, path)
             self.emit_as_json('dbox_create_dir', data)
 
     @event
@@ -118,8 +121,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         if not path:
             self.emit_as_json('dbox_delete_path', {'status': ErrCode.bad_request})
         else:
-            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            data = yield gen.Task(self.wk_dbox_delete, user, path)
+            data = yield gen.Task(self.wk_dbox_delete, self.user, path)
             self.emit_as_json('dbox_delete_path', data)
 
     @event
@@ -128,8 +130,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         if not from_path or not to_path:
             self.emit_as_json('dbox_move', {'status': ErrCode.bad_request})
         else:
-            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            data = yield gen.Task(self.wk_dbox_move, user, from_path, to_path)
+            data = yield gen.Task(self.wk_dbox_move, self.user, from_path, to_path)
             self.emit_as_json('dbox_move', data)
 
     @event
@@ -138,6 +139,9 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         if not from_path or not to_path:
             self.emit_as_json('dbox_copy', {'status': ErrCode.bad_request})
         else:
-            user = yield gen.Task(self.get_edtr_current_user, self.user_cookie)
-            data = yield gen.Task(self.wk_dbox_copy, user, from_path, to_path)
+            data = yield gen.Task(self.wk_dbox_copy, self.user, from_path, to_path)
             self.emit_as_json('dbox_copy', data)
+
+    @gen.engine
+    def dbox_updates(self, new_elems):
+        self.emit_as_json('dbox_updates', new_elems)
