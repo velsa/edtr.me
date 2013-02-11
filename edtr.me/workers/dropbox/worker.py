@@ -93,6 +93,7 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False, callback=None):
             post_args['cursor'] = user.dbox_cursor
         has_more = True
         cursor = None
+        known_changed_paths = []
         while has_more:
             # make dropbox request
             user.last_delta = datetime.now()
@@ -111,18 +112,29 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False, callback=None):
                 logger.debug(
                     "Reseting user all files for '{0}'".format(user.name))
                 yield motor.Op(db[user.name].drop)
-            for e_path, entry in dbox_delta['entries']:
+            for i, (e_path, entry) in enumerate(dbox_delta['entries']):
+                if attach_new:
+                    # TODO: find a way not call db on every file
+                    dfile = yield motor.Op(DropboxFile.find_one,
+                        db, {"_id": e_path}, user.name, False)
                 if entry is None:
+                    if attach_new and not dfile:
+                        known_changed_paths.append(i)
                     # TODO
                     # maybe there is a way to delete files in one db call
                     yield motor.Op(
                         DropboxFile.remove_entries, db,
                         {"_id": e_path}, collection=user.name)
                 else:
+                    if attach_new and dfile:
+                        if dfile['modified'] == entry['modified']:
+                            known_changed_paths.append(i)
                     # TODO
                     # maybe there is a way to save files in one db call
                     yield motor.Op(_save_meta, db, entry, user.name, False)
             if attach_new and dbox_delta['entries']:
+                for same in known_changed_paths:
+                    del dbox_delta['entries'][same]
                 updates = dbox_delta['entries']
         user.dbox_cursor = cursor
         yield motor.Op(user.save, db)
