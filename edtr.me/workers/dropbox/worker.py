@@ -79,13 +79,17 @@ def has_dbox_access(user):
     return bool(access)
 
 
+def transform_updates(entries):
+    return entries
+
+
 @gen.engine
 def _update_dbox_delta(db, async_dbox, user, attach_new=False,
                                            force_update=False, callback=None):
-    # check, that update_delta is not called very often
     # TODO: don't make any actions
     # if previous call of this method is not finished for current user
     updates = None
+    # check, that update_delta is not called very often
     if force_update or not _delta_called_recently(user):
         # Get delta metadata from dropbox
         access_token = user.get_dropbox_token()
@@ -139,7 +143,7 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False,
                 for offset, index in enumerate(known_changed_paths):
                     index -= offset
                     del dbox_delta['entries'][index]
-                updates = dbox_delta['entries']
+                updates = transform_updates(dbox_delta['entries'])
         user.dbox_cursor = cursor
         yield motor.Op(user.save, db)
     else:
