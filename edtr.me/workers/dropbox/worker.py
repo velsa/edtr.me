@@ -80,12 +80,13 @@ def has_dbox_access(user):
 
 
 @gen.engine
-def _update_dbox_delta(db, async_dbox, user, attach_new=False, callback=None):
+def _update_dbox_delta(db, async_dbox, user, attach_new=False,
+                                           force_update=False, callback=None):
     # check, that update_delta is not called very often
     # TODO: don't make any actions
     # if previous call of this method is not finished for current user
     updates = None
-    if not _delta_called_recently(user):
+    if force_update or not _delta_called_recently(user):
         # Get delta metadata from dropbox
         access_token = user.get_dropbox_token()
         post_args = {}
@@ -120,11 +121,12 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False, callback=None):
                 if entry is None:
                     if attach_new and not dfile:
                         known_changed_paths.append(i)
-                    # TODO
-                    # maybe there is a way to delete files in one db call
-                    yield motor.Op(
-                        DropboxFile.remove_entries, db,
-                        {"_id": e_path}, collection=user.name)
+                    else:
+                        # TODO
+                        # maybe there is a way to delete files in one db call
+                        yield motor.Op(
+                            DropboxFile.remove_entries, db,
+                            {"_id": e_path}, collection=user.name)
                 else:
                     if attach_new and dfile:
                         if dfile['modified'] == entry['modified']:
@@ -133,17 +135,20 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False, callback=None):
                     # maybe there is a way to save files in one db call
                     yield motor.Op(_save_meta, db, entry, user.name, False)
             if attach_new and dbox_delta['entries']:
-                for same in known_changed_paths:
-                    del dbox_delta['entries'][same]
+                # assert 'known_changed_paths' indexes are in ascending order
+                for offset, index in enumerate(known_changed_paths):
+                    index -= offset
+                    del dbox_delta['entries'][index]
                 updates = dbox_delta['entries']
         user.dbox_cursor = cursor
         yield motor.Op(user.save, db)
     else:
         logger.debug("Delta called recently")
-    ret_val = {'status': ErrCode.ok}
-    if attach_new:
-        ret_val['updates'] = updates
-    callback(ret_val)
+    if callback:
+        ret_val = {'status': ErrCode.ok}
+        if attach_new:
+            ret_val['updates'] = updates
+        callback(ret_val)
 
 
 @gen.engine
@@ -289,7 +294,8 @@ class DropboxWorkerMixin(DropboxMixin):
         if _check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        # TODO: save meta of all transitional folders
+        # TODO: save meta of all transitional folders, but maybe let it be
+        # just not allow user in UI to create /a/b/f.txt, if /a not exists
         yield motor.Op(_save_meta, self.db, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
@@ -309,7 +315,8 @@ class DropboxWorkerMixin(DropboxMixin):
         if _check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        # TODO: save meta of all transitional folders
+        # TODO: save meta of all transitional folders, but maybe let it be
+        # just not allow  user in UI to create /a/b/, if /a not exists
         yield motor.Op(_save_meta, self.db, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
@@ -361,23 +368,9 @@ class DropboxWorkerMixin(DropboxMixin):
         if _check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        is_dir, new_path = file_meta['is_dir'], file_meta['path']
-        if is_dir:
-            # TODO: try to avoid full collection scan
-            # to include root_path.startswith(new_path) elements
-            yield motor.Op(DropboxFile.remove_entries, self.db,
-                {"$or": [{"_id": from_path},
-                    {"root_path":
-                        {'$regex': '^%s.*' % from_path, '$options': 'i'}}]},
-                collection=user.name)
-        else:
-            yield motor.Op(DropboxFile.remove_entries, self.db,
-                {"_id": from_path}, collection=user.name)
-        # TODO: update meta all transitional folders. For example:
-        # move /a to /b, but /a contains several included folders
-        # here is saved only meta of /b, and not of included folders in /b
-        # maybe just call to /delta, and update from its response
         yield motor.Op(_save_meta, self.db, file_meta, user.name)
+        # TODO: is it save to leave now, not to wait for delta result ?
+        _update_dbox_delta(self.db, self, user, force_update=True)
         callback({'status': ErrCode.ok})
 
     @gen.engine
@@ -398,8 +391,9 @@ class DropboxWorkerMixin(DropboxMixin):
         if _check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        # TODO: save meta of all included folders, if exists
         yield motor.Op(_save_meta, self.db, file_meta, user.name)
+        # TODO: is it save to leave now, not to wait for delta result ?
+        _update_dbox_delta(self.db, self, user, force_update=True)
         callback({'status': ErrCode.ok})
 
     def _unify_path(self, path):
