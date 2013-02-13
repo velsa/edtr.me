@@ -390,6 +390,16 @@
             console.log("__SOCKET_IO: copy end_________");
         });
 
+        s.on('dbox_updates', function(response) {
+            console.log("__SOCKET_IO: DROPBOX UPDATES start_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: DROPBOX UPDATES end_________");
+        });
+
         // Start event
         $('#debug_socketion').click(function() {
             s.emit('dbox_get_tree', '/');
