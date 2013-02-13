@@ -334,19 +334,19 @@ var serverComm = {
         // network failure
         messagesBar.show_internal_error("serverComm._ajax_failed",
             "url: "+settings.url+", exception:"+exception);
-        if (self.on_err_callback)
-            self.on_err_callback(null, null, self.human_status[30771]);
+        if (serverComm.on_err_callback)
+            serverComm.on_err_callback(null, null, serverComm.human_status[30771]);
     },
 
     post_request: function (source, request, params, callback) {
         params["_xsrf"] = this.get_cookie("_xsrf");
-        self.on_err_callback = callback;
+        serverComm.on_err_callback = callback;
         $.post(serverComm.get_request_url(source, request), params, callback)
         .fail(function(jqXHR, textStatus, data) {
             console.log(params);
             if (textStatus !== "success") {
                  // server failure
-                callback.call(null, null, human_status[30770]);
+                callback.call(null, null, serverComm.human_status[30770]);
             } else {
                 callback.call(null, data, textStatus, jqXHR);
             }

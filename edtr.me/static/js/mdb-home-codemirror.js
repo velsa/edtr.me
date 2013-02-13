@@ -493,9 +493,19 @@ function edtrCodemirror(content_type, content) {
         // TODO: do we need to remove previous codemirror's bindings ?
         //if (self.content_type !== content_type) {
 
-        // TODO: node should be part of the tabs array
-        this.node           = tree_node;
-        this.content_type   = content_type;
+        // TODO: node and type should be part of the tabs array
+        var new_dom_ico = edtrTree.dom_db_tree.find("#" + tree_node.tId + "_ico");
+        if (this.node) {
+            var old_dom_ico = edtrTree.dom_db_tree.find("#" + this.node.tId + "_ico");
+            old_dom_ico.attr("class", this.node_saved_class);
+        }
+        this.node_saved_class = new_dom_ico.attr("class");
+        new_dom_ico.attr("class", "button edit");
+
+        this.node               = tree_node;
+        this.content_type       = content_type;
+
+
         this.cm_editor.setValue(content);
         this.cm_editor.focus();
 

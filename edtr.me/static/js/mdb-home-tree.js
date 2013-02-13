@@ -835,8 +835,7 @@ var edtrTree = {
 
     // Show/hide node loading animation
     show_loading_node: function(node, state) {
-        var node_ico = "#" + node.tId + "_ico",
-            dom_ico = edtrTree.dom_db_tree.find(node_ico);
+        var dom_ico = edtrTree.dom_db_tree.find("#" + node.tId + "_ico");
         if (state) {
             if (node.is_loading)
                 console.log("show_loading_node: already loading ?!");
