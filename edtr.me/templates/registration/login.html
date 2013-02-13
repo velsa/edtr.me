@@ -2,12 +2,37 @@
 
 {% block extra_title %}Login{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <script type="text/javascript">
+        $(document).ready(function(){
+            $('#login').attr('disabled', 'disabled');
+            $('#id_username').focus();
+
+            var check_login = function() {
+                if ($('#id_username').val() != "" && $('#id_password').val() != "") {
+                    $('#login').removeAttr('disabled');
+                }
+                else {
+                    $('#login').attr('disabled', 'disabled');
+                }
+            };
+            $('#id_username, #id_password').keyup(check_login);
+            $('#id_username, #id_password').change(check_login);
+
+            $('.close').click(function() {
+               $('.alert').hide();
+            });
+        });
+    </script>
+{% endblock %}
+
 {% block body_before_container %}
 {% endblock %} <!-- body_before_container -->
 
 {%  block body_container_header %}
     {{ super() }}
-    <b class="pull-right"><a href="{{get_url('register')}}">Sign Up</a></b>
+    <b class="pull-right"><a href="{{reverse_url('register')}}">Sign Up</a></b>
 {% endblock %}
 
 {% block body_container %}
@@ -48,7 +73,7 @@
                                class="input-large" placeholder="">
                         <p class="help-block">
                             If you forgot it
-                            <a href="{{get_url('login')}}"> click here</a>
+                            <a href="{{reverse_url('login')}}"> click here</a>
                         </p>
                     </div>
                 </div>
@@ -63,26 +88,3 @@
     </div>
 {% endblock %}
 
-{% block extra_body_js %}
-    <script type="text/javascript">
-        $(document).ready(function(){
-            $('#login').attr('disabled', 'disabled');
-            $('#id_username').focus();
-
-            var check_login = function() {
-                if ($('#id_username').val() != "" && $('#id_password').val() != "") {
-                    $('#login').removeAttr('disabled');
-                }
-                else {
-                    $('#login').attr('disabled', 'disabled');
-                }
-            };
-            $('#id_username, #id_password').keyup(check_login);
-            $('#id_username, #id_password').change(check_login);
-
-            $('.close').click(function() {
-               $('.alert').hide();
-            });
-        });
-    </script>
-{% endblock %}

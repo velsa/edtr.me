@@ -1,31 +1,43 @@
-from handlers.home import HomeHandler
-from handlers.fake import FakeHandler
+from tornado.options import options
+from tornado.web import url
+
 from handlers.accounts import (LoginHandler, RegisterHandler,
     UserNameAvailabilityHandler, LogoutHandler)
-from handlers.dropbox import UpdateDropboxTree
+from handlers.api.v1.dropbox import (DropboxGetTree, DropboxGetFile,
+    DropboxSaveFile, DropboxCreateDir, DropboxDelete, DropboxMove,
+    DropboxSave)
+from handlers.fake import FakeHandler, RenderTrashHtml
+from handlers.home import HomeHandler
 
-# Snippet to get url by name from templates
-# this code will execute at each url request
-# TODO maybe to remove this
-named_url_patterns = [
-    (r"/", HomeHandler, "home"),
-    (r'/accounts/login', LoginHandler, "login"),
-    (r'/accounts/register', RegisterHandler, "register"),
-    (r'/accounts/logout', LogoutHandler, "logout"),
-    (r'/accounts/check_username_availability/(.+)/',
-        UserNameAvailabilityHandler, "user_name_avaliability"),
 
-    (r'/accounts/profile', FakeHandler, "profile"),  # TODO
-    (r'/accounts/settings', FakeHandler, "settings"),  # TODO
+url_patterns = [
+    url(r"/", HomeHandler, name="home"),
+    url(r'/accounts/login', LoginHandler, name="login"),
+    url(r'/accounts/register', RegisterHandler, name="register"),
+    url(r'/accounts/logout', LogoutHandler, name="logout"),
+    url(r'/accounts/check_username_availability/(.+)/',
+        UserNameAvailabilityHandler, name="user_name_avaliability"),
 
-    (r'/async/update_db_tree/', UpdateDropboxTree, "update_db_tree"),
+    url(r'/accounts/profile', FakeHandler, name="profile"),  # TODO
+    url(r'/accounts/settings', FakeHandler, name="settings"),  # TODO
+
+    # ajax api
+    url(r'/v1/dropbox/get_tree/', DropboxGetTree, name="dropbox_get_path"),
+    url(r'/v1/dropbox/get_file/', DropboxGetFile, name="dropbox_get_file"),
+    url(r'/v1/dropbox/save_file/', DropboxSaveFile, name="dropbox_save_file"),
+    url(r'/v1/dropbox/create_dir/', DropboxCreateDir, name="dropbox_create_dir"),
+    url(r'/v1/dropbox/delete/', DropboxDelete, name="dropbox_delete"),
+    url(r'/v1/dropbox/move/', DropboxMove, name="dropbox_move"),
+    url(r'/v1/dropbox/copy/', DropboxSave, name="dropbox_copy"),
 ]
 
-url_patterns = [x[:2] for x in named_url_patterns]
+if options.debug:
+    url_patterns += [
+        url(r'/trash_debug/(.*)', RenderTrashHtml, name="trash_debug"),
+    ]
 
-url_names = {}
-for named_url in named_url_patterns:
-    try:
-        url_names[named_url[2]] = named_url[0]
-    except IndexError:
-        raise ValueError("Name for url {0} not specified".format(named_url[0]))
+if options.socketio:
+    from tornadio2 import TornadioRouter
+    from handlers.socketio import EdtrConnection
+    EdtrRouter = TornadioRouter(EdtrConnection)
+    url_patterns = EdtrRouter.apply_routes(url_patterns)

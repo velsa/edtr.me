@@ -1,0 +1,471 @@
+{% extends "base.html" %}
+
+{% block body_container %}
+    {{ super() }}
+    <style type="text/css">
+    .section{
+        border:2px double black;
+        padding-top:10px;
+        margin:4px;
+    }
+    </style>
+    <div class="section">
+        <button id="debug"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_debug">AJAX Metadata</span>
+        </button>
+        <button id="debug_socketion"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_debug_socketio">SocketIO Metadata</span>
+        </button>
+    </div>
+
+    <div class="section">
+        <div>
+            <span>File path to get:</span><input id="file_input" type="text" name="fname" value="/1.txt"/>
+        </div>
+        <button id="file_get"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_file_get">AJAX get file</span>
+        </button>
+        <button id="sio_file_get"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_file_get">SocketIO get file</span>
+        </button>
+        <div>File contents:</div>
+        <textarea name="file_content" id="file_content" cols="300" rows="10" style="height:30px;width:500px"></textarea>
+        <div>File url:</div><div id="file_url"></div>
+        <div>
+            <button id="file_save"
+                    class="btn btn-success btn-small cme-button-tooltip" href="#">
+                <span id="btn_file_save">AJAX save file</span>
+            </button>
+            <button id="sio_file_save"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_file_save">SocketIO save file</span>
+            </button>
+        </div>
+    </div>
+    <div class="section">
+        <div>
+            <span>Create dir:</span><input id='create_dir_name' type="text" value="">
+        </div>
+        <button id="create_dir"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_create_dir">AJAX create_dir</span>
+        </button>
+        <button id="sio_create_dir"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+        <span id="btn_sio_create_dir">SocketIO create_dir</span>
+        </button>
+    </div>
+
+    <div class="section">
+        <div>
+            <span>Delete path:</span><input id='delete_path' type="text" value="">
+        </div>
+        <button id="delete"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_delete">AJAX delete</span>
+        </button>
+        <button id="sio_delete"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+        <span id="btn_sio_delete">SocketIO delete</span>
+        </button>
+    </div>
+
+    <div class="section">
+        <div>Move element</div>
+        <div>
+            <span>From path:</span><input id='move_from_path' type="text" value="">
+        </div>
+        <div>
+            <span>To path:</span><input id='move_to_path' type="text" value="">
+        </div>
+        <button id="move_elem"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_move_elem">AJAX move</span>
+        </button>
+        <button id="sio_move_elem"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_move_elem">SocketIO move</span>
+        </button>
+    </div>
+
+    <div class="section">
+        <div>Copy element</div>
+        <div>
+            <span>From path:</span><input id='copy_from_path' type="text" value="">
+        </div>
+        <div>
+            <span>To path:</span><input id='copy_to_path' type="text" value="">
+        </div>
+        <button id="copy_elem"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_copy_elem">AJAX copy</span>
+        </button>
+        <button id="sio_copy_elem"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_copy_elem">SocketIO copy</span>
+        </button>
+    </div>
+{% endblock %}
+
+{% block extra_footer %}
+    {{ super() }}
+    <script type="text/javascript">
+    function getCookie(name) {
+        var c = document.cookie.match("\\b" + name + "=([^;]*)\\b");
+        return c ? c[1] : undefined;
+    }
+    function getFilePath(){
+        return $("#file_input").val()
+    }
+    function clearFileContents(){
+        $("#file_content").val('')
+        $("#file_url").html('')
+    }
+    function setFileContents(response){
+        if (response['status'] == 0){
+            if (response['content']){
+                $("#file_content").val(response['content'])
+            } else if (response['url']){
+                $("#file_url").html(response['url'])
+            }
+        } else {
+            alert("Bad status: " + response['status']);
+        }
+    }
+    function getCreateDirName(){
+        return $('#create_dir_name').val()
+    }
+    function getDeletePath(){
+        return $('#delete_path').val()
+    }
+    function getMoveFrom(){
+        return $('#move_from_path').val()
+    }
+    function getMoveTo(){
+        return $('#move_to_path').val()
+    }
+    function getCopyFrom(){
+        return $('#copy_from_path').val()
+    }
+    function getCopyTo(){
+        return $('#copy_to_path').val()
+    }
+    </script>
+    <!-- AJAX -->
+    <script type="text/javascript">
+    $('#debug').click(function(){
+        $.post("{{reverse_url('dropbox_get_path')}}",
+            {
+                "_xsrf": getCookie("_xsrf"),
+                "path": "/"
+            },
+            function(response) {
+                console.log("__SOCKET_IO: update_db_tree_________");
+                for (f in response){
+                    console.log(f+":")
+                    console.log(response[f])
+                }
+                console.log("_______ AJAX: update_db_tree end_________");
+            })
+    })
+    $('#file_get').click(function(){
+        clearFileContents();
+        $.post("{{reverse_url('dropbox_get_file')}}",
+            {
+                "_xsrf": getCookie("_xsrf"),
+                "path": getFilePath()
+            },
+            function(response) {
+                console.log("_______AJAX: dropbox_get_file_________");
+                for (f in response){
+                    console.log(f+":")
+                    console.log(response[f])
+                }
+                setFileContents(response);
+                console.log("_______ AJAX: dropbox_get_file end_________");
+            })
+    })
+    $('#file_save').click(function(){
+        var url = $("#file_url").html();
+        if (url.length != 0){
+            alert("File is not text");
+        } else {
+            $.post("{{reverse_url('dropbox_save_file')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "path": getFilePath(),
+                    "content": $("#file_content").val()
+                },
+                function(response) {
+                    console.log("_______AJAX: dropbox_get_file_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    setFileContents(response);
+                    console.log("_______ AJAX: dropbox_get_file end_________");
+            })
+        }
+    })
+    $('#create_dir').click(function(){
+        var dir_name = getCreateDirName();
+        if (dir_name.length == 0){
+            alert("Dir name not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_create_dir')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "path": dir_name
+                },
+                function(response) {
+                    console.log("__ AJAX: create dir_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: create dir end_________");
+                })
+        }
+
+    })
+    $('#delete').click(function(){
+        var path = getDeletePath();
+        if (path.length == 0){
+            alert("Path not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_delete')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "path": path
+                },
+                function(response) {
+                    console.log("__AJAX: delete path_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: delete path end_________");
+                })
+        }
+
+    })
+    $('#move_elem').click(function(){
+        var from_path = getMoveFrom();
+        var to_path = getMoveTo();
+        if (from_path.length == 0){
+            alert("From path not specified");
+        } else if (to_path.length == 0){
+            alert("To path not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_move')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "from_path": from_path,
+                    "to_path": to_path
+                },
+                function(response) {
+                    console.log("__AJAX: move_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: move end_________");
+                })
+        }
+
+    })
+    $('#copy_elem').click(function(){
+        var from_path = getCopyFrom();
+        var to_path = getCopyTo();
+        if (from_path.length == 0){
+            alert("From path not specified");
+        } else if (to_path.length == 0){
+            alert("To path not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_copy')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "from_path": from_path,
+                    "to_path": to_path
+                },
+                function(response) {
+                    console.log("__AJAX: copy_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: copy end_________");
+                })
+        }
+
+    })
+    </script>
+
+    <!-- SOCKETIO -->
+    <script src="{{ static_url('js/socket.io.js') }}"></script>
+    <script>
+    $(function() {
+        var s = new io.connect(
+            'http://' + window.location.host + '?xsrf=' + getCookie("_xsrf"));
+
+        // Establish event handlers
+        s.on('disconnect', function() {
+            s.socket.reconnect();
+        });
+
+        // Event response
+        s.on('dbox_get_tree', function(response) {
+            console.log("__SOCKET_IO__")
+            var response = JSON.parse(response)
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO__ end")
+        });
+
+        s.on('dbox_get_file', function(response) {
+            clearFileContents();
+            console.log("__SOCKET_IO Get file__")
+            var response = JSON.parse(response)
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            setFileContents(response);
+            console.log("__SOCKET_IO Get file__ end")
+        });
+
+        s.on('dbox_save_file', function(response) {
+            console.log("__SOCKET_IO Save file__")
+            var response = JSON.parse(response)
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO Save file__ end")
+        });
+
+        s.on('dbox_create_dir', function(response) {
+            console.log("__SOCKET_IO: Create dir_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: Create dir end_________");
+        });
+
+        s.on('dbox_delete_path', function(response) {
+            console.log("__SOCKET_IO: Delete path_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: Delete path end_________");
+        });
+
+        s.on('dbox_move', function(response) {
+            console.log("__SOCKET_IO: Move_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: Move end_________");
+        });
+
+        s.on('dbox_copy', function(response) {
+            console.log("__SOCKET_IO: copy_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: copy end_________");
+        });
+
+        s.on('dbox_updates', function(response) {
+            console.log("__SOCKET_IO: DROPBOX UPDATES start_________");
+            var response = JSON.parse(response);
+            for (f in response){
+                console.log(f+":")
+                console.log(response[f])
+            }
+            console.log("__SOCKET_IO: DROPBOX UPDATES end_________");
+        });
+
+        // Start event
+        $('#debug_socketion').click(function() {
+            s.emit('dbox_get_tree', '/');
+            return false;
+        });
+
+        $('#sio_file_get').click(function() {
+            s.emit('dbox_get_file', getFilePath());
+            return false;
+        });
+
+        $('#sio_file_save').click(function() {
+            var url = $("#file_url").html();
+            if (url.length != 0){
+                alert("File is not text");
+            } else {
+                s.emit('dbox_save_file', getFilePath(), $("#file_content").val());
+            }
+            return false;
+        });
+
+        $('#sio_create_dir').click(function() {
+            var dir_name = getCreateDirName();
+            if (dir_name.length == 0){
+                alert("Dir name not specified");
+            } else {
+                s.emit('dbox_create_dir', dir_name);
+            }
+            return false;
+        });
+
+        $('#sio_delete').click(function() {
+            var path = getDeletePath();
+            if (path.length == 0){
+                alert("Path not specified");
+            } else {
+                s.emit('dbox_delete_path', path);
+            }
+            return false;
+        });
+
+        $('#sio_move_elem').click(function() {
+            var from_path = getMoveFrom();
+            var to_path = getMoveTo();
+            if (from_path.length == 0){
+                alert("From path not specified");
+            } else if (to_path.length == 0){
+                alert("To path not specified");
+            } else {
+                s.emit('dbox_move', from_path, to_path);
+            }
+            return false;
+        });
+
+        $('#sio_copy_elem').click(function() {
+            var from_path = getCopyFrom();
+            var to_path = getCopyTo();
+            if (from_path.length == 0){
+                alert("From path not specified");
+            } else if (to_path.length == 0){
+                alert("To path not specified");
+            } else {
+                s.emit('dbox_copy', from_path, to_path);
+            }
+            return false;
+        });
+    });
+    </script>
+{% endblock %} <!-- extra_footer -->

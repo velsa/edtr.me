@@ -1,0 +1,46 @@
+<!--
+    Toolbar, CodeMirror and buttons for Markdown editing
+-->
+
+<!-- Saving animation -->
+<div class="modal-backdrop file-saving" style="display:none"></div>
+
+<!-- Editor toolbar -->
+<div class="editor-toolbar">
+    {% include "editor/cm_markdown_tb.html" %}
+</div>
+
+<!-- 
+    Buttons below  
+-->
+<div class="editor-buttons">
+    <div class="cme-buttonbar well">
+        <button id="btn_save"
+                title="Save to Dropbox (in .draft folder)"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <i class="icon-ok-sign icon-white"></i>
+            <span id="btn_save_text">Save draft</span>
+        </button>
+        <button id="btn_preview"
+                title="Open page preview in new window"
+                class="btn btn-info btn-small cme-button-tooltip" href="#">
+            <i class="icon-eye-open icon-white"></i>
+            Preview...
+        </button>
+        <button id="btn_publish"
+                title="Publish HTML to your website (also saves file to Dropbox)"
+                class="btn btn-primary btn-small cme-button-tooltip pull-right" href="#">
+            <i class="icon-globe icon-white"></i>
+            Publish
+        </button>
+    </div><!-- .cme-buttonbar -->
+</div>
+
+<!-- 
+    Editing area - should come last to be on top of the above divs
+-->
+<div class="editor-area">
+    <textarea class="cme-textarea" rows="35" disabled="true">
+    </textarea>
+</div>
+

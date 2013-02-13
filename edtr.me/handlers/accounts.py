@@ -4,8 +4,9 @@ from tornado import gen
 import tornado.web
 import tornado.escape
 from collections import defaultdict
-from utils.sessions import asyncmongosession
-from utils.main import DB
+
+import motor
+from pymongo.errors import DuplicateKeyError
 
 import logging
 
@@ -16,140 +17,85 @@ class LogoutHandler(BaseHandler):
     """Handler for logout url. Delete session and redirect to home page.
     """
 
-    @tornado.web.asynchronous
-    @asyncmongosession
     def get(self):
-        if hasattr(self, 'session'):
-            self.set_current_user(None)
-        self.redirect(self.get_url_by_name("home"))
+        self.set_current_user(None)
+        self.redirect(self.reverse_url("home"))
 
 
 class LoginHandler(BaseHandler):
     """Handler for login page. Show and process login form.
     """
+    def initialize(self, **kwargs):
+        super(LoginHandler, self).initialize(**kwargs)
+        self.tmpl = "registration/login.html"
 
     def get(self):
-        self.render("registration/login.html")
+        self.render(self.tmpl)
 
     @tornado.web.asynchronous
-    @asyncmongosession
     @gen.engine
     def post(self):
-        tmpl = 'registration/login.html'
-        context = {"errors": True}
+        username = self.get_argument("username", None)
+        usr = yield motor.Op(UserModel.find_one, self.db, {"_id": username})
+        if usr:
+            password = self.get_argument("password", None)
+            if usr.check_password(password):
+                self.set_current_user(username)
+                next = self.get_argument('next')
+                if next:
+                    self.redirect(next)
+                else:
+                    self.redirect(self.reverse_url("home"))
+                return
 
-        username = self.get_argument("username", "")
-        password = self.get_argument("password", "")
-
-        # empty user
-        if not username:
-            self.render_async(tmpl, context)
-            return
-
-        # find user with specified username
-        response, not_used = yield gen.Task(UserModel.find_one,
-            {"username": username})
-
-        # error from database
-        if response[DB.error]:
-            logger.error(response[DB.error])
-            self.render_async(tmpl, context)
-            return
-
-        # user not found
-        user = response[DB.model]
-        if not user:
-            self.render_async(tmpl, context)
-            return
-
-        # passwords mismatch
-        user = UserModel(user)
-        if not user.check_password(password):
-            self.render_async(tmpl, context)
-            return
-
-        # username and password correct
-        context['errors'] = False
-        self.set_current_user(username)
-        next = self.get_argument('next')
-        if next:
-            self.redirect(next)
-        else:
-            self.redirect(self.get_url_by_name("home"))
+        self.render_async(self.tmpl, {"errors": True})
 
 
 class RegisterHandler(BaseHandler):
     """Handler for registration page. Show and process register form.
     """
-
-    def init_context(self):
-        return {'errors': defaultdict(list), }
+    def initialize(self, **kwargs):
+        super(RegisterHandler, self).initialize(**kwargs)
+        self.tmpl = "registration/register.html"
+        self.context = {'errors': defaultdict(list), }
 
     def get(self):
-        context = self.init_context()
-        self.render("registration/register.html", context)
+        self.render(self.tmpl, self.context)
 
     @tornado.web.asynchronous
-    @asyncmongosession
     @gen.engine
     def post(self):
-        tmpl = "registration/register.html"
-        context = self.init_context()
-        username = self.get_argument('username', None)
+        password = self.get_argument('password1', None)
+        password2 = self.get_argument('password2', None)
 
-        # username not specified
-        if not username:
-            context['errors']['username'].append("Field is required")
-            self.render_async(tmpl, context)
+        if password != password2:
+            self.context['errors']['password2'].append("Passwords not equal")
+            self.render_async(self.tmpl, self.context)
             return
 
-        # find user with specified username
-        response, not_used = yield gen.Task(UserModel.find_one,
-            {"username": username})
+        usr = UserModel()
+        usr.name = self.get_argument("username", None)
+        usr.password = password
 
-        # on error from database
-        if response[DB.error]:
-            logger.error(response[DB.error])
-            context['errors']['non_field'].append(str(response[DB.error]))
-            self.render_async(tmpl, context)
-            return
+        result = usr.validate()
+        if result.tag == 'OK':
+            usr.set_password(usr.password)
+            try:
+                yield motor.Op(usr.save, self.db)
+                # user save succeeded
+                self.set_current_user(usr.name)
+                # create user dropbox collection
+                yield motor.Op(usr.create_dropbox_collection, self.db)
+                self.redirect(self.reverse_url("home"))
+                return
+            except DuplicateKeyError:
+                self.context['errors']['username']. \
+                    append("Already taken. Sorry.")
+        else:
+            for err in result.value:
+                self.context['errors'][err.name].append(err.message)
 
-        # user already exists
-        if response[DB.model]:
-            context['errors']['username'].append("Already taken. Sorry.")
-            self.render_async(tmpl, context)
-            return
-
-        # passwords not equal
-        pwd1 = self.get_argument('password1', None)
-        pwd2 = self.get_argument('password2', None)
-
-        if pwd1 != pwd2:
-            context['errors']['password2'].append("Passwords not equal")
-            self.render_async(tmpl, context)
-            return
-
-        # try to save user
-        user = UserModel({
-            'username': username,
-            'password': pwd1,
-        })
-        response, not_used = yield gen.Task(user.insert)
-
-        # user save failed
-        error = response[DB.error]
-        if error:
-            if isinstance(error, dict):
-                context['errors'] = error
-            else:
-                context['errors']['non_field'].append(str(error))
-            self.render_async(tmpl, context)
-            return
-
-        # user save succeeded
-        self.set_current_user(username)
-
-        self.redirect(self.get_url_by_name("home"))
+        self.render_async(self.tmpl, self.context)
 
 
 class UserNameAvailabilityHandler(BaseHandler):
@@ -157,10 +103,9 @@ class UserNameAvailabilityHandler(BaseHandler):
     @tornado.web.asynchronous
     @gen.engine
     def get(self, username):
-        response, not_used = yield gen.Task(UserModel.find_one,
-            {"username": username})
+        user = yield motor.Op(UserModel.find_one, self.db, {"_id": username})
         self.set_header("Content-Type", "text/plain")
-        if response[DB.error] or response[DB.model]:
+        if user:
             self.write('error')
         else:
             self.write("success")

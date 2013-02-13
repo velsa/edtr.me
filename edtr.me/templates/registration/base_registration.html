@@ -4,10 +4,11 @@
     {{ super() }}
     <!-- bootstrap customizations -->
     <style type="text/css">
-        a, tr, td, label {
-            font-size: 16px;
-            line-height: 36px;
-            font-variant: small-caps;
+        .page-header {
+            font-size:          30px;
+            line-height:        36px;
+            font-variant:       small-caps;
+            margin:             10px 30px 20px;
         }
         input, .add-on {
             font-size: 16px;
@@ -37,7 +38,7 @@
 {% block body_container %}
     {{ super() }}
     <div class="page-header">
-        <a href="{{get_url('home')}}"><b style="color: #b0b0eb;">(m) MarkDownBox</b></a>
+        <a href="{{reverse_url('home')}}"><b style="color: #b0b0eb;">(e) EDTR.me</b></a>
         {% block body_container_header %}
         {% endblock %}
     </div>

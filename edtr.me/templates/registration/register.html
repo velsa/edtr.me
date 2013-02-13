@@ -4,10 +4,93 @@
 
 {% block extra_head %}
     {{ super() }}
-    <!-- bootstrap customizations -->
-    <style type="text/css">
+    <script type="text/javascript">
+        $(document).ready(function(){
+            var user_available = 2; // 2 - never checked, 1 - available, 0 - not, 3 - invalid
 
-    </style>
+            $('#signup').attr('disabled', 'disabled');
+            $('#id_username').focus();
+
+            var check_fields = function() {
+                var ret = 0;
+                $('#username_ctl').removeClass("success").removeClass("error");
+                if ($('#id_username').val() != "") {
+                    if (    user_available == 0 ||
+                            user_available == 3 ||
+                            $('#id_username').val().length < 4) {
+                        $('#username_ctl').addClass("error");
+                    } else {
+                            $('#username_ctl').addClass("success");
+                            ret++;
+                    }
+                }
+                $('#password1_ctl').removeClass("success").removeClass("error");
+                if (    ($('#id_password1').val() == "" && $('#id_username').val() != "") ||
+                        ($('#id_password1').val() != "" && $('#id_password1').val().length < 6)) {
+                    $('#password1_ctl').addClass("error");
+                }
+                else {
+                    if ($('#id_password1').val() != "") {
+                        $('#password1_ctl').addClass("success");
+                        ret++;
+                    }
+                }
+                $('#password2_ctl').removeClass("success").removeClass("error");
+                if ($('#id_password2').val() != $('#id_password1').val()) {
+                    $('#password2_ctl').addClass("error");
+                } else {
+                    if ($('#id_password2').val() != "") {
+                        $('#password2_ctl').addClass("success");
+                        ret++;
+                    }
+                }
+
+                if (ret == 3) {
+                    $('#signup').removeAttr('disabled');
+                }
+                else {
+                    $('#signup').attr('disabled', 'disabled');
+                }
+            };
+
+            // Check if user exists
+            $('#id_username').keyup(function(){
+                var username = $(this).val().toLowerCase();
+                if (!edtrHelper.check_valid_username(username)) {
+                    $('#username_err').text("Invalid characters in username");
+                    user_available = 3;
+                    check_fields();
+                } else {
+                    user_available = 2;
+                    $('#username_err').text("");
+                    $.get("/accounts/check_username_availability/"+username+"/", function(data) {
+                        if ($('#id_username').val().length >= 4) {
+                            //$('#username_ctl').removeClass("success").removeClass("error");
+                            //$('#username_ctl').addClass(data);
+                            if (data == "success") {
+                                $('#username_err').text("Available !");
+                                user_available = 1;
+                            } else {
+                                $('#username_err').text("Already taken. Sorry.");
+                                user_available = 0;
+                            }
+                            check_fields();
+                        }
+                    });
+                }
+            });
+
+            // Assign validation handlers
+            $('#id_password1,#id_password2').change(check_fields);
+            $('#id_username').change(function() {
+                $(this).val($(this).val().toLowerCase());
+                check_fields();
+            });
+
+            $('#id_username,#id_password1,#id_password2').keyup(check_fields);
+            $('#id_username,#id_password1,#id_password2').focus(check_fields);
+        });
+    </script>
 {% endblock %}
 
 {% block body_before_container %}
@@ -94,94 +177,4 @@
             So choose it wisely :)
         </div>
     </div>
-{% endblock %}
-
-{% block extra_body_js %}
-    <script type="text/javascript">
-        $(document).ready(function(){
-            var user_available = 2; // 2 - never checked, 1 - available, 0 - not, 3 - invalid
-
-            $('#signup').attr('disabled', 'disabled');
-            $('#id_username').focus();
-
-            var check_fields = function() {
-                var ret = 0;
-                $('#username_ctl').removeClass("success").removeClass("error");
-                if ($('#id_username').val() != "") {
-                    if (    user_available == 0 ||
-                            user_available == 3 ||
-                            $('#id_username').val().length < 4) {
-                        $('#username_ctl').addClass("error");
-                    } else {
-                            $('#username_ctl').addClass("success");
-                            ret++;
-                    }
-                }
-                $('#password1_ctl').removeClass("success").removeClass("error");
-                if (    ($('#id_password1').val() == "" && $('#id_username').val() != "") ||
-                        ($('#id_password1').val() != "" && $('#id_password1').val().length < 6)) {
-                    $('#password1_ctl').addClass("error");
-                }
-                else {
-                    if ($('#id_password1').val() != "") {
-                        $('#password1_ctl').addClass("success");
-                        ret++;
-                    }
-                }
-                $('#password2_ctl').removeClass("success").removeClass("error");
-                if ($('#id_password2').val() != $('#id_password1').val()) {
-                    $('#password2_ctl').addClass("error");
-                } else {
-                    if ($('#id_password2').val() != "") {
-                        $('#password2_ctl').addClass("success");
-                        ret++;
-                    }
-                }
-
-                if (ret == 3) {
-                    $('#signup').removeAttr('disabled');
-                }
-                else {
-                    $('#signup').attr('disabled', 'disabled');
-                }
-            };
-
-            // Check if user exists
-            $('#id_username').keyup(function(){
-                var username = $(this).val().toLowerCase();
-                if (!check_valid_username(username)) {
-                    $('#username_err').text("Invalid characters in username");
-                    user_available = 3;
-                    check_fields();
-                } else {
-                    user_available = 2;
-                    $('#username_err').text("");
-                    $.get("/accounts/check_username_availability/"+username+"/", function(data) {
-                        if ($('#id_username').val().length >= 4) {
-                            //$('#username_ctl').removeClass("success").removeClass("error");
-                            //$('#username_ctl').addClass(data);
-                            if (data == "success") {
-                                $('#username_err').text("Available !");
-                                user_available = 1;
-                            } else {
-                                $('#username_err').text("Already taken. Sorry.");
-                                user_available = 0;
-                            }
-                            check_fields();
-                        }
-                    });
-                }
-            });
-
-            // Assign validation handlers
-            $('#id_password1,#id_password2').change(check_fields);
-            $('#id_username').change(function() {
-                $(this).val($(this).val().toLowerCase());
-                check_fields();
-            });
-
-            $('#id_username,#id_password1,#id_password2').keyup(check_fields);
-            $('#id_username,#id_password1,#id_password2').focus(check_fields);
-        });
-    </script>
-{% endblock %}
+{% endblock %} <!-- body_container -->

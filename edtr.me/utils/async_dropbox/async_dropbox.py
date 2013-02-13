@@ -1,6 +1,11 @@
+import logging
 import tornado.auth
 import urllib
 from tornado.httpclient import AsyncHTTPClient
+from tornado.options import options
+from settings import settings
+logger = logging.getLogger('edtr_logger')
+
 
 class DropboxMixin(tornado.auth.OAuthMixin):
     """Dropbox OAuth authentication.
@@ -8,7 +13,7 @@ class DropboxMixin(tornado.auth.OAuthMixin):
     Uses the app settings dropbox_consumer_key and dropbox_consumer_secret.
 
     Usage::
-    
+
         class DropboxLoginHandler(RequestHandler, DropboxMixin):
             @asynchronous
             def get(self):
@@ -28,6 +33,12 @@ class DropboxMixin(tornado.auth.OAuthMixin):
     _OAUTH_ACCESS_TOKEN_URL = "https://api.dropbox.com/1/oauth/access_token"
     _OAUTH_AUTHORIZE_URL = "https://www.dropbox.com/1/oauth/authorize"
 
+    # You can find these at http://www.dropbox.com/developers/apps
+    APP_KEY = settings['dropbox_consumer_key']
+    APP_SECRET = settings['dropbox_consumer_secret']
+    ACCESS_TYPE = 'sandbox' if 'app_folder' in\
+        settings['dropbox_access_type'] else 'dropbox'
+
     def dropbox_request(self, subdomain, path, callback, access_token,
                         post_args=None, put_body=None, **args):
         """Fetches the given API operation.
@@ -43,7 +54,7 @@ class DropboxMixin(tornado.auth.OAuthMixin):
         as `put_body`
 
         Example usage::
-        
+
             class MainHandler(tornado.web.RequestHandler,
                               async_dropbox.DropboxMixin):
                 @tornado.web.authenticated
@@ -60,6 +71,7 @@ class DropboxMixin(tornado.auth.OAuthMixin):
                     self.render("main.html", metadata=metadata)
         """
         url = "https://%s.dropbox.com%s" % (subdomain, path)
+        url = url.format(root=DropboxMixin.ACCESS_TYPE)
         if access_token:
             all_args = {}
             all_args.update(args)
@@ -74,8 +86,23 @@ class DropboxMixin(tornado.auth.OAuthMixin):
             oauth = self._oauth_request_parameters(
                 url, access_token, all_args, method=method)
             args.update(oauth)
-        if args: url += "?" + urllib.urlencode(args)
+        if args:
+            url += "?" + urllib.urlencode(args)
         http = AsyncHTTPClient()
+        if options.debug:
+            pargs = post_args or {}
+            logger.debug("\nDROPBOX {0} {1} {2}".format(method, url,
+                ",".join(["\n\t{0}:{1}".format(key, pargs[key]) for key in pargs])
+                ))
+            from copy import copy
+            copied_callback = copy(callback)
+
+            def wrapped_callback(response):
+                logger.debug("\nDROPBOX RESPONSE: {0}".format(
+                    ",".join(['\n\t{0}:{1}'.format(p, getattr(response, p, None)) for p in ('body', 'code', 'error')])
+                ))
+                copied_callback(response)
+            callback = wrapped_callback
         if post_args is not None:
             http.fetch(url, method=method, body=urllib.urlencode(post_args),
                        callback=callback)
@@ -84,8 +111,8 @@ class DropboxMixin(tornado.auth.OAuthMixin):
 
     def _oauth_consumer_token(self):
         return dict(
-            key=self.settings["dropbox_consumer_key"],
-            secret=self.settings["dropbox_consumer_secret"],
+            key=DropboxMixin.APP_KEY,
+            secret=DropboxMixin.APP_SECRET,
             )
 
     def _oauth_get_user(self, access_token, callback):

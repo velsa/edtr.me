@@ -1,8 +1,10 @@
+import logging
 import tornado.web
 import tornado.escape
-import logging
+from tornado import gen
+import motor
+from models.accounts import UserModel
 from settings import jinja_env
-import re
 
 logger = logging.getLogger('edtr_logger')
 
@@ -11,40 +13,37 @@ class BaseHandler(tornado.web.RequestHandler):
     """A class to collect common handler methods - all other handlers should
     subclass this one.
     """
-
-    @classmethod
-    def get_url_by_name(cls, name, *args):
-        from urls import url_names
-        url_name = url_names[name]
-        for arg in args:
-            url_name = re.sub("\(.*?\)", arg, url_name, 1)
-        return url_name
+    def initialize(self, **kwargs):
+        super(BaseHandler, self).initialize(**kwargs)
+        self.db = self.settings['db']
 
     def render(self, template, context=None):
         """Renders template using jinja2"""
         if not context:
             context = {}
         context.update(self.get_template_namespace())
-        context.update({"get_url": self.get_url_by_name})
         self.write(jinja_env.get_template(template).render(context))
+        # Always set _xsrf cookie
+        self.xsrf_token
         self.flush()
 
     def set_current_user(self, user):
         if user:
-            self.session['user'] = tornado.escape.json_encode(user)
-        elif hasattr(self, 'session'):
-            self.session.delete()
+            self.set_secure_cookie('user', user)
         else:
-            # Nothing to do
-            pass
+            self.clear_cookie('user')
 
     def get_current_user(self):
-        if hasattr(self, "session"):
-            if 'user' in self.session:
-                # TODO
-                # maybe try to find user with username == session['user']
-                return tornado.escape.json_decode(self.session['user'])
-        return None
+        expires = self.settings.get('cookie_expires', 31)
+        return self.get_secure_cookie('user', max_age_days=expires)
+
+    @gen.engine
+    def get_edtr_current_user(self, callback):
+        username = self.current_user
+        # TODO cache
+        user = yield motor.Op(
+            UserModel.find_one, self.db, {"_id": username})
+        callback(user)
 
     def render_async(self, tmpl, context):
         self.render(tmpl, context)

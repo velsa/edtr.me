@@ -1,91 +1,68 @@
-# -*- coding: utf-8 -*-
-import motor
-from settings import mongo_address, MONGO_DB
+import logging
+from bson.objectid import ObjectId
+from schematics.models import Model
+from schematics.types import NumberType
+from schematics.validation import validate_instance
+from schematics.serialize import to_python
 
-database = motor.MotorConnection(**mongo_address).open_sync()[MONGO_DB]
+logger = logging.getLogger('edtr_logger')
+MAX_FIND_LIST_LEN = 100
 
 
-class BaseModel(dict):
-    """Base class for database object abstration. Async features of
-    pymongo motor are used (http://emptysquare.net/motor/)
-    """
+class BaseModel(Model):
+    _id = NumberType(number_class=ObjectId, number_type="ObjectId")
 
-    # must be specified
-    collection = None
-    skeleton = None
+    @classmethod
+    def check_collection(cls, collection):
+        return collection or getattr(cls, 'MONGO_COLLECTION', None)
 
-    def __init__(self, base_dict=None, **kwargs):
-        model = dict(self.skeleton)
-        if base_dict:
-            model.update(base_dict)
-        if kwargs:
-            model.update(kwargs)
-        super(BaseModel, self).__init__(model)
+    @classmethod
+    def find_list_len(cls):
+        return getattr(cls, 'FIND_LIST_LEN', MAX_FIND_LIST_LEN)
 
-    database = database
+    @classmethod
+    def find_one(cls, db, params, collection=None, model=True, callback=None):
+        def wrap_callback(*args, **kwargs):
+            result = args[0]
+            error = args[1]
+            if not model or error or not result:
+                callback(*args, **kwargs)
+            else:
+                callback(cls(**result), error)
 
-    @property
-    def skeleton(self):
-        return self.get_static_property("skeleton")
+        db[cls.check_collection(collection)].find_one(
+            params, callback=wrap_callback)
 
-    @property
-    def collection(self):
-        return self.get_static_property("collection")
+    @classmethod
+    def remove_entries(cls, db, params, collection=None, callback=None):
+        c = cls.check_collection(collection)
+        db[c].remove(params, callback=callback)
 
-    def get_static_property(self, name):
-        prop = getattr(type(self), name, None)
-        if not prop:
-            raise NotImplementedError(
-                "You must specify {0} property for class {1}".format(
-                    name, self.__class__.__name__
-            ))
-        return prop
+    def save(self, db, collection=None, callback=None, **kwargs):
+        c = self.check_collection(collection)
+        db[c].save(to_python(self), callback=callback, **kwargs)
+
+    @classmethod
+    def find(cls, cursor, model=True, callback=None):
+        def wrap_callback(*args, **kwargs):
+            result = args[0]
+            error = args[1]
+            if not model or error or not result:
+                callback(*args, **kwargs)
+            else:
+                for i in xrange(len(result)):
+                    result[i] = cls(**result[i])
+                callback(result, error)
+        cursor.to_list(cls.find_list_len(), callback=wrap_callback)
+
+    @classmethod
+    def get_fields(cls, role):
+        rl = cls._options.roles[role]
+        fields = []
+        for field in cls._fields:
+            if not rl(field, None):
+                fields.append(field)
+        return fields
 
     def validate(self):
-        """ This method will be called before saving model to database.
-        Define here fields checks and preparations.
-        If validation succeeded, it must return empty defaultdict (or another
-        object, that treats by python as false: None, False, [], {}, ets)
-        Otherwise it must return collections.defaultdict(list) with errors in
-        format:
-        {'field_name1': "error description",
-         'field_name2': "error description",}
-        """
-        raise NotImplementedError(
-            "Define validate method for class {0}".format(
-                self.__class__.__name__
-        ))
-
-    def save(self, *args, **kwargs):
-        errors = self.validate()
-        if errors:
-            callback = kwargs.get('callback')
-            callback(None, errors)
-            return
-        return BaseModel.database[self.collection].save(self, *args, **kwargs)
-
-    def insert(self, *args, **kwargs):
-        errors = self.validate()
-        if errors:
-            callback = kwargs.get('callback')
-            callback(None, errors)
-            return
-        return self.database[self.collection].insert(self, *args, **kwargs)
-
-    @classmethod
-    def find(cls, pattern, limit=None):
-        """Async find method, wraper for motor to_list method.
-        The caller is responsible for making sure that there is enough memory
-        to store the results – it is strongly recommended you use a limit.
-        For details look
-        http://emptysquare.net/motor/pymongo/api/motor/motor_cursor.html#motor.MotorCursor.to_list
-        """
-        cursor = BaseModel.database[cls.collection].find(pattern)
-        if limit:
-            return cursor.limit(limit).to_list
-        else:
-            return cursor.to_list
-
-    @classmethod
-    def find_one(cls, *args, **kwargs):
-        return BaseModel.database[cls.collection].find_one(*args, **kwargs)
+        return validate_instance(self)

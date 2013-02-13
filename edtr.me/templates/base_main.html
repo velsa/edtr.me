@@ -2,23 +2,11 @@
 
 {% block extra_head %}
     {{ super() }}
-    <!-- bootstrap customizations -->
-    <style type="text/css">
-        .sidebar-nav {
-            padding: 11px 0;
-        }
-        a.brand {
-            font-variant: small-caps;
-        }
-        div.container-fluid {
-            font-weight: bold;
-        }
-    </style>
 {% endblock %}
 
 {% block body_before_container %}
     {{ super() }}
-    <div class="navbar"> <!-- navbar-fixed-top -->
+    <div class="main-header navbar"> <!-- navbar-fixed-top -->
         <div class="navbar-inner">
             <div class="container-fluid">
                 <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
@@ -26,23 +14,23 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </a>
-                <a class="brand" href="/">MarkDown Box</a>
+                <a class="brand" href="/">EDTR</a>
                 <div class="nav-collapse">
                     <ul class="nav">
                         <li id="navbar_home" class="navbar_li">
                             <a href="/">Home</a>
                         </li>
                         <li id="navbar_settings" class="navbar_li">
-                            <a href="{{get_url('settings')}}">Settings</a>
+                            <a href="{{reverse_url('settings')}}">Settings</a>
                         </li>
                         <li id="navbar_profile" class="navbar_li">
-                            <a href="{{get_url('profile')}}">Profile</a>
+                            <a href="{{reverse_url('profile')}}">Profile</a>
                         </li>
                     </ul>
                     <p class="navbar-text pull-right">
-                        <a href="{{get_url('profile')}}">{{ user['username'] }}</a>
+                        <a href="{{reverse_url('profile')}}">{{ user['username'] }}</a>
                         ({{ user['email'] }})
-                        <a href="{{get_url('logout')}}"
+                        <a href="{{reverse_url('logout')}}"
                                 style="margin-left: 20px;">Sign Out</a>
                     </p>
                 </div><!--/.nav-collapse -->
@@ -51,7 +39,7 @@
     </div>
 {% endblock %} <!-- body_before_container -->
 
-{% block body_container %}
+{% block extra_main_container %}
     {{ super() }}
 {% endblock %}
 
