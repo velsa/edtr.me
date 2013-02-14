@@ -14,7 +14,7 @@ define("config", default=None, help="tornado config file")
 define('flagfile', default='config.flags', help="dropbox key and secret")
 define("debug", default=False, help="debug mode")
 define("socketio", default=False, help="enable socketio interface")
-define("dbox_time", default=30000, help="Dropbox auto sync period, msec")
+define("dbox_time", default=300000, help="Dropbox auto sync period, msec")
 # These don't have defaults; see README for details.
 define('dropbox_consumer_key')
 define('dropbox_consumer_secret')
