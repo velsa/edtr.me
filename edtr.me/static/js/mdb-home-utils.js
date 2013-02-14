@@ -295,7 +295,7 @@ var edtrSplitters = {
 //
 var serverComm = {
     timer_interval:     1000,
-    api_v:              "/api/0.1/",
+    api_v:              "/v1/",
     human_status: {
         0:      "success",
         1:      "directory",
