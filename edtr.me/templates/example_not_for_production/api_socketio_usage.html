@@ -109,6 +109,21 @@
             <span id="btn_sio_copy_elem">SocketIO copy</span>
         </button>
     </div>
+
+    <div class="section">
+        <div>Publish element</div>
+        <div>
+            <span>Path:</span><input id='publish_path' type="text" value="">
+        </div>
+        <button id="publish_elem"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_publish_elem">AJAX publish</span>
+        </button>
+        <button id="sio_publish_elem"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_publish_elem">SocketIO publish</span>
+        </button>
+    </div>
 {% endblock %}
 
 {% block extra_footer %}
@@ -153,6 +168,9 @@
     }
     function getCopyTo(){
         return $('#copy_to_path').val()
+    }
+    function getPublishPath(){
+        return $('#publish_path').val()
     }
     </script>
     <!-- AJAX -->
@@ -301,7 +319,26 @@
                     console.log("_______ AJAX: copy end_________");
                 })
         }
-
+    })
+    $('#publish_elem').click(function(){
+        var path = getPublishPath();
+        if (path.length == 0){
+            alert("Path not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_publish')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "path": path
+                },
+                function(response) {
+                    console.log("__AJAX: publish_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: publish end_________");
+                })
+        }
     })
     </script>
 
