@@ -1,0 +1,145 @@
+//
+// Javascript extensions
+//
+// adds .startsWith(text) to any string
+if (typeof String.prototype.startsWith != 'function') {
+    String.prototype.startsWith = function (str){
+        return this.slice(0, str.length) == str;
+    };
+}
+// adds .format(text) to any string
+// "{0} is dead, but {1} is alive! {0} {2}".format("ASP", "ASP.NET")
+// outputs
+// ASP is dead, but ASP.NET is alive! ASP {2}
+if (typeof String.prototype.format != 'function') {
+    String.prototype.format = function() {
+      var args = arguments;
+      return this.replace(/\{(\d+)\}/g, function(match, number) {
+        return typeof args[number] != 'undefined' ? args[number] : match;
+      });
+    };
+}
+
+// adds element any array
+if (!Array.prototype.push) {
+    Array.prototype.push = function(elem) {
+        this[this.length]=elem;
+    };
+}
+
+
+//
+// Search helpers
+//
+// var search_words_attr = "";
+// var search_words = [];
+// var set_search_words = function(text) {
+//     search_words = [];
+//     search_words_attr = '[';
+//     //var arr_words = text.split(/\s+/);
+//     var arr_words = text.split(/\W+/);
+//     var seen_words = {};
+//     for (var i=0; i < arr_words.length; i++) {
+//         //if (arr_words[i].match(/^\w+$/g)) {
+//         if (arr_words[i] != "") {
+//             if (!seen_words[arr_words[i]]) {
+//                 seen_words[arr_words[i]] = true;
+//                 search_words.push(arr_words[i]);
+//                 search_words_attr += '"'+arr_words[i]+'"';
+//                 if (i != arr_words.length-1)
+//                     search_words_attr += ',';
+//                 else
+//                     search_words_attr += ']';
+//             }
+//         }
+//     }
+// };
+
+
+//
+// Misc helpers for modals, codemirror, registration, etc
+//
+var edtrHelper = {
+    username_chars:     "!@#$%^&*()+=[]\\\';,/{}|\":<>?",
+    filename_chars:     "!@#$%^&*()[]\\\';,/{}|\":<>?",
+
+    check_invalid_chars:    function(ichars, name){
+        for (var i = 0; i < name.length; i++) {
+            if (ichars.indexOf(name.charAt(i)) != -1) {
+                return true;
+            }
+        }
+        return false;
+    },
+    
+    check_valid_username:   function(username) {
+        return !this.check_invalid_chars(this.username_chars, username);
+    },
+    
+    check_valid_filename:   function(filename) {
+        return !this.check_invalid_chars(this.filename_chars, filename);
+    },
+    
+    // Will return:
+    //      null if no ext in filename or filename is ''
+    //      actual extension if filename has one
+    //      ('' if filename is in form 'somename.')
+    get_filename_ext:       function(filename) {
+        //ext = (/[.]/.exec(filename)) ? /[^.]+$/.exec(filename) : undefined;
+        //ext = filename.split('.').pop();
+        var ext = /^.+\.([^.]*)$/.exec(filename);
+        if (ext)
+            return ext[1];
+        else
+            return null;
+    },
+    
+    // Will return:
+    //      null if no bare part in filename (e.g. '.gif' or '')
+    //      filename without extension otherwise
+    get_filename_bare:       function(filename) {
+        var bare = /^(.+)\.[^.]*$/.exec(filename);
+        if (bare)
+            return bare[1];
+        else
+            return null;
+    },
+    
+    // Will return:
+    //      null if no path precedes filename (e.g. 'filename.ext' or '')
+    //      path of filename WITHOUT trailing '/' otherwise
+    //      e.g:
+    //      '/dir1/filename' -> '/dir1'
+    //      '/filename' -> '/'
+    get_filename_path:       function(filename) {
+        if (filename[0] !== '/')
+            return null;
+        var path = /^(.+)\/[^\/]*$/.exec(filename);
+        if (path)
+            return path[1];
+        else
+            return "/";
+    },
+
+    // root and filename should have NO trailing '/' !
+    //
+    // Will return:
+    //      null if filename is not part of root (e.g. '/dir2', '/dir1/filename.ext')
+    //      e.g:
+    //      '/dir1', /dir1/dir2/filename' -> '/dir2/filename'
+    //      '/', '/filename' -> '/filename'
+    get_relative_to_root:       function(root, filename) {
+        if (filename[0] !== '/')
+            return root === '/' ? root + filename : root + '/' + filename;
+        if (filename.indexOf(filename) === -1) {
+            return null;
+        }
+        else {
+            var relative = filename.substr(root.length);
+            if (relative[0] !== "/")
+                return "/"+relative;
+            else
+                return relative;
+        }
+    }
+};

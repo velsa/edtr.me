@@ -1,21 +1,36 @@
+
 UI:
 - codemirror themes
 - replace home icon in tree with dropbox icon
+- general settings dialog:  codemirror theme, preview follows cursor
+- folder settings: bind to existing domain name, 
+- tabs in editor
+- dropbox tree with icons according to filetype and also special icons for each type: 'editing', 'published'
+- add sort by name, ext (default), date, sort order (ascending/descending)
+- show file info (get from server)
+- recent files submenu in File menu
+- tree and editor keyboard shortcuts. decide where to use alt and ctrl (avoid clashing with mac and windows browser shortcuts) and make tree actions accessible from within editor
+- add search field on toolbar with autocomplete 
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
 
 JS:
-- dropbox tree with icons: use zTree
-- marked: add code highlighting (see example on their github page) 
-+ codemirror hangs on gfm and on smart enter @done (2013-01-21 18:12)
+- marked: add code highlighting (see example on their github page)
+- publish functionality: 
+    - *from editor* with Publish button. If file is already published and unmodified, Publish button is greyed out. 
+    - *from tree*: Web->Publish. If on directory, a confirmation dialog pops up, asking wether to publish all subdirs and files in this dir.
 
 BUGS:
-- in chrome, when selection is active in codemirror and mouse moves to tree area, selection disappears. Actually, and edit operation is being performed on codemirror. Why ?
 - ztree: it would be really nice to be able to drag node visually (as icon or as a text line) and to visually see which node it will become a child of (e.g. highlight the whole parent node structure during drag)
 - ztree: if parent node is checked, but not loaded with ajax, its check_Child_State is -1, but when it is loaded, the check_Child_State becomes 1, although none of it's children are checked. So the check_Child_State should actually become 0
+- ztree: refresh dir node without closing it first
+- save doesn't check for exceptions (network errors, etc). Show "Saving..." text above rotating circle
 - _xsrf: make a test ajax request on page load to force tornado to set the cookie
 
 After alfa:
 - Ad comments from facebook and disqus
 - Integrate with ftp, livejournal and habrahanr for external publishing (in directory settings). Make a post on habr about it and work with feedback
+
+Ideas:
+- Add [reStructuredText mode](http://javascript.ru/forum/job/33595-js-professional-v-startap.html) in Codemirror and integration with [readthedocs.org](http://readthedocs.org)

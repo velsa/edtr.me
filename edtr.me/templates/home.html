@@ -27,7 +27,6 @@
      -->
     <link rel="stylesheet" href="{{ static_url('fancybox/source/jquery.fancybox.css') }}">
 
-
     <!--     zTree styles
     -->    
     <link rel="stylesheet" href="{{ static_url('ztree/css/zTreeStyle/zTreeStyle.css') }}">
@@ -80,23 +79,11 @@
             no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
         }
     </style>
-<!--
-    <script type="text/javascript" src="jquery.ztree.excheck-3.5.js"></script>
-    <script type="text/javascript" src="jquery.ztree.exedit-3.5.js"></script>
--->
 
      <!-- 
         Custom CSS 
     -->
     <link rel="stylesheet" href="{{ static_url('css/style.css') }}">
-<!--
-    <link rel="stylesheet" href="{{ static_url('css/md_preview/reset.css') }}">
-    <link rel="stylesheet" href="{{ static_url('css/md_preview/default.css') }}">
- -->
-
-    <!-- JQuery UI - breaks bootstrap tooltips ?
-    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
-     -->
 
     <!-- JQuery FancyBox
      -->
@@ -124,11 +111,13 @@
     <script src="{{ static_url('js/marked-vels.js') }}"></script>
 
     <!-- Our own code (order is important !) -->
-    <script src="{{ static_url('js/mdb-home-utils.js') }}"></script>
-    <script src="{{ static_url('js/mdb-home-codemirror.js') }}"></script>
-    <script src="{{ static_url('js/mdb-home-tree.js') }}"></script>
-    <script src="{{ static_url('js/mdb-home-modal.js') }}"></script>
-    <script src="{{ static_url('js/mdb-home.js') }}"></script>
+    <script src="{{ static_url('js/edtr-utils.js') }}"></script>
+    <script src="{{ static_url('js/modalDialog.js') }}"></script>
+    <script src="{{ static_url('js/edtrCodemirror.js') }}"></script>
+    <script src="{{ static_url('js/edtrTree.js') }}"></script>
+
+    <!-- This one actually runs -->
+    <script src="{{ static_url('js/main.js') }}"></script>
 {% endblock %} <!-- extra_head -->
 
 {% block body_before_container %}

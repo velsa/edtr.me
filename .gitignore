@@ -27,16 +27,19 @@ pip-log.txt
 #Mr Developer
 .mr.developer.cfg
 
-#Others
-activate_venv.bat
-venv/
-debugging/
-edtr.me/config.flags
-src/
+# velsa (on Mac)
+.idea
 *.sublime-project
 *.sublime-workspace
 TODO.txt
 *.TODO
 .ropeproject
 .DS_Store
+
+#Others
+activate_venv.bat
+venv/
+debugging/
+edtr.me/config.flags
+src/
 
