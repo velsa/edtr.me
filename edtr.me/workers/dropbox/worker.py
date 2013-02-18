@@ -239,7 +239,8 @@ class DropboxWorkerMixin(DropboxMixin):
             yield motor.Op(file_meta.save, self.db, collection=user.name)
             callback({
                 'status': ErrCode.ok,
-                'content': response.body.decode(encoding),
+                # TODO check file magic number to find encoding
+                'content': response.body.decode(encoding, 'replace'),
             })
             return
         else:
