@@ -2,8 +2,10 @@
 // Messages Bar
 //
 var messagesBar = {
-    fadein_time:    0,
-    fadeout_time:   200,
+    fadein_time:                    0,
+    fadeout_time:                   200,
+    notification_timeout:           1500,
+    notification_warning_timeout:   3000,
 
     init:    function(dom_elem, base_elem) {
         this.dom_elem = dom_elem;
@@ -39,11 +41,13 @@ var messagesBar = {
     },
     // Shows notification on blue background, which will disappear after timeout
     show_notification:  function(html_message) {
-        this.show_message(html_message, 'alert-info', this.fadein_time+html_message.length*80);
+        this.show_message(html_message, 'alert-info',
+            this.notification_timeout+html_message.length*80);
     },
-    // Shows notification on blue background, which will disappear after timeout
+    // Shows notification on blue background, which will disappear after timeout*10
     show_notification_warning:  function(html_message) {
-        this.show_message(html_message, '', this.fadein_time+html_message.length*80);
+        this.show_message(html_message, '',
+            this.notification_warning_timeout+html_message.length*80);
     },
 
     // Universal method
@@ -290,8 +294,7 @@ var edtrSplitters = {
 
 
 //
-// Get server result and call appropriate callbacks
-// Server stores all task_ids for user and will check their status for us
+// Handles all AJAX and Socket IO requests / responses
 //
 var serverComm = {
     timer_interval:     1000,
@@ -310,8 +313,60 @@ var serverComm = {
         30771:  "network failure"
     },
     max_success_status: 3,
+    sio: null,
 
     init:                   function() {
+        // TODO: HACK: Helps make socket connection more stable ?!
+        setTimeout(function() {
+            serverComm.sio = new io.connect(
+                'http://' + window.location.host + '?xsrf=' + serverComm.get_cookie("_xsrf")
+                // {
+                //     transports: ['xhr-polling']
+                // }
+            );
+
+            // Establish event handlers
+            serverComm.sio.on('connect', function() {
+                console.log("sio.on('connect'): connected");
+            });
+            serverComm.sio.on('disconnect', function() {
+                console.log("sio.on('disconnect'): reconnecting...");
+                serverComm.sio.socket.reconnect();
+            });
+
+            serverComm.sio.on('dbox_updates', function(response) {
+                console.log(response);
+                // We receive json string - convert it to object
+                response = JSON.parse(response);
+                // for (var f in response){
+                //     console.log(f+":", response[f]);
+                // }
+
+                if (response.status > serverComm.max_success_status) {
+                    // server failure
+                    messagesBar.show_error("ERROR in sio.on('dbox_updates'):"+
+                        serverComm.human_status[response.status]);
+                    return;
+                }
+
+                // Process updates
+                // We do it recursively to allow step by step processing in edtrTree
+                function recursive_update(index, updates) {
+                    // End recursion
+                    if (index === updates.length)
+                        return;
+                    edtrTree.process_server_update("dropbox",
+                        updates[index][0], updates[index][1], function(status) {
+                        if (!status) {
+                            // TODO: do we need to handle any errors here ?
+                        }
+                        recursive_update(index+1, updates);
+                    });
+                }
+                recursive_update(0, response.updates);
+            });
+        }, 1000);
+
         // $( document ).ajaxError(serverComm._ajax_failed);
     },
 
@@ -348,7 +403,7 @@ var serverComm = {
         $.post(serverComm.api_url(source, request), params, callback)
         .fail(function(jqXHR, textStatus, data) {
             if (textStatus !== "success") {
-                 // server failure
+                // server failure
                 messagesBar.show_error("ERROR: '"+source+" "+request+"' for <b>"+params.path+"</b><br>"+
                     jqXHR.status+": "+jqXHR.statusText);
                 callback.call(null, null, textStatus, jqXHR);

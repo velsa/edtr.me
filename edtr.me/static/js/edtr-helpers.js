@@ -80,6 +80,7 @@ var edtrHelper = {
         return !this.check_invalid_chars(this.filename_chars, filename);
     },
     
+    // Get extension from file path or filename
     // Will return:
     //      null if no ext in filename or filename is ''
     //      actual extension if filename has one
@@ -94,6 +95,7 @@ var edtrHelper = {
             return null;
     },
     
+    // Strip extension from file path or filename
     // Will return:
     //      null if no bare part in filename (e.g. '.gif' or '')
     //      filename without extension otherwise
@@ -105,6 +107,7 @@ var edtrHelper = {
             return null;
     },
     
+    // Extract path from full filename path
     // Will return:
     //      null if no path precedes filename (e.g. 'filename.ext' or '')
     //      path of filename WITHOUT trailing '/' otherwise
@@ -121,6 +124,24 @@ var edtrHelper = {
             return "/";
     },
 
+    // Extract filename from file path
+    // Will return:
+    //      null if filename ends with '/'
+    //      filename any path parts
+    //      e.g:
+    //      '/dir1/filename.ext' -> 'filename.ext'
+    //      'filename.ext' -> 'filename.ext'
+    get_filename:       function(filename) {
+        if (filename[0] !== '/')
+            return filename;
+        var name = /^.*\/([^\/]+)$/.exec(filename);
+        if (name)
+            return name[1];
+        else
+            return null;
+    },
+
+    // Strip root path from filename path
     // root and filename should have NO trailing '/' !
     //
     // Will return:

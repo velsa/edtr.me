@@ -264,23 +264,36 @@ var edtrTree = {
         return dirs.concat(files);
     },
 
+    // Transform server data into ztree node
+    _create_tree_node:      function (server_data) {
+        var tree_node = {
+            // Essentials
+            id:                 server_data._id,
+            name:               edtrHelper.get_filename(server_data._id),
+            path:               edtrHelper.get_filename_path(server_data._id),
+            isParent:           server_data.is_dir,
+            // Extra file info
+            size_bytes:         server_data.bytes,
+            size_text:          server_data.size,
+            mime_type:          server_data.mime_type,
+            modified:           server_data.modified,
+            rev_id:             server_data.rev,
+            rev_num:            server_data.revision,
+            thumb_exists:       server_data.thumb_exists
+        };
+        // Set specific icons for all files
+        // folders will have default ztree open/close icons
+        if (!tree_node.isParent)
+            tree_node.icon = "/static/dropbox-api-icons/16x16/"+server_data.icon+".gif";
+        return tree_node;
+    },
+
     // Called by zTree after receiving ajax response for node
     process_server_json:    function (ztree, parent_node, data) {
-        var nodes = [], root, cut_len, i;
-
-        if (!parent_node)
-            root = '/';
-        else
-            root = parent_node.id,
-        cut_len = root[root.length-1] === '/' ? root.length : root.length+1;
-
+        var nodes = [], i;
         // Build tree nodes from server data
         for (i in data.tree) {
-            nodes[i] = {
-                id:         data.tree[i]._id,
-                name:       data.tree[i]._id.substr(cut_len), // Cut parent path
-                isParent:   data.tree[i].is_dir
-            };
+            nodes[i] = edtrTree._create_tree_node(data.tree[i]);
         }
         return edtrTree.sort_nodes(nodes);
     },
@@ -850,7 +863,9 @@ var edtrTree = {
                 console.log("show_loading_node: already loading ?!");
             node.is_loading = true;
             node.saved_class = dom_ico.attr("class");
+            node.saved_bg  = dom_ico.css("background");
             dom_ico.attr("class", "button ico_loading");
+            dom_ico.css("background", "");
         } else {
             if (!node.is_loading) {
                 console.log("show_loading_node: already stopped ?!");
@@ -858,6 +873,7 @@ var edtrTree = {
             }
             node.is_loading = false;
             dom_ico.attr("class", node.saved_class);
+            dom_ico.css("background", node.saved_bg);
         }
     },
 
@@ -1200,6 +1216,90 @@ var edtrTree = {
             filename+", "+filename_new+" in "+path);
         // console.log("file_action ERROR:", action, path, filename, filename_new);
         return false;
+    },
+
+    //
+    // Perform requested file action in ztree:
+    // Called from modal dialog
+    //
+    // source:          protocol. currently only "dropbox" is supported
+    // file_path:       full path to the updated file
+    // update:          server object, containing details about the update
+    // callback:        we call this when update is done or failed, passing the
+    //                  success status (true or false)
+    //
+    process_server_update:  function(source, file_path, update, callback) {
+        // Sanity check
+        if (file_path === "/") {
+            messagesBar.show_internal_error("edtrTree.process_server_update", "Update on root ?! Ignoring...");
+            callback.call(null, false);
+            return;
+        }
+
+        // Find corresponding node
+        node = edtrTree.ztree.getNodeByParam("id", file_path);
+        // if (!node && !update) {
+        //     messagesBar.show_internal_error("edtrTree.process_server_update",
+        //          "Can't find node for "+file_path);
+        //     console.log(update);
+        //     callback.call(null, false);
+        //     return;
+        // }
+
+        // update is null when file was removed
+        if (!update) {
+            var node_type = "";
+            if (node) {
+                // parent_node = node.getParentNode();
+                edtrTree.ztree.removeNode(node, false);
+                // edtrTree.ztree.selectNode(parent_node, false);
+                node_type = node.isParent ? "Directory" : "File";
+            }
+            // Notify user
+            messagesBar.show_notification_warning("UPDATE: " +
+                node_type + " <strong>" + file_path +
+                "</strong> was removed from dropbox" +
+                (node ? "": " (wasn't shown)") );
+            // TODO: if file is opened in editor - ask user if he wants to close the tab
+            callback.call(null, true);
+            return;
+        }
+
+        // We have corresponding node in tree
+        if (node) {
+            // What should we do in this case ?
+            messagesBar.show_internal_error("UPDATE: File <strong>"+node.id+
+                "</strong> was in the tree ? Removed...");
+            edtrTree.ztree.removeNode(node, false);
+        }
+
+        // Add new node to the tree, based on update data
+        var parent_path = edtrHelper.get_filename_path(file_path);
+        parent_node = edtrTree.ztree.getNodeByParam("id", parent_path);
+        if (!parent_node) {
+            messagesBar.show_internal_error("edtrTree.process_server_update",
+                "Can't find parent node for "+file_path);
+            callback.call(null, false);
+            return;
+        }
+        // Only add new node if it's parent is open
+        // Otherwise skip adding and it will be automatically added when
+        // parent is opened by ajax
+        node = edtrTree._create_tree_node(update);
+        var shown = "";
+        if (parent_node.open) {
+            var new_node = edtrTree.ztree.addNodes(parent_node, [node], true)[0];
+            edtrTree.sort_node_in_parent(new_node, parent_node);
+        } else {
+            shown = " (not shown)";
+        }
+        // Notify user
+        messagesBar.show_notification_warning("UPDATE: New " +
+            (node.isParent ? "directory" : "file") +
+            " <strong>" + node.name + "</strong> was added to" +
+            " <strong>" + parent_path + "</strong>"+shown);
+        callback.call(null, true);
+        return;
     },
 
     //
