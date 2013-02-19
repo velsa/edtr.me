@@ -3,6 +3,7 @@ import os.path
 from datetime import datetime
 import logging
 from tornado import gen
+from tornado import httpclient
 from django.utils import simplejson as json
 import motor
 import pytz
@@ -393,12 +394,12 @@ class DropboxWorkerMixin(DropboxMixin):
         callback((True, file_meta))
 
     @gen.engine
-    def _get_obj_content(self, file_meta, user, recurse=False, callback=None):
+    def _get_obj_content(self, file_meta, user, download_bin=False, callback=None):
         path = file_meta._id
         if file_meta.is_dir:
-            r = yield gen.Task(self._get_tree_from_db, path, user, recurse)
+            r = yield gen.Task(self._get_tree_from_db, path, user)
             callback(r)
-        elif file_meta.mime_type in TEXT_MIMES:
+        elif file_meta.mime_type in TEXT_MIMES or download_bin:
             # make dropbox request
             api_url = self._get_file_url(path, 'files')
             file_meta.last_updated = datetime.now()
@@ -410,17 +411,21 @@ class DropboxWorkerMixin(DropboxMixin):
                 access_token=access_token)
             if _check_bad_response(response, callback):
                 return
-            encoding = self._get_response_encoding(response)
-            yield motor.Op(file_meta.save, self.db, collection=user.name)
-            callback({
-                'status': ErrCode.ok,
-                # TODO check file magic number to find encoding
-                'encoding': encoding,
-                'content': response.body.decode(encoding, 'replace'),
-            })
-            return
+            if download_bin:
+                # TODO: check file size and reject, if it big.
+                # TODO: maybe use chunk download like this:
+                # http://codingrelic.geekhold.com/2011/10/tornado-httpclient-chunked-downloads.html
+                callback({'status': ErrCode.ok, 'body': response.body})
+            else:
+                encoding = self._get_response_encoding(response)
+                yield motor.Op(file_meta.save, self.db, collection=user.name)
+                callback({
+                    'status': ErrCode.ok,
+                    # TODO check file magic number to find encoding
+                    'encoding': encoding,
+                    'content': response.body.decode(encoding, 'replace'),
+                })
         else:
-            # TODO: process dir separately
             url_trans, url_expires = None, None
             # check, if saved media url is already saved and not expired
             expires = file_meta.get_url_expires()
@@ -472,6 +477,11 @@ class DropboxWorkerMixin(DropboxMixin):
         logger.debug(u"File {0} published".format(path_file))
         return {"status": ErrCode.ok, "mime_type": "text"}
 
+    def _publish_binary(self, path_file, body):
+        with open(path_file, 'wb') as out:
+            out.write(body)
+        return {"status": ErrCode.ok}
+
     @gen.engine
     def _publish_object(self, file_meta, user, pub_root, recurse=False,
                                                first_call=True, callback=None):
@@ -481,11 +491,12 @@ class DropboxWorkerMixin(DropboxMixin):
                 file_meta._id))
             callback({"status": ErrCode.ok})
             return
-        obj = yield gen.Task(self._get_obj_content, file_meta, user)
-        obj_path = os.path.join(pub_root, file_meta._id.lstrip('/'))
-        if dir_recurse and not os.path.exists(obj_path):
-            os.makedirs(obj_path)
+        obj = yield gen.Task(
+            self._get_obj_content, file_meta, user, download_bin=True)
         if obj['status'] == ErrCode.ok:
+            obj_path = os.path.join(pub_root, file_meta._id.lstrip('/'))
+            if dir_recurse and not os.path.exists(obj_path):
+                os.makedirs(obj_path)
             if 'content' in obj:
                 # Text content
                 r = self._publish_text(obj_path, obj['content'])
@@ -501,8 +512,7 @@ class DropboxWorkerMixin(DropboxMixin):
                 callback({"status": ErrCode.ok, "mime_type": "dir"})
             else:
                 # Non text content. Save from given url.
-                callback({
-                    "status": ErrCode.not_implemented,
-                    "mime_type": "not_text"})
+                r = self._publish_binary(obj_path, obj['body'])
+                callback(r)
         else:
             callback(obj)
