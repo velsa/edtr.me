@@ -114,6 +114,7 @@
         <div>Publish element</div>
         <div>
             <span>Path:</span><input id='publish_path' type="text" value="">
+            <span>Recurse (if dir):</span><input id='publish_recurse' type="checkbox">
         </div>
         <button id="publish_elem"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
@@ -171,6 +172,9 @@
     }
     function getPublishPath(){
         return $('#publish_path').val()
+    }
+    function getPublishRecurse(){
+        return $('#publish_recurse').prop("checked");
     }
     </script>
     <!-- AJAX -->
@@ -325,10 +329,12 @@
         if (path.length == 0){
             alert("Path not specified");
         } else {
+            var recurse = getPublishRecurse();
             $.post("{{reverse_url('dropbox_publish')}}",
                 {
                     "_xsrf": getCookie("_xsrf"),
-                    "path": path
+                    "path": path,
+                    "recurse": recurse
                 },
                 function(response) {
                     console.log("__AJAX: publish_________");

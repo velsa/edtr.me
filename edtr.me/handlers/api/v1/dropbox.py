@@ -143,9 +143,10 @@ class DropboxPublish(DropboxHandler):
     @tornado.web.authenticated
     def post(self):
         path = self.get_argument("path", None)
+        recurse = self.get_argument("recurse", None) == 'true'
         if not path:
             self.finish_json_request({'status': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
-            data = yield gen.Task(self.wk_dbox_publish, user, path)
+            data = yield gen.Task(self.wk_dbox_publish, user, path, recurse)
             self.finish_json_request(data)

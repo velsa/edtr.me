@@ -22,7 +22,7 @@ DROPBOX_ENCODE_MAP = {
     'ISO-8859-8': 'cp1251',
 }
 DEFAULT_ENCODING = 'utf8'
-DELTA_PERIOD_SEC = 5
+DELTA_PERIOD_SEC = 20
 FILE_CONTENT_PERIOD_SEC = 5
 TEXT_MIMES = (
     'text/plain',
@@ -116,7 +116,7 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False,
             cursor = dbox_delta['cursor']
             if dbox_delta['reset']:
                 logger.debug(
-                    "Reseting user all files for '{0}'".format(user.name))
+                    u"Reseting user all files for '{0}'".format(user.name))
                 yield motor.Op(db[user.name].drop)
             for i, (e_path, entry) in enumerate(dbox_delta['entries']):
                 if attach_new:
@@ -171,7 +171,7 @@ def _dbox_sync_user(user, error):
         rst = yield gen.Task(
             _update_dbox_delta, db, async_dbox, user, skt_opened)
         if rst['status'] != ErrCode.ok:
-            logger.warning("Dropbox periodic update for user {0}"
+            logger.warning(u"Dropbox periodic update for user {0}"
                 "ended with status = {1}".format(user.name, rst['status']))
         elif skt_opened:
             if 'updates' in rst and rst['updates']:
@@ -188,38 +188,24 @@ class DropboxWorkerMixin(DropboxMixin):
         if r['status'] != ErrCode.ok:
             callback(r)
             return
-        if recurse:
-            callback({'status': ErrCode.not_implemented})
-        else:
-            path = self._unify_path(path)
-            cursor = self.db[user.name].find({"root_path": path},
-                fields=DropboxFile.public_exclude_fields())
-            files = yield motor.Op(cursor.to_list, DropboxFile.FIND_LIST_LEN)
-            result = {'status': ErrCode.ok, 'tree': files}
-            if len(files) == DropboxFile.FIND_LIST_LEN:
-                result['has_more'] = True
-                logger.debug(u"FIND_LIST_LEN reached for user '{0}',"
-                    " path '{1}".format(user.name, path))
-            callback(result)
+        result = yield gen.Task(self._get_tree_from_db, path, user, recurse)
+        callback(result)
 
     @gen.engine
     def wk_dbox_get_file(self, user, path, callback=None):
         path = self._unify_path(path)
-        success, data = yield gen.Task(self._get_filemeta_or_error,
-            path, user.name)
+        success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
             callback(data)
             return
         file_meta = data
-        result = yield gen.Task(
-            self._get_file_content_or_url, file_meta, path, user)
+        result = yield gen.Task(self._get_obj_content, file_meta, user)
         callback(result)
 
     @gen.engine
     def wk_dbox_save_file(self, user, path, text_content, callback=None):
         path = self._unify_path(path)
-        success, data = yield gen.Task(self._get_filemeta_or_error,
-            path, user.name)
+        success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
             callback(data)
             return
@@ -345,18 +331,16 @@ class DropboxWorkerMixin(DropboxMixin):
         callback({'status': ErrCode.ok})
 
     @gen.engine
-    def wk_dbox_publish(self, user, path, callback=None):
+    def wk_dbox_publish(self, user, path, recurse=False, callback=None):
         path = self._unify_path(path)
-        success, data = yield gen.Task(self._get_filemeta_or_error,
-            path, user.name)
+        success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
             callback(data)
             return
         file_meta = data
 
         pub_root = get_publish_root(user.name)
-        while path.startswith('/'):
-            path = path[1:]
+        path = path.lstrip('/')
         path_file = os.path.join(pub_root, path)
         if file_meta.is_dir:
             path_dir = path_file
@@ -366,20 +350,8 @@ class DropboxWorkerMixin(DropboxMixin):
             os.makedirs(path_dir)
 
         result = yield gen.Task(
-            self._get_file_content_or_url, file_meta, path, user)
-        if result['status'] == ErrCode.ok:
-            if 'content' in result:
-                # Text content
-                with open(path_file, 'wb') as f:
-                    f.write(result['content'].encode(DEFAULT_ENCODING))
-                logger.debug("File {0} published for user {0}".format(
-                    path_file, user.name))
-                callback({"status": ErrCode.ok, "mime_type": "text"})
-            else:
-                # Non text content. Save from given url.
-                callback({"status": ErrCode.ok, "mime_type": "not_text"})
-        else:
-            callback(result)
+            self._publish_object, file_meta, user, pub_root, recurse)
+        callback(result)
 
     def _unify_path(self, path):
         while len(path) > 1 and path.endswith('/'):
@@ -406,7 +378,7 @@ class DropboxWorkerMixin(DropboxMixin):
             path=urllib.quote(path.encode('utf8')))
 
     @gen.engine
-    def _get_filemeta_or_error(self, path, collection, callback):
+    def _get_filemeta(self, path, collection, callback):
         file_meta = yield motor.Op(DropboxFile.find_one, self.db,
             {"_id": path}, collection=collection)
         if not file_meta:
@@ -421,8 +393,12 @@ class DropboxWorkerMixin(DropboxMixin):
         callback((True, file_meta))
 
     @gen.engine
-    def _get_file_content_or_url(self, file_meta, path, user, callback):
-        if file_meta.mime_type in TEXT_MIMES:
+    def _get_obj_content(self, file_meta, user, recurse=False, callback=None):
+        path = file_meta._id
+        if file_meta.is_dir:
+            r = yield gen.Task(self._get_tree_from_db, path, user, recurse)
+            callback(r)
+        elif file_meta.mime_type in TEXT_MIMES:
             # make dropbox request
             api_url = self._get_file_url(path, 'files')
             file_meta.last_updated = datetime.now()
@@ -444,6 +420,7 @@ class DropboxWorkerMixin(DropboxMixin):
             })
             return
         else:
+            # TODO: process dir separately
             url_trans, url_expires = None, None
             # check, if saved media url is already saved and not expired
             expires = file_meta.get_url_expires()
@@ -472,3 +449,60 @@ class DropboxWorkerMixin(DropboxMixin):
                 'status': ErrCode.ok,
                 'url': url_trans,
                 'expires': url_expires})
+
+    @gen.engine
+    def _get_tree_from_db(self, path, user, recurse=False, callback=None):
+        if recurse:
+            callback({'status': ErrCode.not_implemented})
+        else:
+            path = self._unify_path(path)
+            cursor = self.db[user.name].find({"root_path": path},
+                fields=DropboxFile.public_exclude_fields())
+            files = yield motor.Op(cursor.to_list, DropboxFile.FIND_LIST_LEN)
+            result = {'status': ErrCode.ok, 'tree': files}
+            if len(files) == DropboxFile.FIND_LIST_LEN:
+                result['has_more'] = True
+                logger.debug(u"FIND_LIST_LEN reached for user '{0}',"
+                    " path '{1}".format(user.name, path))
+            callback(result)
+
+    def _publish_text(self, path_file, file_content):
+        with open(path_file, 'wb') as f:
+            f.write(file_content.encode(DEFAULT_ENCODING))
+        logger.debug(u"File {0} published".format(path_file))
+        return {"status": ErrCode.ok, "mime_type": "text"}
+
+    @gen.engine
+    def _publish_object(self, file_meta, user, pub_root, recurse=False,
+                                               first_call=True, callback=None):
+        dir_recurse = not first_call and file_meta.is_dir
+        if dir_recurse and not recurse:
+            logger.debug(u"_publish_object Skipping dir {0}, because not recurse".format(
+                file_meta._id))
+            callback({"status": ErrCode.ok})
+            return
+        obj = yield gen.Task(self._get_obj_content, file_meta, user)
+        obj_path = os.path.join(pub_root, file_meta._id.lstrip('/'))
+        if dir_recurse and not os.path.exists(obj_path):
+            os.makedirs(obj_path)
+        if obj['status'] == ErrCode.ok:
+            if 'content' in obj:
+                # Text content
+                r = self._publish_text(obj_path, obj['content'])
+                callback(r)
+            elif 'tree' in obj:
+                # Dir
+                for fm in obj['tree']:
+                    r = yield gen.Task(self._publish_object,
+                        DropboxFile(**fm), user, pub_root, recurse, False)
+                    if r['status'] != ErrCode.ok:
+                        callback(r)
+                        return
+                callback({"status": ErrCode.ok, "mime_type": "dir"})
+            else:
+                # Non text content. Save from given url.
+                callback({
+                    "status": ErrCode.not_implemented,
+                    "mime_type": "not_text"})
+        else:
+            callback(obj)
