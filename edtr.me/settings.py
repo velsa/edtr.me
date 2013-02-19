@@ -9,12 +9,18 @@ from jinja2 import Environment, FileSystemLoader
 path = lambda root, *a: os.path.join(root, *a)
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
+if os.name != "posix":
+    site_root = 'd:/temp/edtrme/'
+else:
+    site_root = '/var/www/users_site/'
+
 define("port", default=8888, help="run on the given port", type=int)
 define("config", default=None, help="tornado config file")
 define('flagfile', default='config.flags', help="dropbox key and secret")
 define("debug", default=False, help="debug mode")
 define("socketio", default=False, help="enable socketio interface")
 define("dbox_time", default=300000, help="Dropbox auto sync period, msec")
+define("site_root", default=site_root, help="Path to users site data")
 # These don't have defaults; see README for details.
 define('dropbox_consumer_key')
 define('dropbox_consumer_secret')

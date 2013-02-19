@@ -19,7 +19,6 @@ class DropboxFile(BaseModel):
     is_dir = BooleanType()
     icon = StringType()
     root = StringType()
-    mime_type = StringType()
     size = StringType()
     last_updated = DateTimeType()
     url_trans = StringType()

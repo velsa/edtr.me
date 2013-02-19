@@ -12,6 +12,7 @@ from models.dropbox import DropboxFile
 from models.accounts import UserModel
 from utils.gl import DB, SocketPool
 from utils.error import ErrCode
+from utils.main import get_publish_root, get_preview_root
 logger = logging.getLogger('edtr_logger')
 
 
@@ -204,84 +205,25 @@ class DropboxWorkerMixin(DropboxMixin):
     @gen.engine
     def wk_dbox_get_file(self, user, path, callback=None):
         path = self._unify_path(path)
-        for i in range(2):
-            # first try to find file_meta in database
-            file_meta = yield motor.Op(DropboxFile.find_one, self.db,
-                {"_id": path}, collection=user.name)
-            if not file_meta:
-                if i > 0:
-                    # file not found in database and in dropbox
-                    callback({'status': ErrCode.not_found})
-                    return
-                elif not _delta_called_recently(user):
-                    # make sync with dropbox and check again
-                    r = yield gen.Task(
-                        _update_dbox_delta, self.db, self, user)
-                    if r['status'] != ErrCode.ok:
-                        callback({'status': ErrCode.not_found})
-                        return
-            else:
-                # Not allow to spam api very often
-                if self._skip_spam_filemeta(file_meta, callback):
-                    return
-        if file_meta.mime_type in TEXT_MIMES:
-            # make dropbox request
-            api_url = self._get_file_url(path, 'files')
-            file_meta.last_updated = datetime.now()
-            # TODO find a way to call save one time in this func
-            yield motor.Op(file_meta.save, self.db, collection=user.name)
-            access_token = user.get_dropbox_token()
-            response = yield gen.Task(self.dropbox_request,
-                "api-content", api_url,
-                access_token=access_token)
-            if _check_bad_response(response, callback):
-                return
-            encoding = self._get_response_encoding(response)
-            yield motor.Op(file_meta.save, self.db, collection=user.name)
-            callback({
-                'status': ErrCode.ok,
-                # TODO check file magic number to find encoding
-                'content': response.body.decode(encoding, 'replace'),
-            })
+        success, data = yield gen.Task(self._get_filemeta_or_error,
+            path, user.name)
+        if not success:
+            callback(data)
             return
-        else:
-            url_trans, url_expires = None, None
-            # check, if saved media url is already saved and not expired
-            expires = file_meta.get_url_expires()
-            now = pytz.UTC.localize(datetime.utcnow())
-            if file_meta.url_trans and expires and expires > now:
-                url_trans = file_meta.url_trans
-                url_expires = file_meta.url_expires
-            else:
-                # make dropbox request
-                access_token = user.get_dropbox_token()
-                api_url = self._get_file_url(path, 'media')
-                post_args = {}
-                response = yield gen.Task(self.dropbox_request,
-                    "api", api_url,
-                    access_token=access_token,
-                    post_args=post_args)
-                if _check_bad_response(response, callback):
-                    return
-                dbox_media_url = json.loads(response.body)
-                url_trans = dbox_media_url['url']
-                url_expires = dbox_media_url['expires']
-                file_meta.url_trans = url_trans
-                file_meta.set_url_expires(url_expires)
-                yield motor.Op(file_meta.save, self.db, collection=user.name)
-            callback({
-                'status': ErrCode.ok,
-                'url': url_trans,
-                'expires': url_expires})
+        file_meta = data
+        result = yield gen.Task(
+            self._get_file_content_or_url, file_meta, path, user)
+        callback(result)
 
     @gen.engine
     def wk_dbox_save_file(self, user, path, text_content, callback=None):
-        file_meta = yield motor.Op(DropboxFile.find_one, self.db,
-            {"_id": path}, collection=user.name)
-        # Not allow to spam api very often
-        # TODO skip calls, when not file_meta is found
-        if self._skip_spam_filemeta(file_meta, callback):
+        path = self._unify_path(path)
+        success, data = yield gen.Task(self._get_filemeta_or_error,
+            path, user.name)
+        if not success:
+            callback(data)
             return
+        file_meta = data
         if text_content:
             try:
                 text_content = text_content.encode(DEFAULT_ENCODING)
@@ -404,8 +346,40 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_publish(self, user, path, callback=None):
-        # TODO: currently stub
-        callback({'status': ErrCode.ok})
+        path = self._unify_path(path)
+        success, data = yield gen.Task(self._get_filemeta_or_error,
+            path, user.name)
+        if not success:
+            callback(data)
+            return
+        file_meta = data
+
+        pub_root = get_publish_root(user.name)
+        while path.startswith('/'):
+            path = path[1:]
+        path_file = os.path.join(pub_root, path)
+        if file_meta.is_dir:
+            path_dir = path_file
+        else:
+            path_dir = os.path.dirname(path_file)
+        if not os.path.exists(path_dir):
+            os.makedirs(path_dir)
+
+        result = yield gen.Task(
+            self._get_file_content_or_url, file_meta, path, user)
+        if result['status'] == ErrCode.ok:
+            if 'content' in result:
+                # Text content
+                with open(path_file, 'wb') as f:
+                    f.write(result['content'].encode(DEFAULT_ENCODING))
+                logger.debug("File {0} published for user {0}".format(
+                    path_file, user.name))
+                callback({"status": ErrCode.ok, "mime_type": "text"})
+            else:
+                # Non text content. Save from given url.
+                callback({"status": ErrCode.ok, "mime_type": "not_text"})
+        else:
+            callback(result)
 
     def _unify_path(self, path):
         while len(path) > 1 and path.endswith('/'):
@@ -431,11 +405,70 @@ class DropboxWorkerMixin(DropboxMixin):
             api_url=api_url,
             path=urllib.quote(path.encode('utf8')))
 
-    def _skip_spam_filemeta(self, file_meta, callback):
-        if file_meta and file_meta.last_updated:
+    @gen.engine
+    def _get_filemeta_or_error(self, path, collection, callback):
+        file_meta = yield motor.Op(DropboxFile.find_one, self.db,
+            {"_id": path}, collection=collection)
+        if not file_meta:
+            callback((False, {'status': ErrCode.not_found}))
+            return
+        # Not allow to spam api very often
+        if file_meta.last_updated:
             time_left = datetime.now() - file_meta.last_updated
             if time_left.total_seconds() < FILE_CONTENT_PERIOD_SEC:
-                callback({
-                    'status': ErrCode.called_too_often})
-                return True
-        return False
+                callback((False, {'status': ErrCode.called_too_often}))
+                return
+        callback((True, file_meta))
+
+    @gen.engine
+    def _get_file_content_or_url(self, file_meta, path, user, callback):
+        if file_meta.mime_type in TEXT_MIMES:
+            # make dropbox request
+            api_url = self._get_file_url(path, 'files')
+            file_meta.last_updated = datetime.now()
+            # TODO find a way to call save one time in this func
+            yield motor.Op(file_meta.save, self.db, collection=user.name)
+            access_token = user.get_dropbox_token()
+            response = yield gen.Task(self.dropbox_request,
+                "api-content", api_url,
+                access_token=access_token)
+            if _check_bad_response(response, callback):
+                return
+            encoding = self._get_response_encoding(response)
+            yield motor.Op(file_meta.save, self.db, collection=user.name)
+            callback({
+                'status': ErrCode.ok,
+                # TODO check file magic number to find encoding
+                'encoding': encoding,
+                'content': response.body.decode(encoding, 'replace'),
+            })
+            return
+        else:
+            url_trans, url_expires = None, None
+            # check, if saved media url is already saved and not expired
+            expires = file_meta.get_url_expires()
+            now = pytz.UTC.localize(datetime.utcnow())
+            if file_meta.url_trans and expires and expires > now:
+                url_trans = file_meta.url_trans
+                url_expires = file_meta.url_expires
+            else:
+                # make dropbox request
+                access_token = user.get_dropbox_token()
+                api_url = self._get_file_url(path, 'media')
+                post_args = {}
+                response = yield gen.Task(self.dropbox_request,
+                    "api", api_url,
+                    access_token=access_token,
+                    post_args=post_args)
+                if _check_bad_response(response, callback):
+                    return
+                dbox_media_url = json.loads(response.body)
+                url_trans = dbox_media_url['url']
+                url_expires = dbox_media_url['expires']
+                file_meta.url_trans = url_trans
+                file_meta.set_url_expires(url_expires)
+                yield motor.Op(file_meta.save, self.db, collection=user.name)
+            callback({
+                'status': ErrCode.ok,
+                'url': url_trans,
+                'expires': url_expires})
