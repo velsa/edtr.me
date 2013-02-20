@@ -471,45 +471,56 @@ class DropboxWorkerMixin(DropboxMixin):
                     " path '{1}".format(user.name, path))
             callback(result)
 
+    def _check_path(self, path_file):
+        f_dir = os.path.dirname(path_file)
+        if not os.path.exists(f_dir):
+            os.makedirs(f_dir)
+
     def _publish_text(self, path_file, file_content):
+        self._check_path(path_file)
         with open(path_file, 'wb') as f:
             f.write(file_content.encode(DEFAULT_ENCODING))
         logger.debug(u"File {0} published".format(path_file))
         return {"status": ErrCode.ok, "mime_type": "text"}
 
     def _publish_binary(self, path_file, body):
+        self._check_path(path_file)
         with open(path_file, 'wb') as out:
             out.write(body)
         return {"status": ErrCode.ok}
 
     @gen.engine
+    def _publish_dir(self, obj, user, pub_root, recurse, callback):
+        for fm in obj['tree']:
+            r = yield gen.Task(self._publish_object,
+                DropboxFile(**fm), user, pub_root, recurse, False)
+            if r['status'] != ErrCode.ok:
+                callback(r)
+                return
+        callback({"status": ErrCode.ok, "mime_type": "dir"})
+
+    @gen.engine
     def _publish_object(self, file_meta, user, pub_root, recurse=False,
                                                first_call=True, callback=None):
-        dir_recurse = not first_call and file_meta.is_dir
-        if dir_recurse and not recurse:
-            logger.debug(u"_publish_object Skipping dir {0}, because not recurse".format(
-                file_meta._id))
+        if not first_call and file_meta.is_dir and not recurse:
+            logger.debug(
+                u"_publish_object Skipping dir {0}, because not recurse"\
+                .format(file_meta._id))
             callback({"status": ErrCode.ok})
             return
         obj = yield gen.Task(
             self._get_obj_content, file_meta, user, download_bin=True)
         if obj['status'] == ErrCode.ok:
             obj_path = os.path.join(pub_root, file_meta._id.lstrip('/'))
-            if dir_recurse and not os.path.exists(obj_path):
-                os.makedirs(obj_path)
             if 'content' in obj:
                 # Text content
                 r = self._publish_text(obj_path, obj['content'])
                 callback(r)
             elif 'tree' in obj:
                 # Dir
-                for fm in obj['tree']:
-                    r = yield gen.Task(self._publish_object,
-                        DropboxFile(**fm), user, pub_root, recurse, False)
-                    if r['status'] != ErrCode.ok:
-                        callback(r)
-                        return
-                callback({"status": ErrCode.ok, "mime_type": "dir"})
+                r = yield gen.Task(self._publish_dir,
+                    obj, user, pub_root, recurse)
+                callback(r)
             else:
                 # Non text content. Save from given url.
                 r = self._publish_binary(obj_path, obj['body'])
