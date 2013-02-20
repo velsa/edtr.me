@@ -75,7 +75,8 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
         SocketPool.add_socket(user['_id'], self.dbox_updates)
 
     def on_close(self):
-        SocketPool.remove_socket(self.user['_id'])
+        if hasattr(self, 'user'):
+            SocketPool.remove_socket(self.user['_id'])
 
     def on_message(self, message):
         self.send(message + "from server")

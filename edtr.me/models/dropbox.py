@@ -6,6 +6,16 @@ from schematics.serialize import (blacklist)
 PUBLIC_EXCLUDE = 'last_updated',
 
 
+class PS:
+    dbox = 0
+    published = 1
+    draft = 2
+
+    @classmethod
+    def _all(cls):
+        return [getattr(cls, a) for a in dir(cls) if not a.startswith("_")]
+
+
 class DropboxFile(BaseModel):
     _id = StringType()
     revision = IntType()
@@ -23,6 +33,8 @@ class DropboxFile(BaseModel):
     last_updated = DateTimeType()
     url_trans = StringType()
     url_expires = StringType()
+    pub_status = IntType(choices=PS._all())
+    pub_revision = IntType()
 
     FIND_LIST_LEN = 250
 

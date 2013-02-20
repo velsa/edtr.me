@@ -3,13 +3,12 @@ import os.path
 from datetime import datetime
 import logging
 from tornado import gen
-from tornado import httpclient
 from django.utils import simplejson as json
 import motor
 import pytz
 
 from utils.async_dropbox import DropboxMixin
-from models.dropbox import DropboxFile
+from models.dropbox import DropboxFile, PS
 from models.accounts import UserModel
 from utils.gl import DB, SocketPool
 from utils.error import ErrCode
@@ -24,7 +23,7 @@ DROPBOX_ENCODE_MAP = {
 }
 DEFAULT_ENCODING = 'utf8'
 DELTA_PERIOD_SEC = 20
-FILE_CONTENT_PERIOD_SEC = 5
+F_CONT_PER_SEC = 5
 TEXT_MIMES = (
     'text/plain',
     'text/html',
@@ -194,6 +193,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_get_file(self, user, path, callback=None):
+        # TODO: not allow call this api very often
         path = self._unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
@@ -205,6 +205,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_save_file(self, user, path, text_content, callback=None):
+        # TODO: not allow call this api very often
         path = self._unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
@@ -339,7 +340,9 @@ class DropboxWorkerMixin(DropboxMixin):
             callback(data)
             return
         file_meta = data
-
+        if file_meta.pub_status == PS.published and not recurse:
+            callback({"status": ErrCode.already_published})
+            return
         pub_root = get_publish_root(user.name)
         path = path.lstrip('/')
         path_file = os.path.join(pub_root, path)
@@ -385,12 +388,6 @@ class DropboxWorkerMixin(DropboxMixin):
         if not file_meta:
             callback((False, {'status': ErrCode.not_found}))
             return
-        # Not allow to spam api very often
-        if file_meta.last_updated:
-            time_left = datetime.now() - file_meta.last_updated
-            if time_left.total_seconds() < FILE_CONTENT_PERIOD_SEC:
-                callback((False, {'status': ErrCode.called_too_often}))
-                return
         callback((True, file_meta))
 
     @gen.engine
@@ -402,9 +399,6 @@ class DropboxWorkerMixin(DropboxMixin):
         elif file_meta.mime_type in TEXT_MIMES or download_bin:
             # make dropbox request
             api_url = self._get_file_url(path, 'files')
-            file_meta.last_updated = datetime.now()
-            # TODO find a way to call save one time in this func
-            yield motor.Op(file_meta.save, self.db, collection=user.name)
             access_token = user.get_dropbox_token()
             response = yield gen.Task(self.dropbox_request,
                 "api-content", api_url,
@@ -418,7 +412,6 @@ class DropboxWorkerMixin(DropboxMixin):
                 callback({'status': ErrCode.ok, 'body': response.body})
             else:
                 encoding = self._get_response_encoding(response)
-                yield motor.Op(file_meta.save, self.db, collection=user.name)
                 callback({
                     'status': ErrCode.ok,
                     # TODO check file magic number to find encoding
@@ -471,30 +464,51 @@ class DropboxWorkerMixin(DropboxMixin):
                     " path '{1}".format(user.name, path))
             callback(result)
 
-    def _check_path(self, path_file):
+    def _create_path_if_not_exist(self, path_file):
         f_dir = os.path.dirname(path_file)
         if not os.path.exists(f_dir):
             os.makedirs(f_dir)
 
-    def _publish_text(self, path_file, file_content):
-        self._check_path(path_file)
+    @gen.engine
+    def _publish_text(self, file_meta, user, pub_root, file_content, callback):
+        if file_meta.pub_status == PS.published:
+            logger.debug(u"{0} is already published".format(file_meta._id))
+            callback({"status": ErrCode.already_published})
+            return
+        path_file = os.path.join(pub_root, file_meta._id.lstrip('/'))
+        self._create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(file_content.encode(DEFAULT_ENCODING))
-        logger.debug(u"File {0} published".format(path_file))
-        return {"status": ErrCode.ok, "mime_type": "text"}
-
-    def _publish_binary(self, path_file, body):
-        self._check_path(path_file)
-        with open(path_file, 'wb') as out:
-            out.write(body)
-        return {"status": ErrCode.ok}
+        file_meta.pub_status = PS.published
+        file_meta.pub_revision = file_meta.revision
+        yield motor.Op(file_meta.save, self.db, collection=user.name)
+        callback({"status": ErrCode.ok, "mime_type": "text"})
 
     @gen.engine
-    def _publish_dir(self, obj, user, pub_root, recurse, callback):
+    def _publish_binary(self, file_meta, user, pub_root, body, callback):
+        if file_meta.pub_status == PS.published:
+            logger.debug(u"{0} is already published".format(file_meta._id))
+            callback({"status": ErrCode.already_published})
+            return
+        path_file = os.path.join(pub_root, file_meta._id.lstrip('/'))
+        self._create_path_if_not_exist(path_file)
+        with open(path_file, 'wb') as out:
+            out.write(body)
+        file_meta.pub_status = PS.published
+        file_meta.pub_revision = file_meta.revision
+        yield motor.Op(file_meta.save, self.db, collection=user.name)
+        callback({"status": ErrCode.ok, "mime_type": "bin"})
+
+    @gen.engine
+    def _publish_dir(self, file_meta, user, obj, pub_root, recurse, callback):
+        # TODO: find a way to save all file_meta in one db call
+        file_meta.pub_status = PS.published
+        file_meta.pub_revision = file_meta.revision
+        yield motor.Op(file_meta.save, self.db, collection=user.name)
         for fm in obj['tree']:
             r = yield gen.Task(self._publish_object,
                 DropboxFile(**fm), user, pub_root, recurse, False)
-            if r['status'] != ErrCode.ok:
+            if r['status'] not in (ErrCode.ok, ErrCode.already_published):
                 callback(r)
                 return
         callback({"status": ErrCode.ok, "mime_type": "dir"})
@@ -508,22 +522,27 @@ class DropboxWorkerMixin(DropboxMixin):
                 .format(file_meta._id))
             callback({"status": ErrCode.ok})
             return
+        if file_meta.pub_status == PS.published and not file_meta.is_dir:
+            callback({"status": ErrCode.already_published})
+            return
         obj = yield gen.Task(
             self._get_obj_content, file_meta, user, download_bin=True)
         if obj['status'] == ErrCode.ok:
-            obj_path = os.path.join(pub_root, file_meta._id.lstrip('/'))
+            # obj_path = os.path.join(pub_root, file_meta._id.lstrip('/'))
             if 'content' in obj:
                 # Text content
-                r = self._publish_text(obj_path, obj['content'])
+                r = yield gen.Task(self._publish_text,
+                    file_meta, user, pub_root, obj['content'])
                 callback(r)
             elif 'tree' in obj:
                 # Dir
                 r = yield gen.Task(self._publish_dir,
-                    obj, user, pub_root, recurse)
+                    file_meta, user, obj, pub_root, recurse)
                 callback(r)
             else:
                 # Non text content. Save from given url.
-                r = self._publish_binary(obj_path, obj['body'])
+                r = yield gen.Task(self._publish_binary,
+                    file_meta, user, pub_root, obj['body'])
                 callback(r)
         else:
             callback(obj)

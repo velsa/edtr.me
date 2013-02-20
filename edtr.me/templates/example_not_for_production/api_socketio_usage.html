@@ -176,6 +176,11 @@
     function getPublishRecurse(){
         return $('#publish_recurse').prop("checked");
     }
+    function checkStatus(response){
+        if (!response['status'] == 0){
+            alert("Bad status: " + response['status']);
+        }
+    }
     </script>
     <!-- AJAX -->
     <script type="text/javascript">
@@ -337,6 +342,7 @@
                     "recurse": recurse
                 },
                 function(response) {
+                    checkStatus(response);
                     console.log("__AJAX: publish_________");
                     for (f in response){
                         console.log(f+":")
