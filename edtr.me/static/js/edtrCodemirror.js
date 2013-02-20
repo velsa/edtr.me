@@ -482,14 +482,68 @@ function edtrCodemirror(content_type, content) {
         self.scroll_to_anchor();
     };
 
-    // TODO: bind Alt-M to set/remove markers on gutter
-    // TODO: and Alt-Shift-M to jump over markers
-    this.on_gutter_clicked = function(inst, n) {
+    this._make_marker = function() {
+      var marker = document.createElement("div");
+      marker.innerHTML = "●"; //"<span style=\"color: #add8e6;\">&gt;</span>
+      marker.className = "gutter-bookmark";
+      return marker;
+    };
+
+    // Toggle bookmark in gutter on mouse click in gutter
+    this.on_gutter_clicked = function(n, gutter) {
         var info = self.cm_editor.lineInfo(n);
-        if (info.markerText)
-            self.cm_editor.clearMarker(n);
-        else
-            self.cm_editor.setMarker(n, "<span style=\"color: #add8e6;\">&gt;</span> %N%");
+        self.cm_editor.setGutterMarker(n, "bookmarks", info.gutterMarkers ? null : self._make_marker());
+        // self.toggle_bookmark(null, {line: n, ch: 0});
+    };
+
+    // Remove bookmark at specified pos from array
+    // returns number of bookmarks left on the same line
+    // this._remove_bookmark = function(pos) {
+    //     var left = 0;
+    //     for (var i in self.bookmarks) {
+    //         if (bookmarks[i].lines[0].markedSpans[0].from === pos.ch)
+    //             break;
+    //     }
+    //     return left;
+    // };
+
+    // Toggle bookmark in gutter on keyboard shortcut
+    this.toggle_bookmark = function(inst, pos) {
+        // if (pos === undefined)
+        //     pos = self.cm_editor.getCursor(true);
+        // var marks = self.cm_editor.findMarksAt(pos);
+        // console.log(marks);
+        // if (!marks.length) {
+        //     // No bookmarks at this pos - set one
+        //     self.bookmarks.push(self.cm_editor.setBookmark(pos));
+        //     // And set gutter
+        //     self.cm_editor.setGutterMarker(pos.line, "bookmarks", self._make_marker());
+        // } else {
+        //     // There is already a bookmark at this position, clear it
+        //     marks[0].clear();
+        //     // Returns number of bookmarks left on the same line
+        //     // If it was the last one - clear gutter
+        //     if (self._remove_bookmark(pos) === 0)
+        //         self.cm_editor.setGutterMarker(pos.line, "bookmarks", null);
+
+        //     for (var i in marks) {
+        //         // small HACK - null is passed instead of inst by on_gutter_clicked()
+        //         // in this case we clear ALL marks
+        //         if (inst === null ||
+        //             marks[i].lines[0].markedSpans[0].from === pos.ch) {
+        //             marks[i].clear();
+        //             // When last mark is cleared - clear gutter
+        //             if (inst === null || marks.length === 1)
+        //                 self.cm_editor.setGutterMarker(pos.line, "bookmarks", null);
+        //             break;
+        //         }
+        //     }
+        //     // No marks at this pos, set new one
+        //     if (i === marks.length) {
+        //         self.cm_editor.setBookmark(pos);
+        //         // Gutter should already be set
+        //     }
+        // }
     };
 
     // SAVE BUTTON and Ctrl-S:
@@ -570,6 +624,7 @@ function edtrCodemirror(content_type, content) {
         this.tab_character              = "\t";
         this.tab_spaces                 = Array(4).join(" "); // should equal to tab_character
         this.list_character             = "-";
+        this.bookmarks                  = [];
         
         // Cache dom elements
         this.dom_elem           = dom_container;
@@ -594,7 +649,6 @@ function edtrCodemirror(content_type, content) {
         var cm_settings = {
             // TODO: all settings should accord to content_type
             mode:               "gfm",
-            lineNumbers:        true,
             lineWrapping:       true,
             matchBrackets:      true,
             pollInterval:       300,
@@ -606,6 +660,8 @@ function edtrCodemirror(content_type, content) {
             electricChars:      false,
             autoCloseTags:      true,   // TODO: apparently works only in text/html mode
                                         // make it work in gfm mode as well
+            lineNumbers:        true,
+            gutters:            ["CodeMirror-linenumbers", "bookmarks"],
 
             // TODO: find Mac equivalents
             extraKeys: {
@@ -621,6 +677,9 @@ function edtrCodemirror(content_type, content) {
                 "Tab":          this.tab,
                 "Shift-Tab":    this.shift_tab,
                 "Enter":        this.custom_new_line,
+
+                // Search / Navigation
+                "Shift-Ctrl-B": this.toggle_bookmark,
 
                 // Markdown
                 "Ctrl-H":       this.rotate_header,
@@ -644,7 +703,7 @@ function edtrCodemirror(content_type, content) {
         // .ON events
         this.cm_editor.on("change", this.on_change);
         this.cm_editor.on("cursorActivity", this.on_cursor_activity);
-        // onGutterClick:      this.on_gutter_clicked,
+        this.cm_editor.on("gutterClick", this.on_gutter_clicked);
 
         // Hides original text area, just in case
         // this.dom_elem.hide();

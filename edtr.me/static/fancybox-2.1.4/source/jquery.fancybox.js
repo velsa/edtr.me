@@ -1,6 +1,6 @@
 /*!
  * fancyBox - jQuery Plugin
- * version: 2.1.4 (Thu, 17 Jan 2013)
+ * version: 2.1.4 (Thu, 10 Jan 2013)
  * @requires jQuery v1.6 or later
  *
  * Examples at http://fancyapps.com/fancybox/
@@ -18,7 +18,7 @@
 		F = $.fancybox = function () {
 			F.open.apply( this, arguments );
 		},
-		IE =  navigator.userAgent.match(/msie/i),
+		IE =  navigator.userAgent.match(/msie/),
 		didUpdate = null,
 		isTouch	  = document.createTouch !== undefined,
 
@@ -438,7 +438,7 @@
 				stop = function () {
 					clear();
 
-					D.unbind('.player');
+					$('body').unbind('.player');
 
 					F.player.isActive = false;
 
@@ -448,9 +448,9 @@
 					if (F.current && (F.current.loop || F.current.index < F.group.length - 1)) {
 						F.player.isActive = true;
 
-						D.bind({
+						$('body').bind({
+							'afterShow.player onUpdate.player'   : set,
 							'onCancel.player beforeClose.player' : stop,
-							'onUpdate.player'   : set,
 							'beforeLoad.player' : clear
 						});
 
@@ -761,7 +761,7 @@
 				});
 			}
 
-			D.trigger(event);
+			$.event.trigger(event + '.fb');
 		},
 
 		isImage: function (str) {

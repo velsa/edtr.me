@@ -14,6 +14,16 @@ body {
     display:            inline-table !important;
 }
 
+.popover {
+    max-width:          100%;
+}
+.popover-file-info, .popover-dir-info {
+    white-space:        nowrap;
+}
+.popover-file-info td:first-child, .popover-dir-info td:first-child {
+    padding-right:      10px;
+}
+
 /* Add disabled state for items in sidebar
  */
 .dropdown-toggle {
@@ -57,8 +67,12 @@ body {
 *   Navigation bar
 */
 .main-header {
-    margin:             0;
+    margin-top:         -3px;
     height:             40px;
+}
+.main-header .navbar-inner {
+    min-height:         37px;
+    height:             37px;
 }
 .brand {
     font-variant:       small-caps;
@@ -331,6 +345,12 @@ body {
 }
 .CodeMirror-gutter {
     width:              3em;
+}
+.CodeMirror-gutter.bookmarks {
+    width:              0.8em;
+}
+.gutter-bookmark {
+    color:              red;
 }
 span.CodeMirror-matchhighlight {
     background:         #e9e9e9;

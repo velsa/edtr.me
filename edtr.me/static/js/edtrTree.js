@@ -34,7 +34,10 @@ var edtrTree = {
             view: {
                 selectedMulti:      false,
                 addHoverDom:        edtrTree.on_hover,
-                removeHoverDom:     edtrTree.on_unhover
+                removeHoverDom:     edtrTree.on_unhover,
+                // We remove the title attribute to avoid showing tooltip along with popover
+                showTitle:          false
+
             },
             edit: {
                 // Drag moves nodes without checking anything
@@ -100,13 +103,18 @@ var edtrTree = {
         // Setup keyboard navigation in tree
         var shiftKey = 16, ctrlKey = 17, altKey = 18, metaKey = 91,
             leftKey = 37, upKey = 38, rightKey = 39, downKey = 40,
-            spaceKey = 20, enterKey = 13,
+            spaceKey = 32, enterKey = 13,
             aKey = 65, shift = 'a'.charCodeAt(0)-aKey, key_char;
         edtrTree.dom_db_tree.keydown(function(e) {
             // console.log(e);
             // debugger;
             switch (e.keyCode) {
                 case metaKey:       e.stopPropagation(); return;
+                // Imitate on_hover when user holds shift key
+                case shiftKey:
+                    edtrTree.shift_key = true;
+                    edtrTree.on_hover(null, edtrTree.get_selected_node());
+                    break;
                 case leftKey:       key_char = "left"; e.preventDefault(); break;
                 case upKey:         key_char = "up"; e.preventDefault(); break;
                 case rightKey:      key_char = "right"; e.preventDefault(); break;
@@ -117,15 +125,24 @@ var edtrTree = {
             }
             edtrTree.process_key(e, key_char);
         }).keyup(function(e) {
-            // console.log(e);
+            // console.log(e.keyCode);
             switch (e.keyCode) {
-                case spaceKey:      key_char = "space"; e.stopPropagation(); break;
+                case spaceKey:      key_char = "space"; e.stopPropagation();e.preventDefault(); break;
                 case enterKey:      key_char = "enter"; e.stopPropagation(); break;
                 default:
                     // key_char = String.fromCharCode(e.keyCode+shift); break;
                     return;
             }
             edtrTree.process_key(e, key_char);
+        });
+
+        // Monitor shift key globally to show popover while focus is not in tree
+        edtrTree.shift_key = false;
+        $(document).on('keyup keydown', function(e) {
+            edtrTree.shift_key = e.shiftKey;
+            if (!edtrTree.shift_key && edtrTree.popover) {
+                edtrTree._hide_popover();
+            }
         });
 
         // Select root node
@@ -142,8 +159,8 @@ var edtrTree = {
                 action:     edtrTree.move_selection,
                 args:       []
             }, {
-                keys:       [ "Space" ],
-                action:     edtrTree.show_node_info,
+                keys:       [ "Ctrl-E" ],
+                action:     edtrTree.edit_node_info,
                 args:       []
             }, {
                 keys:       [ "Enter" ],
@@ -167,11 +184,12 @@ var edtrTree = {
                 args:       []
             }
         ],
-        i, k, l, shortcut_parts,
-        key_mods =  (e.shiftKey << 0) +
-                    (e.ctrlKey  << 1) +
-                    (e.altKey   << 2) +
-                    (e.metaKey  << 3);
+        i, k, l, shortcut_parts;
+        key_mods =
+            (e.shiftKey << 0) +
+            (e.ctrlKey  << 1) +
+            (e.altKey   << 2) +
+            (e.metaKey  << 3);
         for (i in shortcuts) {
             for (k in shortcuts[i].keys) {
                 shortcut_parts = shortcuts[i].keys[k].toLowerCase().split('-');
@@ -283,8 +301,10 @@ var edtrTree = {
         };
         // Set specific icons for all files
         // folders will have default ztree open/close icons
-        if (!tree_node.isParent)
+        if (!tree_node.isParent) {
             tree_node.icon = "/static/dropbox-api-icons/16x16/"+server_data.icon+".gif";
+            tree_node.large_icon = "/static/dropbox-api-icons/48x48/"+server_data.icon+"48.gif";
+        }
         return tree_node;
     },
 
@@ -510,20 +530,76 @@ var edtrTree = {
     // Called by zTree when mouse enters node
     //
     on_hover:               function(ztree, node) {
-        // if (edtrTree.hover_timer)
-        //     clearTimeout(edtrTree.hover_timer);
-        // edtrTree.hover_timer = setTimeout(function() {
-        //     console.log("show info");
-        //     edtrTree.hover_timer = null;
-        // }, 2000);
+        // Ignore root node
+        if (node.id === "/")
+            return;
+
+        // console.log(edtrTree.shift_key);
+        if (edtrTree.hover_timer) {
+            // HACK: ztree is null when we are called from on(shiftKey)
+            // and if mouse hover timer is already in progress, we give it preference
+            if (!ztree) return;
+            clearTimeout(edtrTree.hover_timer);
+        }
+        // var node_elem = $("#"+node.tId+"_a");
+        //     node_pos = node_elem.offset().top,
+        //     node_height = node_elem.height();
+        //     container = edtrTree.dom_db_tree.parent(),
+        //     container_top = container.offset().top,
+        //     container_bottom = container_top + container.height();
+        // console.log(node_pos - container_top, container_bottom - node_pos - node_height);
+        // Show popover when mouse sits on node for 1 second
+        // while Shift key is pressed
+        edtrTree.hover_timer = setTimeout(function() {
+            // console.log(edtrTree.shift_key);
+            edtrTree.hover_timer = null;
+            edtrTree._hide_popover();
+            if (!edtrTree.shift_key)
+                return;
+            edtrTree.popover_node = node;
+            edtrTree.popover = $("#"+node.tId+"_a").popover({
+                offset:     20,
+                trigger:    "manual",
+                container:  "body",
+                html:       true,
+                title:      "<strong>"+node.name+"</strong>",
+                content:    node.isParent ?
+                    $("#popover_tree_template").find(".popover-dir-info").html()
+                    .format(
+                        node.id,
+                        node.modified,
+                        node.rev_num
+                    )
+                    :
+                    $("#popover_tree_template").find(".popover-file-info").html()
+                    .format(
+                        node.id,
+                        node.size_text, node.size_bytes,
+                        node.mime_type ? node.mime_type : "none",
+                        node.modified,
+                        node.rev_num,
+                        node.thumb_exists
+                    )
+            }).data("popover");
+            edtrTree.popover.show();
+            // console.log("show info", node.tId);
+        }, 1000);
+    },
+
+    _hide_popover:          function() {
+        // return;
+        edtrTree.popover_node = null;
+        if (edtrTree.popover)
+            edtrTree.popover.destroy();
     },
 
     //
     // Called by zTree when mouse leaves node
     //
     on_unhover:             function(ztree, node) {
-        // if (edtrTree.hover_timer)
-        //     clearTimeout(edtrTree.hover_timer);
+        if (edtrTree.hover_timer)
+            clearTimeout(edtrTree.hover_timer);
+        edtrTree._hide_popover();
     },
 
     //
@@ -928,6 +1004,18 @@ var edtrTree = {
         refresh_level = 1;
         old_selection_id = edtrTree.get_selected_node().id;
         edtrTree.ztree.reAsyncChildNodes(old_parent, "refresh", false);
+    },
+
+    // User requested action
+    // We may need to display confirmation dialog
+    // We store all dialog params in modalDialog.params
+    // And modal uses it to display correct dialog and data
+    //
+    // action:      add_file, add_subdir, rename, remove, copy, cut, paste
+    //
+    edit_node_info:         function() {
+        debugger;
+        alert("hi there");
     },
 
     // User requested action
