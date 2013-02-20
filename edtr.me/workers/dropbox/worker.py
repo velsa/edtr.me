@@ -340,7 +340,9 @@ class DropboxWorkerMixin(DropboxMixin):
             callback(data)
             return
         file_meta = data
-        if file_meta.pub_status == PS.published and not recurse:
+        if file_meta.is_dir or recurse:
+            callback({"status": ErrCode.not_implemented})
+        if file_meta.pub_status == PS.published:
             callback({"status": ErrCode.already_published})
             return
         pub_root = get_publish_root(user.name)
@@ -499,32 +501,32 @@ class DropboxWorkerMixin(DropboxMixin):
         yield motor.Op(file_meta.save, self.db, collection=user.name)
         callback({"status": ErrCode.ok, "mime_type": "bin"})
 
-    @gen.engine
-    def _publish_dir(self, file_meta, user, obj, pub_root, recurse, callback):
-        # TODO: find a way to save all file_meta in one db call
-        file_meta.pub_status = PS.published
-        file_meta.pub_revision = file_meta.revision
-        yield motor.Op(file_meta.save, self.db, collection=user.name)
-        for fm in obj['tree']:
-            r = yield gen.Task(self._publish_object,
-                DropboxFile(**fm), user, pub_root, recurse, False)
-            if r['status'] not in (ErrCode.ok, ErrCode.already_published):
-                callback(r)
-                return
-        callback({"status": ErrCode.ok, "mime_type": "dir"})
+    # @gen.engine
+    # def _publish_dir(self, file_meta, user, obj, pub_root, recurse, callback):
+    #     # TODO: find a way to save all file_meta in one db call
+    #     file_meta.pub_status = PS.published
+    #     file_meta.pub_revision = file_meta.revision
+    #     yield motor.Op(file_meta.save, self.db, collection=user.name)
+    #     for fm in obj['tree']:
+    #         r = yield gen.Task(self._publish_object,
+    #             DropboxFile(**fm), user, pub_root, recurse, False)
+    #         if r['status'] not in (ErrCode.ok, ErrCode.already_published):
+    #             callback(r)
+    #             return
+    #     callback({"status": ErrCode.ok, "mime_type": "dir"})
 
     @gen.engine
     def _publish_object(self, file_meta, user, pub_root, recurse=False,
                                                first_call=True, callback=None):
-        if not first_call and file_meta.is_dir and not recurse:
-            logger.debug(
-                u"_publish_object Skipping dir {0}, because not recurse"\
-                .format(file_meta._id))
-            callback({"status": ErrCode.ok})
-            return
-        if file_meta.pub_status == PS.published and not file_meta.is_dir:
-            callback({"status": ErrCode.already_published})
-            return
+        # if not first_call and file_meta.is_dir and not recurse:
+        #     logger.debug(
+        #         u"_publish_object Skipping dir {0}, because not recurse"\
+        #         .format(file_meta._id))
+        #     callback({"status": ErrCode.ok})
+        #     return
+        # if file_meta.pub_status == PS.published and not file_meta.is_dir:
+        #     callback({"status": ErrCode.already_published})
+        #     return
         obj = yield gen.Task(
             self._get_obj_content, file_meta, user, download_bin=True)
         if obj['status'] == ErrCode.ok:
@@ -534,11 +536,11 @@ class DropboxWorkerMixin(DropboxMixin):
                 r = yield gen.Task(self._publish_text,
                     file_meta, user, pub_root, obj['content'])
                 callback(r)
-            elif 'tree' in obj:
-                # Dir
-                r = yield gen.Task(self._publish_dir,
-                    file_meta, user, obj, pub_root, recurse)
-                callback(r)
+            # elif 'tree' in obj:
+            #     # Dir
+            #     r = yield gen.Task(self._publish_dir,
+            #         file_meta, user, obj, pub_root, recurse)
+            #     callback(r)
             else:
                 # Non text content. Save from given url.
                 r = yield gen.Task(self._publish_binary,
