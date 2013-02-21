@@ -513,7 +513,10 @@ class DropboxWorkerMixin(DropboxMixin):
         file_meta.pub_status = PS.published
         file_meta.pub_revision = file_meta.rev
         yield motor.Op(file_meta.update, self.db, collection=user.name)
-        callback({"status": ErrCode.ok, "mime_type": "text"})
+        callback({
+            "status": ErrCode.ok,
+            "mime_type": "text",
+            "meta": make_safe_python(DropboxFile, file_meta, 'public')})
 
     @gen.engine
     def _publish_binary(self, file_meta, user, pub_root, body, callback):
@@ -528,13 +531,16 @@ class DropboxWorkerMixin(DropboxMixin):
         file_meta.pub_status = PS.published
         file_meta.pub_revision = file_meta.rev
         yield motor.Op(file_meta.update, self.db, collection=user.name)
-        callback({"status": ErrCode.ok, "mime_type": "bin"})
+        callback({
+            "status": ErrCode.ok,
+            "mime_type": "bin",
+            "meta": make_safe_python(DropboxFile, file_meta, 'public')})
 
     @gen.engine
     def _publish_object(self, file_meta, user, pub_root, recurse=False,
                                                first_call=True, callback=None):
         obj = yield gen.Task(self._get_obj_content,
-            file_meta, user, download_bin=True)
+            file_meta, user, for_publish=True)
         if obj['status'] == ErrCode.ok:
             if 'content' in obj:
                 # Text content
