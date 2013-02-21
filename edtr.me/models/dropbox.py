@@ -3,7 +3,7 @@ from schematics.types import (StringType, IntType, BooleanType, DateTimeType)
 from models.base import BaseModel
 from schematics.serialize import (blacklist)
 
-PUBLIC_EXCLUDE = 'last_updated',
+DBOX_PUBLIC_EXCLUDE = 'last_updated',
 
 
 class PS:
@@ -34,19 +34,19 @@ class DropboxFile(BaseModel):
     url_trans = StringType()
     url_expires = StringType()
     pub_status = IntType(choices=PS._all())
-    pub_revision = IntType()
+    pub_revision = StringType()
 
     FIND_LIST_LEN = 250
 
     class Options:
         roles = {
-            'public': blacklist(PUBLIC_EXCLUDE),
+            'public': blacklist(*DBOX_PUBLIC_EXCLUDE),
         }
 
     @classmethod
     def public_exclude_fields(cls):
         d = {}
-        for f in PUBLIC_EXCLUDE:
+        for f in DBOX_PUBLIC_EXCLUDE:
             d[f] = False
         return d
 

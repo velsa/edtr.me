@@ -6,6 +6,7 @@ from tornado import gen
 from django.utils import simplejson as json
 import motor
 import pytz
+from schematics.serialize import make_safe_python, to_python
 
 from utils.async_dropbox import DropboxMixin
 from models.dropbox import DropboxFile, PS
@@ -51,13 +52,17 @@ def _delta_called_recently(user):
 
 def _check_bad_response(response, callback=None):
     if response.code != 200:
-        error = 'undefined'
-        if 'error' in response.body:
-            error = json.loads(response.body)['error']
+        error, descr = 'undefined', 'undefined'
+        if hasattr(response, 'error'):
+            error = response.error
+        if response.body:
+            descr = response.body
         result = {
             "status": ErrCode.bad_request,
             'http_code': response.code,
             'error': error,
+            'description': descr,
+
         }
         logger.error(result)
         if callback:
@@ -67,12 +72,17 @@ def _check_bad_response(response, callback=None):
 
 
 @gen.engine
-def _save_meta(db, meta_data, colln, update=True, callback=None):
-    meta_data['_id'] = meta_data.pop('path')
-    meta_data['root_path'] = os.path.dirname(meta_data['_id'])
+def _update_meta(db, meta_data, colln, update=True, callback=None):
+    meta = dict(meta_data)
+    _id = meta.pop('path')
+    meta['root_path'] = os.path.dirname(_id)
     if update:
-        meta_data['last_updated'] = datetime.now()
-    db[colln].save(meta_data, callback=callback)
+        meta['last_updated'] = datetime.now()
+    r = yield motor.Op(db[colln].update, {"_id": _id}, {"$set": meta})
+    meta['_id'] = _id
+    if not r['updatedExisting']:
+        yield motor.Op(db[colln].save, meta)
+    callback(meta)
 
 
 def has_dbox_access(user):
@@ -138,7 +148,7 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False,
                             known_changed_paths.append(i)
                     # TODO
                     # maybe there is a way to save files in one db call
-                    yield motor.Op(_save_meta, db, entry, user.name, False)
+                    yield gen.Task(_update_meta, db, entry, user.name, False)
             if attach_new and dbox_delta['entries']:
                 # assert 'known_changed_paths' indexes are in ascending order
                 for offset, index in enumerate(known_changed_paths):
@@ -232,7 +242,7 @@ class DropboxWorkerMixin(DropboxMixin):
         file_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders, but maybe let it be
         # just not allow user in UI to create /a/b/f.txt, if /a not exists
-        yield motor.Op(_save_meta, self.db, file_meta, user.name)
+        yield gen.Task(_update_meta, self.db, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
     @gen.engine
@@ -253,7 +263,7 @@ class DropboxWorkerMixin(DropboxMixin):
         file_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders, but maybe let it be
         # just not allow  user in UI to create /a/b/, if /a not exists
-        yield motor.Op(_save_meta, self.db, file_meta, user.name)
+        yield gen.Task(_update_meta, self.db, file_meta, user.name)
         callback({'status': ErrCode.ok})
 
     @gen.engine
@@ -304,7 +314,7 @@ class DropboxWorkerMixin(DropboxMixin):
         if _check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        yield motor.Op(_save_meta, self.db, file_meta, user.name)
+        yield gen.Task(_update_meta, self.db, file_meta, user.name)
         # TODO: is it save to leave now, not to wait for delta result ?
         _update_dbox_delta(self.db, self, user, force_update=True)
         callback({'status': ErrCode.ok})
@@ -327,7 +337,7 @@ class DropboxWorkerMixin(DropboxMixin):
         if _check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        yield motor.Op(_save_meta, self.db, file_meta, user.name)
+        yield gen.Task(_update_meta, self.db, file_meta, user.name)
         # TODO: is it save to leave now, not to wait for delta result ?
         _update_dbox_delta(self.db, self, user, force_update=True)
         callback({'status': ErrCode.ok})
@@ -393,12 +403,13 @@ class DropboxWorkerMixin(DropboxMixin):
         callback((True, file_meta))
 
     @gen.engine
-    def _get_obj_content(self, file_meta, user, download_bin=False, callback=None):
+    def _get_obj_content(self, file_meta, user, for_publish=False,
+                                                                callback=None):
         path = file_meta._id
         if file_meta.is_dir:
             r = yield gen.Task(self._get_tree_from_db, path, user)
             callback(r)
-        elif file_meta.mime_type in TEXT_MIMES or download_bin:
+        elif file_meta.mime_type in TEXT_MIMES or for_publish:
             # make dropbox request
             api_url = self._get_file_url(path, 'files')
             access_token = user.get_dropbox_token()
@@ -407,18 +418,36 @@ class DropboxWorkerMixin(DropboxMixin):
                 access_token=access_token)
             if _check_bad_response(response, callback):
                 return
-            if download_bin:
-                # TODO: check file size and reject, if it big.
-                # TODO: maybe use chunk download like this:
-                # http://codingrelic.geekhold.com/2011/10/tornado-httpclient-chunked-downloads.html
-                callback({'status': ErrCode.ok, 'body': response.body})
+            meta_dbox = json.loads(response.headers['X-Dropbox-Metadata'])
+            # TODO when called from publish, _update_meta can be done later
+            meta_dict = yield gen.Task(_update_meta, self.db, meta_dbox, user.name)
+            # update fields, that will be return to client
+            if for_publish:
+                meta_ser = to_python(file_meta)
+                meta_ser.update(meta_dict)
             else:
+                # Skip black list fields
+                meta_ser = make_safe_python(DropboxFile, file_meta, 'public')
+                for f in meta_dict:
+                    if f in meta_ser:
+                        meta_ser[f] = meta_dict[f]
+            if file_meta.mime_type in TEXT_MIMES:
                 encoding = self._get_response_encoding(response)
                 callback({
                     'status': ErrCode.ok,
                     # TODO check file magic number to find encoding
                     'encoding': encoding,
                     'content': response.body.decode(encoding, 'replace'),
+                    'meta': meta_ser,
+                })
+            else:
+                # TODO: check file size and reject, if it big.
+                # TODO: maybe use chunk download like this:
+                # http://codingrelic.geekhold.com/2011/10/tornado-httpclient-chunked-downloads.html
+                callback({
+                    'status': ErrCode.ok,
+                    'body': response.body,
+                    'meta': meta_ser,
                 })
         else:
             url_trans, url_expires = None, None
@@ -444,7 +473,7 @@ class DropboxWorkerMixin(DropboxMixin):
                 url_expires = dbox_media_url['expires']
                 file_meta.url_trans = url_trans
                 file_meta.set_url_expires(url_expires)
-                yield motor.Op(file_meta.save, self.db, collection=user.name)
+                yield motor.Op(file_meta.update, self.db, collection=user.name)
             callback({
                 'status': ErrCode.ok,
                 'url': url_trans,
@@ -482,8 +511,8 @@ class DropboxWorkerMixin(DropboxMixin):
         with open(path_file, 'wb') as f:
             f.write(file_content.encode(DEFAULT_ENCODING))
         file_meta.pub_status = PS.published
-        file_meta.pub_revision = file_meta.revision
-        yield motor.Op(file_meta.save, self.db, collection=user.name)
+        file_meta.pub_revision = file_meta.rev
+        yield motor.Op(file_meta.update, self.db, collection=user.name)
         callback({"status": ErrCode.ok, "mime_type": "text"})
 
     @gen.engine
@@ -497,54 +526,25 @@ class DropboxWorkerMixin(DropboxMixin):
         with open(path_file, 'wb') as out:
             out.write(body)
         file_meta.pub_status = PS.published
-        file_meta.pub_revision = file_meta.revision
-        yield motor.Op(file_meta.save, self.db, collection=user.name)
+        file_meta.pub_revision = file_meta.rev
+        yield motor.Op(file_meta.update, self.db, collection=user.name)
         callback({"status": ErrCode.ok, "mime_type": "bin"})
-
-    # @gen.engine
-    # def _publish_dir(self, file_meta, user, obj, pub_root, recurse, callback):
-    #     # TODO: find a way to save all file_meta in one db call
-    #     file_meta.pub_status = PS.published
-    #     file_meta.pub_revision = file_meta.revision
-    #     yield motor.Op(file_meta.save, self.db, collection=user.name)
-    #     for fm in obj['tree']:
-    #         r = yield gen.Task(self._publish_object,
-    #             DropboxFile(**fm), user, pub_root, recurse, False)
-    #         if r['status'] not in (ErrCode.ok, ErrCode.already_published):
-    #             callback(r)
-    #             return
-    #     callback({"status": ErrCode.ok, "mime_type": "dir"})
 
     @gen.engine
     def _publish_object(self, file_meta, user, pub_root, recurse=False,
                                                first_call=True, callback=None):
-        # if not first_call and file_meta.is_dir and not recurse:
-        #     logger.debug(
-        #         u"_publish_object Skipping dir {0}, because not recurse"\
-        #         .format(file_meta._id))
-        #     callback({"status": ErrCode.ok})
-        #     return
-        # if file_meta.pub_status == PS.published and not file_meta.is_dir:
-        #     callback({"status": ErrCode.already_published})
-        #     return
-        obj = yield gen.Task(
-            self._get_obj_content, file_meta, user, download_bin=True)
+        obj = yield gen.Task(self._get_obj_content,
+            file_meta, user, download_bin=True)
         if obj['status'] == ErrCode.ok:
-            # obj_path = os.path.join(pub_root, file_meta._id.lstrip('/'))
             if 'content' in obj:
                 # Text content
                 r = yield gen.Task(self._publish_text,
-                    file_meta, user, pub_root, obj['content'])
+                    DropboxFile(**obj['meta']), user, pub_root, obj['content'])
                 callback(r)
-            # elif 'tree' in obj:
-            #     # Dir
-            #     r = yield gen.Task(self._publish_dir,
-            #         file_meta, user, obj, pub_root, recurse)
-            #     callback(r)
             else:
                 # Non text content. Save from given url.
                 r = yield gen.Task(self._publish_binary,
-                    file_meta, user, pub_root, obj['body'])
+                    DropboxFile(**obj['meta']), user, pub_root, obj['body'])
                 callback(r)
         else:
             callback(obj)
