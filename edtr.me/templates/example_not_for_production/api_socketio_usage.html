@@ -227,13 +227,13 @@
                     "content": $("#file_content").val()
                 },
                 function(response) {
-                    console.log("_______AJAX: dropbox_get_file_________");
+                    console.log("_______AJAX: dropbox_save_file_________");
                     for (f in response){
                         console.log(f+":")
                         console.log(response[f])
                     }
                     setFileContents(response);
-                    console.log("_______ AJAX: dropbox_get_file end_________");
+                    console.log("_______ AJAX: dropbox_save_file end_________");
             })
         }
     })
