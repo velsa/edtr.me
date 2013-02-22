@@ -34,7 +34,7 @@ class DropboxFile(BaseModel):
     url_trans = StringType()
     url_expires = StringType()
     pub_status = IntType(choices=PS._all())
-    pub_revision = StringType()
+    pub_rev = StringType()
 
     FIND_LIST_LEN = 250
 

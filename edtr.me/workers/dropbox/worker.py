@@ -366,6 +366,21 @@ class DropboxWorkerMixin(DropboxMixin):
         result = yield gen.Task(self._publish_object, file_meta, user)
         callback(result)
 
+    @gen.engine
+    def wk_dbox_preview(self, user, path, recurse=False, callback=None):
+        path = self._unify_path(path)
+        success, data = yield gen.Task(self._get_filemeta, path, user.name)
+        if not success:
+            callback(data)
+            return
+        file_meta = data
+        if file_meta.is_dir or recurse:
+            callback({"status": ErrCode.not_implemented})
+
+        result = yield gen.Task(self._publish_object,
+            file_meta, user, preview=True)
+        callback(result)
+
     def _unify_path(self, path):
         while len(path) > 1 and path.endswith('/'):
             path = path[:-1]
@@ -498,46 +513,48 @@ class DropboxWorkerMixin(DropboxMixin):
             os.makedirs(f_dir)
 
     @gen.engine
-    def _publish_text(self, file_meta, user, preview, pub_root, file_content, callback):
-        if not preview and file_meta.pub_status == PS.published:
-            logger.debug(u"{0} is already published".format(file_meta._id))
+    def _publish_text(self, fm, user, preview, pub_root, file_content, callback):
+        if not preview and fm.pub_status == PS.published:
+            logger.debug(u"{0} is already published".format(fm._id))
             callback({"status": ErrCode.already_published})
             return
-        path_file = os.path.join(pub_root, file_meta._id.lstrip('/'))
+        path_file = os.path.join(pub_root, fm._id.lstrip('/'))
         self._create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(file_content.encode(DEFAULT_ENCODING))
         if preview:
-            file_meta.pub_status = PS.draft
+            if not (fm.pub_status == PS.published and fm.rev == fm.pub_rev):
+                fm.pub_status = PS.draft
         else:
-            file_meta.pub_status = PS.published
-            file_meta.pub_revision = file_meta.rev
-        yield motor.Op(file_meta.update, self.db, collection=user.name)
+            fm.pub_status = PS.published
+            fm.pub_rev = fm.rev
+        yield motor.Op(fm.update, self.db, collection=user.name)
         callback({
             "status": ErrCode.ok,
             "mime_type": "text",
-            "meta": make_safe_python(DropboxFile, file_meta, 'public')})
+            "meta": make_safe_python(DropboxFile, fm, 'public')})
 
     @gen.engine
-    def _publish_binary(self, file_meta, user, preview, pub_root, body, callback):
-        if not preview and file_meta.pub_status == PS.published:
-            logger.debug(u"{0} is already published".format(file_meta._id))
+    def _publish_binary(self, fm, user, preview, pub_root, body, callback):
+        if not preview and fm.pub_status == PS.published:
+            logger.debug(u"{0} is already published".format(fm._id))
             callback({"status": ErrCode.already_published})
             return
-        path_file = os.path.join(pub_root, file_meta._id.lstrip('/'))
+        path_file = os.path.join(pub_root, fm._id.lstrip('/'))
         self._create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as out:
             out.write(body)
         if preview:
-            file_meta.pub_status = PS.draft
+            if not (fm.pub_status == PS.published or fm.rev == fm.pub_rev):
+                fm.pub_status = PS.draft
         else:
-            file_meta.pub_status = PS.published
-            file_meta.pub_revision = file_meta.rev
-        yield motor.Op(file_meta.update, self.db, collection=user.name)
+            fm.pub_status = PS.published
+            fm.pub_rev = fm.rev
+        yield motor.Op(fm.update, self.db, collection=user.name)
         callback({
             "status": ErrCode.ok,
             "mime_type": "bin",
-            "meta": make_safe_python(DropboxFile, file_meta, 'public')})
+            "meta": make_safe_python(DropboxFile, fm, 'public')})
 
     @gen.engine
     def _publish_object(self, file_meta, user, preview=False, callback=None):
@@ -545,9 +562,9 @@ class DropboxWorkerMixin(DropboxMixin):
             file_meta, user, for_publish=True)
         if obj['status'] == ErrCode.ok:
             if preview:
-                pub_root = get_publish_root(user.name)
-            else:
                 pub_root = get_preview_root(user.name)
+            else:
+                pub_root = get_publish_root(user.name)
             if 'content' in obj:
                 # Text content
                 r = yield gen.Task(self._publish_text,
