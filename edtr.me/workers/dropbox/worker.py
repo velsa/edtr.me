@@ -95,7 +95,7 @@ def transform_updates(entries):
 
 
 @gen.engine
-def _update_dbox_delta(db, async_dbox, user, attach_new=False,
+def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                                            force_update=False, callback=None):
     # TODO: don't make any actions
     # if previous call of this method is not finished for current user
@@ -109,7 +109,7 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False,
             post_args['cursor'] = user.dbox_cursor
         has_more = True
         cursor = None
-        known_changed_paths = []
+        updates = {}
         while has_more:
             # make dropbox request
             user.last_delta = datetime.now()
@@ -129,41 +129,41 @@ def _update_dbox_delta(db, async_dbox, user, attach_new=False,
                     u"Reseting user all files for '{0}'".format(user.name))
                 yield motor.Op(db[user.name].drop)
             for i, (e_path, entry) in enumerate(dbox_delta['entries']):
-                if attach_new:
+                if reg_update:
                     # TODO: find a way not call db on every file
                     dfile = yield motor.Op(DropboxFile.find_one,
-                        db, {"_id": e_path}, user.name, False)
+                        db, {"_id": e_path}, user.name)
                 if entry is None:
-                    if attach_new and not dfile:
-                        known_changed_paths.append(i)
-                    else:
+                    if not (reg_update and not dfile):
                         # TODO
                         # maybe there is a way to delete files in one db call
+                        updates[e_path] = None
                         yield motor.Op(
                             DropboxFile.remove_entries, db,
                             {"_id": e_path}, collection=user.name)
                 else:
-                    if attach_new and dfile:
-                        if dfile['modified'] == entry['modified']:
-                            known_changed_paths.append(i)
+                    if reg_update and dfile:
+                        if dfile['modified'] != entry['modified']:
+                            for f in entry:
+                                if hasattr(dfile, f):
+                                    setattr(dfile, f, entry[f])
+                            updates[e_path] = dfile
                     # TODO
                     # maybe there is a way to save files in one db call
                     yield gen.Task(_update_meta, db, entry, user.name, False)
-            if attach_new and dbox_delta['entries']:
-                # assert 'known_changed_paths' indexes are in ascending order
-                for offset, index in enumerate(known_changed_paths):
-                    index -= offset
-                    del dbox_delta['entries'][index]
-                updates = transform_updates(dbox_delta['entries'])
         user.dbox_cursor = cursor
         yield motor.Op(user.save, db)
     else:
         logger.debug("Delta called recently")
     if callback:
         ret_val = {'status': ErrCode.ok}
-        if attach_new:
+        if reg_update:
             ret_val['updates'] = updates
         callback(ret_val)
+
+
+def _dbox_process_reg_publish(updates):
+    pass
 
 
 @gen.engine
@@ -177,14 +177,19 @@ def _dbox_sync_user(user, error):
         user = UserModel(**user)
         async_dbox = DropboxMixin()
         db = DB.instance()
-        skt_opened = SocketPool.is_socket_opened(user.name)
-        rst = yield gen.Task(
-            _update_dbox_delta, db, async_dbox, user, skt_opened)
+        rst = yield gen.Task(_update_dbox_delta,
+            db, async_dbox, user, reg_update=True)
         if rst['status'] != ErrCode.ok:
             logger.warning(u"Dropbox periodic update for user {0}"
                 "ended with status = {1}".format(user.name, rst['status']))
-        elif skt_opened:
-            if 'updates' in rst and rst['updates']:
+        elif 'updates' in rst and rst['updates']:
+            updates = rst['updates']
+            _dbox_process_reg_publish(updates)
+            skt_opened = SocketPool.is_socket_opened(user.name)
+            if skt_opened:
+                for p in rst['updates']:
+                    rst['updates'][p] = make_safe_python(
+                        DropboxFile, rst['updates'][p], 'public')
                 SocketPool.notify_dbox_update(user.name, rst)
     else:
         logger.error("_dbox_sync_user user not found")
