@@ -25,7 +25,13 @@ def create_site_folder(user_name):
 
 
 def _parse_header_line(line):
-    h = map(str.strip, line.split(":", 1))
+    if isinstance(line, unicode):
+        o = unicode
+    elif isinstance(line, str):
+        o = str
+    else:
+        return (None, None)
+    h = map(o.strip, line.split(":", 1))
     if len(h) != 2:
         return (None, None)
     else:
@@ -39,5 +45,6 @@ def parse_md_headers(content):
             break
         else:
             (h, v) = _parse_header_line(line)
-            headers[h] = v
+            if h and isinstance(h, (str, unicode)):
+                headers[h.lower()] = v
     return headers

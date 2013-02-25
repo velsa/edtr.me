@@ -43,6 +43,14 @@ class DropboxFile(BaseModel):
             'public': blacklist(*DBOX_PUBLIC_EXCLUDE),
         }
 
+    @property
+    def path(self):
+        return self._id
+
+    @path.setter
+    def path(self, value):
+        self._id = value
+
     @classmethod
     def public_exclude_fields(cls):
         d = {}
