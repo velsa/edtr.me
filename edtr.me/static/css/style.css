@@ -264,7 +264,7 @@ body {
 }
 
 .ztree {
-    /* 
+    /*
         border-box includes padding in height
         that way min-height: 100% will correspond to the correct parent height
     */
@@ -530,4 +530,27 @@ span.CodeMirror-matchhighlight {
     margin-left:        30px;
     color:              red;
     font-weight:        bold;
+}
+
+/*
+ * Special settings for modals with settings (inputs and labels)
+ */
+.edtr-settings {
+    width:              auto;
+}
+.edtr-settings td {
+    padding:            2px 10px;
+}
+.edtr-settings label {
+     font-weight:       bold;
+}
+.edtr-settings input[type="text"] {
+    width:              100%;
+    padding-right:      0;
+}
+.edtr-settings .datetime-picker input {
+    width:              auto;
+}
+.edtr-settings .modal-header pre {
+    margin:             5px 0 0;
 }

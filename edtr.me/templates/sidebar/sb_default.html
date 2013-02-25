@@ -22,31 +22,31 @@
                 </a>
                 <ul class="dropdown-menu">
                     <li>
-                        <a class="sb-add" data-action="add_file" href="#">
+                        <a class="sb-file" data-action="add_file" href="#">
                             <i class="icon-file icon-black"></i>
                             New File...<strong class="shortcut">Ctrl-N</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb-add" data-action="add_subdir" href="#">
+                        <a class="sb-file" data-action="add_subdir" href="#">
                             <i class="icon-folder-close icon-black"></i>
                             New Directory...<strong class="shortcut">Ctrl-Alt-N</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb-edit" data-action="rename" href="#">
+                        <a class="sb-file" data-action="rename" href="#">
                             <i class="icon-pencil icon-black"></i>
                             Rename...<strong class="shortcut">Ctrl-Shift-N</strong>
                         </a>
                     </li>
                     <li class="disabled">
-                        <a class="sb-edit" data-action="remove" href="#">
+                        <a class="sb-file" data-action="remove" href="#">
                             <i class="icon-plus-sign icon-black"></i>
                             Duplicate file...<strong class="shortcut"></strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb-edit" data-action="remove" href="#">
+                        <a class="sb-file" data-action="remove" href="#">
                             <i class="icon-trash icon-black"></i>
                             Delete...<strong class="shortcut"></strong>
                         </a>
@@ -54,20 +54,20 @@
                     <li class="divider"></li>
                     <li>
                         <a class="sb-file" data-action="refresh" href="#">
-                            <i class="icon-trash icon-refresh"></i>
+                            <i class="icon-refresh icon-black"></i>
                             Refresh Directory<strong class="shortcut">Ctrl-R</strong>
                         </a>
                     </li>
                     <li class="divider"></li>
                     <li class="disabled" style="opacity: 1">
                         <a class="sb-file" href="#">
-                            <i class="icon-trash icon-info-sign"></i>
+                            <i class="icon-info-sign icon-black"></i>
                             Show info<strong class="shortcut">Hold Shift...</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb-file" data-action="info" href="#">
-                            <i class="icon-trash icon-wrench"></i>
+                        <a class="sb-file" data-action="edit" href="#">
+                            <i class="icon-wrench icon-black"></i>
                             Edit settings...<strong class="shortcut">Ctrl-E</strong>
                         </a>
                     </li>
@@ -79,19 +79,19 @@
                 </a>
                 <ul class="dropdown-menu">
                     <li>
-                        <a class="sb-clipboard" data-action="cut" href="#">
+                        <a class="sb-edit" data-action="cut" href="#">
                             <!-- <i class="icon-trash icon-black"></i> -->
                             Cut<strong class="shortcut">{0}X</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb-clipboard" data-action="copy" href="#">
+                        <a class="sb-edit" data-action="copy" href="#">
                             <!-- <i class="icon-trash icon-black"></i> -->
                             Copy<strong class="shortcut">{0}C</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb-clipboard disabled" data-action="paste" href="#">
+                        <a class="sb-edit disabled" data-action="paste" href="#">
                             <!-- <i class="icon-trash icon-black"></i> -->
                             Paste<strong class="shortcut">{0}V</strong>
                         </a>
@@ -104,25 +104,26 @@
                 </a>
                 <ul class="dropdown-menu">
                     <li>
-                        <a class="sb-view-show-clipboard" data-action="show_clipboard" href="#">
+                        <a class="sb-view" data-action="show_clipboard" href="#">
                             Show clipped files...<strong class="shortcut"></strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb-view-clear-clipboard" href="#">
+                        <a class="sb-view" data-action="clear_clipboard" href="#">
                             Clear clipped files
                         </a>
                     </li>
                     <li class="divider"></li>
                     <li class="disabled">
-                        <a class="sb-view-clear-checkboxes" href="#">
+                        <a class="sb-view" data-action="clear_checkboxes" href="#">
                             <i class="icon-remove-circle icon-black"></i>
                             Clear all checkboxes<strong class="shortcut"></strong>
                         </a>
                     </li>
                     <li>
                         <label style="padding-right: 20px;"> 
-                            <input type="checkbox" class="sb-view-multiselect"> 
+                            <input type="checkbox" class="sb-view"
+                                data-action="toggle_checkboxes">
                             Toggle checkboxes<strong class="shortcut"></strong>
                         </label>
                     </li>
@@ -134,20 +135,20 @@
                 </a>
                 <ul class="dropdown-menu">
                     <li>
-                        <a class="sb-web-publish" data-action="publish_selected" href="#">
+                        <a class="sb-web" data-action="publish_selected" href="#">
                             <i class="icon-eye-open icon-black"></i>
                             Preview in new tab<strong class="shortcut">Ctrl-P</strong>
                         </a>
                     </li>
                     <li class="divider"></li>
                     <li>
-                        <a class="sb-web-publish" data-action="publish_selected" href="#">
+                        <a class="sb-web" data-action="publish_selected" href="#">
                             <i class="icon-globe icon-black"></i>
                             Publish to Web<strong class="shortcut">Ctrl-Shift-P</strong>
                         </a>
                     </li>
                     <li>
-                        <a class="sb-web-unpublish" data-action="unpublish_selected" href="#">
+                        <a class="sb-web" data-action="unpublish_selected" href="#">
                             <i class="icon-remove-sign icon-black"></i>
                             Unpublish from Web<strong class="shortcut">Ctrl-Shift-U</strong>
                         </a>

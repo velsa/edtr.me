@@ -29,6 +29,10 @@ var edtrTree = {
         edtrTree.dom_editor     = settings.dom_editor;
         edtrTree.dom_rc_menu    = settings.dom_rc_menu;
 
+        // Compile templates for popovers
+        edtrTree.dir_info_template = _.template(settings.popover_dir_template.html());
+        edtrTree.file_info_template = _.template(settings.popover_file_template.html());
+
         // TODO: take those from user settings
         edtrTree.ztree_settings = {
             view: {
@@ -159,10 +163,6 @@ var edtrTree = {
                 action:     edtrTree.move_selection,
                 args:       []
             }, {
-                keys:       [ "Ctrl-E" ],
-                action:     edtrTree.edit_node_info,
-                args:       []
-            }, {
                 keys:       [ "Enter" ],
                 action:     edtrTree.on_double_click,
                 args:       [ null, null, true ]
@@ -170,6 +170,14 @@ var edtrTree = {
                 keys:       [ "Alt-T" ],
                 action:     edtrTree.toggle_checkboxes,
                 args:       []
+            }, {
+                keys:       [ "Ctrl-E" ],
+                action:     edtrTree.node_action,
+                args:       ["edit"]
+            }, {
+                keys:       [ "Ctrl-R" ],
+                action:     edtrTree.node_action,
+                args:       ["refresh"]
             }, {
                 keys:       [ "Ctrl-X", "Meta-X" ],
                 action:     edtrTree.node_action,
@@ -288,7 +296,7 @@ var edtrTree = {
             // Essentials
             id:                 server_data._id,
             name:               edtrHelper.get_filename(server_data._id),
-            path:               edtrHelper.get_filename_path(server_data._id),
+            // path:               edtrHelper.get_filename_path(server_data._id),
             isParent:           server_data.is_dir,
             // Extra file info
             size_bytes:         server_data.bytes,
@@ -302,8 +310,8 @@ var edtrTree = {
         // Set specific icons for all files
         // folders will have default ztree open/close icons
         if (!tree_node.isParent) {
-            tree_node.icon = "/static/dropbox-api-icons/16x16/"+server_data.icon+".gif";
-            tree_node.large_icon = "/static/dropbox-api-icons/48x48/"+server_data.icon+"48.gif";
+            tree_node.icon = "/static/images/dropbox-api-icons/16x16/"+server_data.icon+".gif";
+            tree_node.large_icon = "/static/images/dropbox-api-icons/48x48/"+server_data.icon+"48.gif";
         }
         return tree_node;
     },
@@ -342,14 +350,14 @@ var edtrTree = {
                     edtrTree.ztree.selectNode(selected.getParentNode());
                 break;
             case "up":
-                var pre_node = selected.getPreNode();
-                if (!pre_node)
-                    pre_node = selected.getParentNode();
-                else if (pre_node.isParent && pre_node.open &&
-                    pre_node.children.length)
-                    pre_node = pre_node.children[pre_node.children.length-1];
-                if (pre_node)
-                    edtrTree.ztree.selectNode(pre_node);
+                var prev_node = selected.getPreNode();
+                if (!prev_node)
+                    prev_node = selected.getParentNode();
+                else if (prev_node.isParent && prev_node.open &&
+                    prev_node.children.length)
+                    prev_node = prev_node.children[prev_node.children.length-1];
+                if (prev_node)
+                    edtrTree.ztree.selectNode(prev_node);
                 break;
             case "right":
                 if (selected.isParent && !selected.open)
@@ -412,6 +420,7 @@ var edtrTree = {
     // Get all checked nodes and filter them, so that 'remove'
     // can be performed more efficiently
     // Assumes that getCheckedNodes() returns list ordered by dirs first
+    // which should always be the case, since we always sort tree nodes that way
     //
     get_filtered_checked_nodes: function() {
         var nodes = edtrTree.ztree.getCheckedNodes(true),
@@ -428,7 +437,7 @@ var edtrTree = {
                 if (filtered_nodes[k].id === parent_id)
                     break;
             // We don't have node's parent
-            if (k == filtered_nodes.length) {
+            if (k === filtered_nodes.length) {
                 if (!nodes[i].isParent) {
                     // Not a directory - add node
                     filtered_nodes.push(nodes[i]);
@@ -443,9 +452,7 @@ var edtrTree = {
         return filtered_nodes;
     },
 
-    //
-    // Called by zTree on mouse click
-    //
+    // Called by zTree on left mouse click
     on_click:               function(e, ztree, node, flag) {
         // console.log("click", node.id);
         edtrTree.dom_rc_menu.removeClass("open");
@@ -455,14 +462,16 @@ var edtrTree = {
         // (as link, as node.name or as node.id)
         if (e && e.shiftKey) {
             if (edtrTree.editor && !edtrTree.editor.is_hidden) {
-                // TODO: this should be a codemirror method
                 edtrTree.editor.insert_node(node, edtrTree.get_node_type(node));
             }
         }
     },
 
+    // Called by zTree on right mouse click
+    // show context menu for node
     on_right_click:         function(e, ztree, node) {
         if (!node) {
+            // Right click NOT on node - remove context menu
             edtrTree.dom_rc_menu.removeClass("open");
             return;
         }
@@ -502,18 +511,19 @@ var edtrTree = {
         if (edtrTree.editor && !edtrTree.editor.is_saved &&
             edtrTree.get_node_type(node) !== "image") {
             // Confirmation dialog
-            // Save for callback
-            modalDialog.params = {};
-            modalDialog.params.text1    = edtrTree.editor.node.id;
-            modalDialog.params.text2    = node.id;
-            modalDialog.params.action   = "save_continue_lose";
+            modalDialog.params = {
+                action:         "save_continue_lose",
+                template_vars: {
+                    filename:      edtrTree.editor.node.id
+                }
+            };
             modalDialog.params.callback = function(args) {
-                if (args.button == "scl_save") {
+                if (args.button === "modal-btn-save") {
                     edtrTree.editor.save_codemirror(function(is_saved) {
                         if (is_saved)
                             edtrTree.open_editor(node);
                     });
-                } else if (args.button == "scl_lose") {
+                } else if (args.button === "modal-btn-lose") {
                     edtrTree.open_editor(node);
                 } else {
                     // Cancel open operation
@@ -548,6 +558,7 @@ var edtrTree = {
         //     container_top = container.offset().top,
         //     container_bottom = container_top + container.height();
         // console.log(node_pos - container_top, container_bottom - node_pos - node_height);
+
         // Show popover when mouse sits on node for 1 second
         // while Shift key is pressed
         edtrTree.hover_timer = setTimeout(function() {
@@ -564,22 +575,21 @@ var edtrTree = {
                 html:       true,
                 title:      "<strong>"+node.name+"</strong>",
                 content:    node.isParent ?
-                    $("#popover_tree_template").find(".popover-dir-info").html()
-                    .format(
-                        node.id,
-                        node.modified,
-                        node.rev_num
-                    )
+                    edtrTree.dir_info_template({
+                        full_path:      node.id,
+                        modified:       node.modified,
+                        revision:       node.rev_num
+                    })
                     :
-                    $("#popover_tree_template").find(".popover-file-info").html()
-                    .format(
-                        node.id,
-                        node.size_text, node.size_bytes,
-                        node.mime_type ? node.mime_type : "none",
-                        node.modified,
-                        node.rev_num,
-                        node.thumb_exists
-                    )
+                    edtrTree.file_info_template({
+                        full_path:      node.id,
+                        size_text:      node.size_text,
+                        size_bytes:     node.size_bytes,
+                        mime_type:      node.mime_type ? node.mime_type : "none",
+                        modified:       node.modified,
+                        revision:       node.rev_num,
+                        thumbnail:      node.thumb_exists
+                    })
             }).data("popover");
             edtrTree.popover.show();
             // console.log("show info", node.tId);
@@ -666,7 +676,6 @@ var edtrTree = {
 
     // Remove clipboard and clear tree highlighting set by clipboard()
     clear_clipboard:           function() {
-        // debugger;
         if (edtrTree.clipped) {
             edtrTree.clipped = null;
             // Gets ALL ztree nodes
@@ -678,7 +687,7 @@ var edtrTree = {
     },
 
     // Show modal with clipboard contents
-    show_clipboard:             function(modal_id) {
+    show_clipboard:             function() {
         var nodes, i, text="";
         if (edtrTree.clipped) {
             nodes = edtrTree.clipped.nodes;
@@ -686,11 +695,14 @@ var edtrTree = {
                 text += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
             }
         } else {
-            text = "You don't have clipped files.";
+            text = "You don't have clipped files.\nUse Edit->Copy or Edit->Cut to clip.";
         }
-        modalDialog.params = {};
-        modalDialog.params.action   = modal_id;
-        modalDialog.params.text     = text;
+        modalDialog.params = {
+            action:         "show_clipboard",
+            template_vars: {
+                filenames:  text
+            }
+        };
         modalDialog.show_info_modal();
     },
 
@@ -705,7 +717,7 @@ var edtrTree = {
             nodes:      nodes,
             paste_node: null
         };
-        var i, color = action === "copy"? "blue" : "lightblue";
+        var i, color = action === "copy" ? "blue" : "lightblue";
         for (i in nodes) {
             $("#"+nodes[i].tId+"_span").css("color", color);
         }
@@ -745,8 +757,11 @@ var edtrTree = {
     //
     set_paste_node:         function(node) {
         // If we don't have a clipboard or paste is not into folder - break out
-        if (!edtrTree.clipped || !node.isParent)
+        if (!edtrTree.clipped || !node.isParent) {
+                messagesBar.show_notification_warning("Can't paste <strong>"+
+                    node.id+"</strong>. Internal error.");
             return false;
+        }
         // Check if we can perform the paste
         for (var i in edtrTree.clipped.nodes) {
             // We shouldn't paste into ourselves or into the same parent
@@ -767,9 +782,9 @@ var edtrTree = {
 
     // Perform the paste operation
     // edtrTree.clipped contains all the necessary info:
-    //      edtrTree.clipped.nodes:         the nodes to paste
-    //      edtrTree.clipped.paste_node:    node to paste to
-    //      edtrTree.clipped.action:        clip action - "copy" or "cut"
+    //      nodes:         the nodes to paste
+    //      paste_node:    node to paste to
+    //      action:        clip action - "copy" or "cut"
     //
     // We expect paste_node to be already opened by smart_paste()
     //
@@ -893,13 +908,16 @@ var edtrTree = {
             if (node.name === nodes[i].name &&
                 node.id !== nodes[i].id) {
                 // TODO: present confirmation dialog for overwriting existing node
-                modalDialog.params = {};
-                modalDialog.params.action   = "overwrite_confirm";
-                modalDialog.params.text1    = nodes[i].id;
-                modalDialog.params.text2    = node.id;
-                modalDialog.params.callback = confirm_callback;
+                modalDialog.params = {
+                    action:         "overwrite_confirm",
+                    callback:       confirm_callback,
+                    template_vars:  {
+                        filename:       nodes[i].id,
+                        with_filename:  node.id
+                    }
+                };
                 modalDialog.show_confirm_modal();
-                // Node will be fixed in comfirm_callback if confirmed by user
+                // Node will be fixed in confirm_callback if confirmed by user
                 return;
             }
         }
@@ -1006,16 +1024,37 @@ var edtrTree = {
         edtrTree.ztree.reAsyncChildNodes(old_parent, "refresh", false);
     },
 
-    // User requested action
-    // We may need to display confirmation dialog
-    // We store all dialog params in modalDialog.params
-    // And modal uses it to display correct dialog and data
+    // Edit node - preset modal with appropriate fields
+    // For directory:
+    //      user can change publish mechanism, set domain, etc
+    // For file:
+    //      user can edit Metadata
     //
-    // action:      add_file, add_subdir, rename, remove, copy, cut, paste
-    //
-    edit_node_info:         function() {
-        debugger;
-        alert("hi there");
+    edit_node_info:         function(node) {
+        if (node.isParent) {
+            // Directory settigs dialog
+            messagesBar.show_notification_warning("Directory editing is not supported yet");
+        } else {
+            // File settigs dialog
+            edtrSettings.file_meta.author("aga");
+            modalDialog.params = {
+                action:         "edit_file_settings",
+                view_model:     edtrSettings.file_meta,
+                template_vars:  {
+                    filename:   node.id
+                }
+            };
+            modalDialog.params.callback = function(args) {
+                if (args.button == "modal-btn-ok") {
+                    // Save settings
+                } else if (args.button == "modal-btn-cancel") {
+                    // Cancel edit operation
+                } else {
+                    // ??
+                }
+            };
+            modalDialog.show_settings_modal();
+        }
     },
 
     // User requested action
@@ -1026,23 +1065,51 @@ var edtrTree = {
     // action:      add_file, add_subdir, rename, remove, copy, cut, paste
     //
     node_action:            function(action) {
-        var i, text;
+        var i;
+
+        // First process single node actions
+        var selected_node = edtrTree.get_selected_node();
+        if (selected_node.is_loading) {
+            messagesBar.show_notification_warning("Please wait for previous action to complete");
+            return;
+        }
+
+        // Actions below always work on single node, even if checkbox mode is active
+        switch (action) {
+            case "paste":
+                // Paste works on root, so we process it first
+                // Since it can be also called via keyboard, it calculates selected_node by itself
+                edtrTree.smart_paste();
+                return;
+            case "refresh":
+                // Refresh selected node
+                edtrTree.ztree.reAsyncChildNodes(selected_node, "refresh", false);
+                return;
+            case "edit":
+                // Edit selected node (shows modal)
+                edtrTree.edit_node_info(selected_node);
+                return;
+        }
+
         // Allowed actions for checkbox mode are: remove and clipboard operations
         if (edtrTree.is_checkbox_mode()) {
             var nodes = edtrTree.get_filtered_checked_nodes();
-            text="";
             // Perform action on checkboxes only if at least one is checked
             // otherwise we work in 'single node selection mode' (below)
             if (nodes.length) {
                 switch(action) {
                     case "remove":
+                        var filenames="";
                         for (i in nodes)
-                            text += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
-                        modalDialog.params = {};
-                        modalDialog.params.action   = action + "_checked";
-                        modalDialog.params.header   = text;
-                        modalDialog.params.path     = null;
-                        modalDialog.params.filename = nodes;
+                            filenames += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
+                        modalDialog.params = {
+                            action:         action + "_checked",
+                            path:           null,
+                            filename:       nodes,
+                            template_vars:  {
+                                filenames:          filenames
+                            }
+                        };
                         modalDialog.show_file_modal();
                         return;
                     case "copy":
@@ -1053,28 +1120,10 @@ var edtrTree = {
             } // if nodes checked
         } // if in checkbox mode
 
-        //
-        // Single node selection mode
-        //
-        var selected_node = edtrTree.get_selected_node();
 
-        if (selected_node.is_loading) {
-            messagesBar.show_notification_warning("Please wait for previous action to complete");
-            return;
-        }
-
-        // Paste works on root, so we process it first
-        // Since it can be also called via keyboard, it calculates selected_node by itself
-        if (action === "paste") {
-            edtrTree.smart_paste();
-            return;
-        }
-        
-        // Refresh selected node
-        if (action === "refresh") {
-            edtrTree.ztree.reAsyncChildNodes(selected_node, "refresh", false);
-            return;
-        }
+        //
+        // All actions below perform in 'single node' mode
+        //
 
         // Ignore all operations on root, except "add_"
         if (selected_node.id === '/' && $.inArray(action, ["add_file", "add_subdir"]) === -1) {
@@ -1082,16 +1131,17 @@ var edtrTree = {
             return;
         }
 
-        modalDialog.params = {};
-        modalDialog.params.no_names = [];
-
         switch (action) {
             case "remove":
                 // Always show confirmation dialog
-                modalDialog.params.action   = action + (selected_node.isParent ? "_subdir" : "_file");
-                modalDialog.params.header   = selected_node.id;
-                modalDialog.params.path     = selected_node.getParentNode().id;
-                modalDialog.params.filename = selected_node.name;
+                modalDialog.params = {
+                    action:         action + (selected_node.isParent ? "_subdir" : "_file"),
+                    path:           selected_node.getParentNode().id,
+                    filename:       selected_node.name,
+                    template_vars:  {
+                        filename:           selected_node.id
+                    }
+                };
                 // Always expand the directory we're about to remove
                 if (selected_node.isParent)
                     edtrTree.expand_node(selected_node, modalDialog.show_file_modal);
@@ -1100,14 +1150,21 @@ var edtrTree = {
                 break;
             case "add_file":
             case "add_subdir":
-                if (!selected_node.isParent)
+                if (!selected_node.isParent) {
                     // File is selected - use it's parent dir for adding
                     selected_node = selected_node.getParentNode();
+                }
                 // Always present file/dir add dialog
-                modalDialog.params.action   = action;
-                modalDialog.params.header   = selected_node.id;
-                modalDialog.params.path     = selected_node.id;
-                modalDialog.params.filename = "";
+                modalDialog.params = {
+                    action:         action,
+                    path:           selected_node.id,
+                    filename:       "",
+                    no_names:       [],
+                    template_vars:  {
+                        path:               selected_node.id,
+                        default_filename:   ""
+                    }
+                };
                 // Expand node and only then launch modal
                 edtrTree.expand_node(selected_node, function() {
                     // Create list of files in the parent directory to disallow user
@@ -1123,12 +1180,19 @@ var edtrTree = {
                 break;
             case "rename":
                 var parent = selected_node.getParentNode();
-                modalDialog.params.action   = action + (selected_node.isParent ? "_subdir" : "_file");
-                modalDialog.params.header   = selected_node.name;
-                modalDialog.params.path     = parent.id;
-                modalDialog.params.filename = selected_node.name;
-                    // Create list of files in the parent directory to disallow user
-                    // renaming the file to the same filename as any of the existing filenames
+                modalDialog.params = {
+                    action:         action + (selected_node.isParent ? "_subdir" : "_file"),
+                    path:           parent.id,
+                    filename:       selected_node.name,
+                    no_names:       [],
+                    template_vars:  {
+                        path:               parent.id,
+                        from_filename:      selected_node.name,
+                        default_filename:   selected_node.name
+                    }
+                };
+                // Create list of files in the parent directory to disallow user
+                // renaming the file to the same filename as any of the existing filenames
                 for (i in parent.children)
                     modalDialog.params.no_names.push(parent.children[i].name);
                 modalDialog.show_file_modal();
@@ -1325,7 +1389,9 @@ var edtrTree = {
         }
 
         // Find corresponding node
-        node = edtrTree.ztree.getNodeByParam("id", file_path);
+        node = edtrTree.ztree.getNodesByFilter(function(node) {
+            return node.id.toLowerCase() === file_path;
+        }, true);
         // if (!node && !update) {
         //     messagesBar.show_internal_error("edtrTree.process_server_update",
         //          "Can't find node for "+file_path);
@@ -1356,14 +1422,19 @@ var edtrTree = {
         // We have corresponding node in tree
         if (node) {
             // What should we do in this case ?
-            messagesBar.show_internal_error("UPDATE: File <strong>"+node.id+
-                "</strong> was in the tree ? Removed...");
-            edtrTree.ztree.removeNode(node, false);
+            messagesBar.show_internal_error("edtrTree.process_server_update",
+                "File <strong>"+node.id+
+                "</strong> was in the tree ? Ignoring udate.");
+            //edtrTree.ztree.removeNode(node, false);
+            callback.call(null, false);
+            return;
         }
 
         // Add new node to the tree, based on update data
         var parent_path = edtrHelper.get_filename_path(file_path);
-        parent_node = edtrTree.ztree.getNodeByParam("id", parent_path);
+        parent_node = edtrTree.ztree.getNodesByFilter(function(node) {
+            return node.id.toLowerCase() === parent_path;
+        }, true);
         if (!parent_node) {
             messagesBar.show_internal_error("edtrTree.process_server_update",
                 "Can't find parent node for "+file_path);

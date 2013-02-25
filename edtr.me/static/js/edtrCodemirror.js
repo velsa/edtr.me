@@ -369,12 +369,56 @@ function edtrCodemirror(content_type, content) {
     };
 
 
+    //
+    // Parse metadata at the beginning of markdown file (and others as well ?)
+    // returns:
+    //      status:     0 - success, 1 - metadata not found, 2 - error in metadata
+    //      lines:      # of lines in metadata
+    //      content:    content without metadata AND without the new line after metadata
+    //      data:       { key: value, ... } array of metadata
+    //
+    this.parse_metadata = function(text) {
+        var i = 0, eol,
+            line, j, key, val,
+            status = 0, lines = 0, content = text, data = {};
+        while (i < text.length) {
+            // Get next line
+            eol = text.indexOf("\n", i);
+            if (eol === -1) eol = text.length;
+            line = text.substr(i, eol-i);
+            // debugger;
+            if (!line.length) {
+                content = text.substr(i+1);
+                break;
+            }
+            // if(line[0] === " " || line[0] === "\t") {
+            //     content = text.substr(i);
+            //     break;
+            // }
+            j = line.indexOf(":");
+            if (j === -1) {
+                status = 2;
+                content = text.substr(i);
+                break;
+            }
+            data[text.substr(i, j).trim()] = text.substr(i+j+1, eol-i-j-1).trim();
+            // console.log(JSON.stringify(data));
+            i = eol+1;
+            lines++;
+        }
+        return {
+            status:     status,
+            lines:      lines,
+            content:    content,
+            data:       data
+        };
+    };
 
     //
     // EDITOR BUTTONS
     //
     // PREVIEW BUTTON: Preview HTML
-    this.preview_codemirror = function () {
+    this.preview_codemirror = function() {
         console.log($.cookie('mdb_preview_url'));
         window.open($.cookie('mdb_preview_url')+
             "?reload="+(new Date()).getTime(), '');
@@ -444,13 +488,15 @@ function edtrCodemirror(content_type, content) {
         // Update preview on timer (no need for preview when in fullscreen)
         if (!self.is_codemirror_fullscreen && !self.is_preview_timer) {
             self.is_preview_timer = true;
-            setTimeout(function() {
+            this.preview_timer_id = setTimeout(function() {
+                self.is_preview_timer = false;
+                // Parse metadata
+                var metadata = self.parse_metadata(self.cm_editor.getValue());
                 // Generate preview
-                self.dom_preview_body.html(marked(self.cm_editor.getValue()));
+                self.dom_preview_body.html(marked(metadata.content));
                 // Get anchors from generated preview
                 self.aTags = self.dom_preview_body.find("a.marked-anchor");
                 self.scroll_to_anchor();
-                self.is_preview_timer = false;
             }, 100);
         }
     };
@@ -601,8 +647,8 @@ function edtrCodemirror(content_type, content) {
         this.node               = tree_node;
         this.content_type       = content_type;
 
-
         this.cm_editor.setValue(content);
+
         // Clear undo history, thus disallowing to undo setValue()
         this.cm_editor.clearHistory();
         this.cm_editor.focus();

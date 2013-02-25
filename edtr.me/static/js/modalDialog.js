@@ -5,8 +5,85 @@ var modalDialog = {
 
     init:                           function(dom_elem) {
         modalDialog.dom_container = dom_elem;
+        // Find all templates in dom and compile them
+        $(".modal-template").each(function(){
+            modalDialog[$(this).attr("id")] = _.template($(this).html());
+        });
     },
 
+    // General helpers for modals
+    modal_prepare:                  function(action) {
+        var html = modalDialog["modal_"+action+"_template"](modalDialog.params.template_vars);
+        // Create correct modal dialog
+        // modalDialog.dom_modal_clone = dom_elem.clone();
+        modalDialog.dom_container.html(html);
+        modalDialog.dom_modal = modalDialog.dom_container.find(".modal");
+        modalDialog.callback_arg = {};
+
+        // Check for keys to dismiss dialog
+        // ESCAPE closes modal
+        modalDialog.dom_modal.on("keyup", function(event) {
+            // recommended to use e.which, it's normalized across browsers
+            var key = event.which;
+            if (key == 27) { //key == 13 ||
+                modalDialog.callback_arg.key = key;
+                modalDialog.modal_close();
+            }
+        });
+
+        // Expected to fire up when modal_close() has been called
+        modalDialog.dom_modal.on("hidden", function() {
+            // Unbind all events
+            modalDialog.dom_modal.off("hidden");
+            modalDialog.dom_modal.find('.modal-submit-button').off("click");
+            modalDialog.dom_modal.off("keyup");
+
+            // HACK: datetimepicker leaves its elements in the dom
+            // remove them manually
+            $('body').find(".bootstrap-datetimepicker-widget").remove();
+
+            // Call the callback function if params has one
+            if (modalDialog.params.callback)
+                modalDialog.params.callback.call($(this), modalDialog.callback_arg);
+
+            // Remove knockout bindings if we had view model
+            if (modalDialog.params.view_model) {
+                modalDialog.dom_modal.find("*").each(function () {
+                    $(this).unbind();
+                });
+                ko.cleanNode(modalDialog.dom_modal);
+            }
+        });
+    },
+
+    // Hide modal
+    modal_close:                    function() {
+        // Should lead to dom_modal.on("hidden") being called (above)
+        modalDialog.dom_modal.modal("hide");
+    },
+
+    //
+    // Called when user presses ENTER in input field or clicks on submit button
+    // For file dialogs ONLY !
+    //
+    on_file_modal_submit:           function(event) {
+        // For 'remove' dialogs will always return true
+        if (modalDialog.check_filename_input()) {
+            modalDialog.modal_close();
+            // Call edtrTree to perform requested action
+            edtrTree.file_action(
+                // All params that we received stay the same
+                modalDialog.params.action,
+                // Fix for root ('/') to avoid adding double '/'
+                modalDialog.params.path === '/' ? modalDialog.params.path : modalDialog.params.path+'/',
+                modalDialog.params.filename,
+                // This is sanitized user input
+                modalDialog.filename_validated
+            );
+        }
+    },
+
+    // Check input field in file dialogs for validity
     check_filename_input:           function() {
         // If input field exist: check it for validity
         if (modalDialog.dom_input[0]) {
@@ -27,7 +104,7 @@ var modalDialog = {
 
             // If add-on exists, we have default extension, but
             // if user specified his own extension, hide default
-            modalDialog.filename_with_correct_ext = filename;
+            modalDialog.filename_validated = filename;
             if (modalDialog.dom_input_addon[0]) {
                 ext = edtrHelper.get_filename_ext(filename);
                 if (ext !== null) {
@@ -35,14 +112,14 @@ var modalDialog = {
                     if (ext === "")
                         return false;
                 } else {
-                    modalDialog.filename_with_correct_ext += modalDialog.dom_input_addon.text();
+                    modalDialog.filename_validated += modalDialog.dom_input_addon.text();
                     modalDialog.dom_input_addon.show();
                     // continue checking
                 }
             } // if input add-on exist
 
             // Check if filename is in no_names
-            if($.inArray(modalDialog.filename_with_correct_ext, modalDialog.params.no_names) > -1) {
+            if($.inArray(modalDialog.filename_validated, modalDialog.params.no_names) > -1) {
                 modalDialog.dom_input_err.text("Filename already exists");
                 return false;
             }
@@ -50,70 +127,13 @@ var modalDialog = {
             modalDialog.dom_submit.removeAttr('disabled');
         } else {
             // Input does not exist: correct filename is the one we received
-            modalDialog.filename_with_correct_ext = modalDialog.params.filename;
+            modalDialog.filename_validated = modalDialog.params.filename;
         }
-        //console.log("'"+this.filename_with_correct_ext+"'");
+        //console.log("'"+this.filename_validated+"'");
 
         return true;
     },
 
-    // General helpers for modals
-    modal_prepare:                  function(dom_elem) {
-        // Create correct modal dialog
-        modalDialog.dom_container.html(dom_elem.clone());
-        modalDialog.dom_modal = modalDialog.dom_container.find(".modal");
-        modalDialog.callback_arg = {};
-
-        // Check for keys to dismiss dialog
-        // ESCAPE closes modal
-        dom_elem.on("keyup", function(event) {
-            var key = event.which; // recommended to use e.which, it's normalized across browsers
-            if (key == 27) { //key == 13 ||
-                modalDialog.callback_arg.key = key;
-                modalDialog.modal_close();
-            }
-        });
-
-        modalDialog.dom_modal.on("hidden", function() {
-            // Unbind all events
-            modalDialog.dom_modal.off("hidden");
-            modalDialog.dom_modal.find('.modal-submit-button').off("click");
-            dom_elem.off("keyup");
-            if (modalDialog.params.callback)
-                modalDialog.params.callback.call($(this), modalDialog.callback_arg);
-        });
-    },
-    // Hide modal
-    modal_close:                    function() {
-        modalDialog.dom_modal.modal("hide");
-    },
-
-    //
-    // Called when user presses ENTER in input field or clicks on submit button
-    // For file dialogs ONLY !
-    //
-    on_file_modal_submit:           function(event) {
-        // For 'remove' dialogs will always return true
-        if (modalDialog.check_filename_input()) {
-            modalDialog.close_file_modal();
-            // Call edtrTree to perform requested action
-            edtrTree.file_action(
-                // All params that we received stay the same
-                modalDialog.params.action,
-                // Fix for root ('/') to avoid adding double '/'
-                modalDialog.params.path === '/' ? modalDialog.params.path : modalDialog.params.path+'/',
-                modalDialog.params.filename,
-                // This is sanitized user input
-                modalDialog.filename_with_correct_ext
-            );
-        }
-    },
-
-    // Hide modal and remove event handlers
-    close_file_modal:               function() {
-        modalDialog.dom_modal.modal('hide');
-    },
-    
     //
     // Show File or Directory action dialog (new, rename, delete)
     // They are all VERY similar, so we handle them with one function
@@ -131,7 +151,7 @@ var modalDialog = {
     // }
     show_file_modal:                function() {
         var action = modalDialog.params.action;
-        modalDialog.modal_prepare($("#modal_"+action));
+        modalDialog.modal_prepare(action);
 
         // Store dom elements for callbacks
         modalDialog.dom_input       = modalDialog.dom_modal.find('.modal-filename-input');
@@ -168,9 +188,7 @@ var modalDialog = {
             modalDialog.dom_modal
             .on("shown", function() {
                 // Activate and select input field
-                // Place provided filename as default value
-                modalDialog.dom_input.val(modalDialog.params.filename).focus().select();
-                modalDialog.check_filename_input();
+                modalDialog.dom_input.focus().select();
             })
             .on("hidden", function() {
                 // Unbind all events
@@ -189,17 +207,14 @@ var modalDialog = {
 
             // Smart filename checking
             modalDialog.dom_input.on("keyup", function(event) {
-                var key = event.which; // recommended to use e.which, it's normalized across browsers
+                // recommended to use e.which, it's normalized across browsers
                 // Submission via ENTER
-                if (key == 13)
+                if (event.which == 13)
                     modalDialog.on_file_modal_submit();
                 else
                     modalDialog.check_filename_input();
             });
         }
-
-        // Set dialog file field (<pre> element)
-        modalDialog.dom_modal.find('.modal-file-code').text(modalDialog.params.header);
 
         // Submission via button
         modalDialog.dom_submit.on("click", modalDialog.on_file_modal_submit);
@@ -210,15 +225,12 @@ var modalDialog = {
 
     show_info_modal:                function() {
         // Create correct modal dialog
-        modalDialog.modal_prepare($("#modal_"+modalDialog.params.action));
-
-        // Set dialog code field (<pre> element)
-        modalDialog.dom_modal.find('.modal-text-code').text(modalDialog.params.text);
+        modalDialog.modal_prepare(modalDialog.params.action);
 
         // Form submission
         modalDialog.dom_modal.find(".modal-submit-button").on("click", function() {
             modalDialog.modal_close();
-        }).focus(); // modal-submit-button.click()
+        }).focus();
 
         // Show modal
         modalDialog.dom_modal.modal({backdrop: true});
@@ -226,24 +238,54 @@ var modalDialog = {
 
     //
     // Confirmation dialog with one or more buttons
-    // callback function receives modalDialog.callback_arg
-    // and can check for 'button' parameter
+    // callback:            called when modal is dismissed
+    //                      callback function receives modalDialog.callback_arg
+    //                      and can check for 'button' parameter
     //
     show_confirm_modal:             function(callback) {
         // Load modal HTML into placeholder
-        modalDialog.modal_prepare($("#modal_"+modalDialog.params.action));
-
-        // Set dialog code fields (<pre> elements)
-        modalDialog.dom_modal.find('.modal-text1-code').text(modalDialog.params.text1);
-        modalDialog.dom_modal.find('.modal-text2-code').text(modalDialog.params.text2);
+        modalDialog.modal_prepare(modalDialog.params.action);
 
         // Form submission
         modalDialog.dom_modal.find(".modal-submit-button").on("click", function() {
-            modalDialog.callback_arg.button = $(this).attr("id");
+            modalDialog.callback_arg.button = $(this).attr("class");
             modalDialog.modal_close();
         }); // modal-submit-button.click()
 
         // Show modal
         modalDialog.dom_modal.modal({backdrop: true});
+    },
+
+    //
+    // Settings dialog with knockout fields
+    //
+    // callback:            called when modal is dismissed
+    //                      callback function receives modalDialog.callback_arg
+    //                      and can check for 'button' parameter
+    //
+    show_settings_modal:             function(callback) {
+        // Load modal HTML into placeholder
+        modalDialog.modal_prepare(modalDialog.params.action);
+
+        // Form submission
+        modalDialog.dom_modal.find(".modal-submit-button").on("click", function() {
+            modalDialog.callback_arg.button = $(this).attr("class");
+            modalDialog.modal_close();
+        }); // modal-submit-button.click()
+
+        // If dialog has datetime picker - initiate it
+        modalDialog.dom_modal.find('.datetime-picker').datetimepicker({
+          language: 'en',
+          pick12HourFormat: true
+        });
+
+        // Initialize knockout
+        ko.applyBindings(modalDialog.params.view_model, modalDialog.dom_modal.get(0));
+
+        // Show modal
+        modalDialog.dom_modal.modal({backdrop: true});
+
+        // Set focus on first input element
+        modalDialog.dom_modal.find("input").eq(0).focus();
     }
 };

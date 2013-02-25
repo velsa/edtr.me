@@ -1,0 +1,425 @@
+<!--
+    Add New File
+-->
+<script id="modal_add_file_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_add_file" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Add new file to Dropbox</h3>
+        </div>
+        <div class="modal-body">
+            <h4 class="modal-heading">In SubFolder:</h4>
+            <p><pre><%= path %></pre></p>
+            <h4 class="modal-heading">Use presets:</h4>
+            <div class="controls">
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Date:
+                    <code class="modal-shifted-code modal-date"></code>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Date_Time:
+                    <code class="modal-shifted-code modal-datetime"></code>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Date short:
+                    <code class="modal-shifted-code modal-date-short"></code>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Date_Time short:
+                    <code class="modal-shifted-code modal-datetime-short"></code>
+                </label>
+                <hr>
+                <div class="input-append">
+                    <input type="text" name="new-filename" class="modal-filename-input"
+                        value="<%= default_filename %>">
+                    <span class="add-on modal-filename-input-add-on">.md</span>
+                </div>
+                <p class="modal-filename-input-error"></p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary modal-submit-button">Create new file</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_add_file_template -->
+
+<!--
+    Add New SubDirectory
+-->
+<script id="modal_add_subdir_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_add_subdir" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Create new directory on Dropbox</h3>
+        </div>
+        <div class="modal-body">
+            <h4 class="modal-heading">In SubFolder:</h4>
+            <p><pre><%= path %></pre></p>
+            <h4 class="modal-heading">Use presets:</h4>
+            <div class="controls">
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Year:
+                    <code class="modal-shifted-code modal-year"></code>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Year_Month:
+                    <code class="modal-shifted-code modal-yearmonth"></code>
+                </label>
+                <hr>
+                <input type="text" name="new-filename" class="modal-filename-input"
+                    value="<%= default_filename %>">
+                <p class="modal-filename-input-error"></p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary modal-submit-button">Create directory</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_add_subdir_template -->
+
+<!--
+    Rename File
+-->
+<script id="modal_rename_file_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_rename_file" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Rename file on Dropbox</h3>
+        </div>
+        <div class="modal-body">
+            <h4>From:</h4>
+            <p><pre><%= from_filename %></pre></p>
+            <h4>To:</h4>
+            <div class="controls">
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Date:
+                    <code class="modal-shifted-code modal-date"></code>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Date_Time:
+                    <code class="modal-shifted-code modal-datetime"></code>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Date short:
+                    <code class="modal-shifted-code modal-date-short"></code>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Date_Time short:
+                    <code class="modal-shifted-code modal-datetime-short"></code>
+                </label>
+                <hr>
+                <div class="input-append">
+                    <input type="text" name="new-filename" class="modal-filename-input"
+                        value="<%= default_filename %>">
+                    <span class="add-on modal-filename-input-add-on">.md</span>
+                </div>
+                <p class="modal-filename-input-error"></p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary modal-submit-button">Rename file</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_rename_file_template -->
+
+<!--
+    Rename SubDirectory
+-->
+<script id="modal_rename_subdir_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_rename_subdir" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Rename directory on Dropbox</h3>
+        </div>
+        <div class="modal-body">
+            <h4>From:</h4>
+            <p><pre><%= from_filename %></pre></p>
+            <h4>To:</h4>
+            <div class="controls">
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Year:
+                    <code class="modal-shifted-code modal-year"></code>
+                </label>
+                <label class="radio">
+                    <input type="radio" name="optionsRadios" class="modal-radio">
+                    Current Year_Month:
+                    <code class="modal-shifted-code modal-yearmonth"></code>
+                </label>
+                <hr>
+                <input type="text" name="new-filename" class="modal-filename-input"
+                    value="<%= default_filename %>">
+                <p class="modal-filename-input-error"></p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary modal-submit-button">Rename directory</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_rename_subdir_template -->
+
+<!--
+    Delete File
+-->
+<script id="modal_remove_file_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_remove_file" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Delete file from Dropbox</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm removal of the following file:</h4>
+            <p><pre><%= filename %></pre></p>
+            Editor window will be closed !
+            <br/>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-danger modal-submit-button">Delete</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_remove_file_template -->
+
+<!--
+    Delete Dir
+-->
+<script id="modal_remove_subdir_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_remove_subdir" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Delete directory from Dropbox</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm removal of the following directory:</h4>
+            <p><pre><%= filename %></pre></p>
+            Please make sure this directory does not contain any important files !
+            <br/>
+            <strong>Consider reviewing the files in this directory first.</strong>
+            <br/>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-danger modal-submit-button">Delete</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_remove_subdir_template -->
+
+<!--
+    Delete Checked
+-->
+<script id="modal_remove_checked_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_remove_checked" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Delete checked items from Dropbox</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm removal of the following items:</h4>
+            <p><pre><%= filenames %></pre></p>
+            Please make sure you are not deleting any important files !
+            <br/>
+            <strong>Consider reviewing the checked files again.</strong>
+            <br/>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-danger modal-submit-button">Delete the files</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_remove_checked_template -->
+
+<!--
+    Show clipped files
+-->
+<script id="modal_show_clipboard_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_show_clipboard" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Clipped files:</h3>
+        </div>
+        <div class="modal-body">
+            <h4>The following items have been clipped:</h4>
+            <p><pre><%= filenames %></pre></p>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-success modal-submit-button">Got it !</a>
+        </div>
+    </div>
+</script> <!-- modal_show_clipboard_template -->
+
+<!--
+    Overwrite confirmation
+-->
+<script id="modal_overwrite_confirm_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_overwrite_confirm" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>You are about to overwrite a file/directory</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm that you want to overwrite</h4>
+            <br/>
+            <p><pre><%= filename %></pre></p>
+            <h4>with</h4>
+            <p><pre><%= with_filename %></pre></p>
+        </div>
+        <div class="modal-footer">
+            <a id="overwrite_confirm" href="#"
+               style="width: 120px;"
+               class="btn btn-success modal-submit-button pull-left">
+                Yes, overwrite it
+            </a>
+            <a id="overwrite_cancel" href="#"
+               style="width: 120px;"
+               class="btn btn-danger pull-right" data-dismiss="modal">
+                No, skip this one
+            </a>
+        </div>
+    </div>
+</script> <!-- modal_overwrite_confirm_template -->
+
+
+<!--
+    Save, Continue Editing or Discard changes
+-->
+<script id="modal_save_continue_lose_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_save_continue_lose" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>You have unsaved changes !</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please select appropriate action for file:</h4>
+            <br/>
+            <p><pre><%= filename %></pre></p>
+            <br/>
+        </div>
+        <div class="modal-footer">
+            <a class="modal-btn-save" href="#"
+               style="width: 120px;"
+               class="btn btn-success modal-submit-button pull-left">
+                Save
+            </a>
+            <a class="modal-btn-continue" href="#"
+               class="btn btn-default pull-left" data-dismiss="modal">
+                Continue editing...
+            </a>
+            <a class="modal-btn-lose" href="#"
+               style="width: 120px;"
+               class="btn btn-danger modal-submit-button pull-right">
+                Discard all changes
+            </a>
+        </div>
+    </div>
+</script> <!-- modal_save_continue_lose_template -->
+
+<!--
+    Edit file settings
+-->
+<script id="modal_edit_file_settings_template" class="modal-template" 
+    type="text/x-underscore-template">
+    <div id="modal_edit_file_settings" class="modal edtr-settings hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Edit settings for:</h3>
+            <p><pre><%= filename %></pre></p>
+        </div>
+        <div class="modal-body">
+            <table class="table-condensed"> <!-- cells in a row: 6 -->
+                <tbody>
+                    <tr>
+                        <td colspan="1"> <label>Author:</label> </td>
+                        <td colspan="3">
+                        <input type="text"
+                            data-bind="value: author, valueUpdate: 'keyup'"
+                            placeholder="Author name">
+                        </td>
+                        <td colspan="1"> <label>Date:</label> </td>
+                        <td colspan="1">
+                            <div id="efs_datetime" class="datetime-picker input-append">
+                                <input data-format="MM/dd/yyyy HH:mm PP" type="text"
+                                data-bind="value: date, valueUpdate: 'keyup'"></input>
+                                <span class="add-on">
+                                  <i data-time-icon="icon-time" 
+                                  data-date-icon="icon-calendar"></i>
+                                </span>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="1"> <label>Title:</label> </td>
+                        <td colspan="5">
+                        <input type="text"
+                            data-bind="value: title, valueUpdate: 'keyup'"
+                            placeholder="Page title">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="1"> <label>Tags:</label> </td>
+                        <td colspan="5">
+                        <input type="text"
+                            data-bind="value: tags, valueUpdate: 'keyup'"
+                            placeholder="separated with coma">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="1"> <label>Style:</label> </td>
+                        <td colspan="3">
+                        <input type="text"
+                            data-bind="value: style, valueUpdate: 'keyup'"
+                            placeholder="preset or css file">
+                        </td>
+                        <td colspan="1"> <label>Slug:</label> </td>
+                        <td colspan="1">
+                        <input type="text"
+                            data-bind="value: slug, valueUpdate: 'keyup'"
+                            placeholder="no spaces">
+                        </td>
+                    </tr>
+                    <tr>
+                        <td colspan="1"> <label>Status:</label> </td>
+                        <td colspan="3">
+                            <span class="label"> Never Published </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <a id="modal-btn-ok" href="#"
+               style="width: 120px;"
+               class="btn btn-success modal-submit-button pull-left">
+                OK
+            </a>
+            <a id="modal-btn-cancel" href="#"
+               style="width: 120px;"
+               class="btn btn-danger modal-submit-button pull-right">
+                Cancel
+            </a>
+        </div>
+    </div>
+</script> <!-- modal_edit_file_settings_template -->

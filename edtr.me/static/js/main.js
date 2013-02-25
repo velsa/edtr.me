@@ -1,9 +1,13 @@
 $(document).ready(function() {
-    // Set nav bar selection
-    // $('.navbar_li').removeClass('active');
-    // $('#navbar_home').addClass('active');
+    // Prepare server communications (inits cookies and opens socket to server)
+    serverComm.init();
 
-    // Tree context menu
+    // Holds various settings for user, editor, files, etc..
+    // TODO: get settings from server and process rest of the main code in
+    // callback
+    edtrSettings.init($(".main-view-container").get(0));
+    
+    // Build tree context menu
     $(".tree-context-menu").html($(".menu-file").find(".dropdown-menu").clone());
     $(".tree-context-menu").find(".dropdown-menu").append(
         "<li class='divider'></li>" +
@@ -13,29 +17,18 @@ $(document).ready(function() {
     );
 
     //
-    // Sidebar Actions (View)
+    // Sidebar Menu (File/Edit)
     //
-    // Toggle checkboxes in tree
-    $(".sb-view-multiselect").on("click", function(e) {
-        edtrTree.toggle_checkboxes();
-        // e.stopPropagation();
-        // e.preventDefault();
-    });
-    // Clear all checkboxes in tree
-    $(".sb-view-clear-checkboxes").on("click", edtrTree.clear_checkboxes);
-    // Clear clipboard
-    $(".sb-view-clear-clipboard").on("click", edtrTree.clear_clipboard);
-    // Show clipboard contents
-    $(".sb-view-show-clipboard").on("click", function() {
-        edtrTree.show_clipboard($(this).data("action"));
+    // Add/Rename/Remove/Refresh/Copy/Cut/Paste node
+    $(".sb-file, .sb-edit").on("click", function() {
+        edtrTree.node_action($(this).data("action"));
     });
 
     //
-    // Sidebar Actions (File)
+    // Sidebar Menu (View)
     //
-    // Add/Copy/Cut/Paste/Rename/Remove/Refresh file/subdir, Show info for file/subdir
-    $(".sb-add, .sb-edit, .sb-file, .sb-clipboard").on("click", function() {
-        edtrTree.node_action($(this).data("action"));
+    $(".sb-view").on("click", function(e) {
+        edtrTree[$(this).data("action")]();
     });
 
     // Setup tooltips
@@ -76,15 +69,14 @@ $(document).ready(function() {
     // We pass container for messages and element to adjust width to
     messagesBar.init($('#messages_bar'), $('.main-view-right'));
 
-    // Prepare server communications (TODO: init sockets here)
-    serverComm.init();
-
     // Show tree on page load
     // We pass tree and editor containers
     edtrTree.init({
-        dom_tree:       $('#db_tree'),
-        dom_editor:     $(".main-view-right"),
-        dom_rc_menu:    $(".tree-context-menu")
+        dom_tree:               $('#db_tree'),
+        dom_editor:             $(".main-view-right"),
+        dom_rc_menu:            $(".tree-context-menu"),
+        popover_dir_template:   $("#popover_dir_template"),
+        popover_file_template:  $("#popover_file_template")
     });
 
     /*
