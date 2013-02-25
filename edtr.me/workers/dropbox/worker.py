@@ -102,77 +102,6 @@ def transform_updates(entries):
     return entries
 
 
-@gen.engine
-def _update_dbox_delta(db, async_dbox, user, reg_update=False,
-                                           force_update=False, callback=None):
-    # TODO: don't make any actions
-    # if previous call of this method is not finished for current user
-    updates = None
-    # check, that update_delta is not called very often
-    if force_update or not _delta_called_recently(user):
-        # Get delta metadata from dropbox
-        access_token = user.get_dropbox_token()
-        post_args = {}
-        if user.dbox_cursor:
-            post_args['cursor'] = user.dbox_cursor
-        has_more = True
-        cursor = None
-        updates = {}
-        while has_more:
-            # make dropbox request
-            user.last_delta = datetime.now()
-            # TODO find a way to call save one time in this func
-            yield motor.Op(user.save, db)
-            response = yield gen.Task(async_dbox.dropbox_request,
-                "api", "/1/delta",
-                access_token=access_token,
-                post_args=post_args)
-            if _check_bad_response(response, callback):
-                return
-            dbox_delta = json.loads(response.body)
-            has_more = dbox_delta['has_more']
-            cursor = dbox_delta['cursor']
-            if dbox_delta['reset']:
-                logger.debug(
-                    u"Reseting user all files for '{0}'".format(user.name))
-                yield motor.Op(db[user.name].drop)
-            for i, (e_path, entry) in enumerate(dbox_delta['entries']):
-                if reg_update:
-                    # TODO: find a way not call db on every file
-                    dfile = yield motor.Op(DropboxFile.find_one,
-                        db, {"_id": e_path}, user.name)
-                if entry is None:
-                    if not (reg_update and not dfile):
-                        # TODO
-                        # maybe there is a way to delete files in one db call
-                        updates[e_path] = None
-                        yield motor.Op(
-                            DropboxFile.remove_entries, db,
-                            {"_id": e_path}, collection=user.name)
-                else:
-                    # TODO
-                    # maybe there is a way to save files in one db call
-                    meta = yield gen.Task(_update_meta,
-                        db, entry, user.name, False)
-                    if reg_update:
-                        if not dfile:
-                            updates[e_path] = DropboxFile(**meta)
-                        elif dfile['modified'] != entry['modified']:
-                            for f in entry:
-                                if hasattr(dfile, f) and f != 'path':
-                                    setattr(dfile, f, entry[f])
-                            updates[e_path] = dfile
-        user.dbox_cursor = cursor
-        yield motor.Op(user.save, db)
-    else:
-        logger.debug("Delta called recently")
-    if callback:
-        ret_val = {'status': ErrCode.ok}
-        if reg_update:
-            ret_val['updates'] = updates
-        callback(ret_val)
-
-
 def _unify_path(path):
     while len(path) > 1 and path.endswith('/'):
         path = path[:-1]
@@ -364,6 +293,8 @@ def _publish_binary(fm, user, preview, pub_paths, body, db, callback):
 @gen.engine
 def _publish_object(file_meta, user, db, async_dbox, preview=False,
                                                      obj=None, callback=None):
+    logger.debug(u"Publishing object. Path: {0}, user: {1}".format(
+        file_meta.path, user.name))
     if not obj:
         obj = yield gen.Task(_get_obj_content,
             file_meta, user, db, async_dbox, for_publish=True)
@@ -390,7 +321,7 @@ def _is_md(file_meta):
 
 
 @gen.engine
-def _dbox_process_reg_publish(updates, user, db, async_dbox, callback):
+def _dbox_process_publish(updates, user, db, async_dbox, callback):
     errors = []
     for meta in updates.values():
         if meta:
@@ -445,9 +376,86 @@ def _dbox_process_reg_publish(updates, user, db, async_dbox, callback):
             print "Processing DELETED file", meta.path
             pass
     if errors:
+        logger.error(u"_dbox_process_publish errors: {0}".format(
+            errors))
         callback({"status": ErrCode.unknown_error, "errors": errors})
     else:
         callback({"status": ErrCode.ok})
+
+
+@gen.engine
+def _update_dbox_delta(db, async_dbox, user, reg_update=False,
+                                           force_update=False, callback=None):
+    # TODO: don't make any actions
+    # if previous call of this method is not finished for current user
+    updates = None
+    # check, that update_delta is not called very often
+    if force_update or not _delta_called_recently(user):
+        # Get delta metadata from dropbox
+        access_token = user.get_dropbox_token()
+        post_args = {}
+        if user.dbox_cursor:
+            post_args['cursor'] = user.dbox_cursor
+        has_more = True
+        cursor = None
+        updates = {}
+        while has_more:
+            # make dropbox request
+            user.last_delta = datetime.now()
+            # TODO find a way to call save one time in this func
+            yield motor.Op(user.save, db)
+            response = yield gen.Task(async_dbox.dropbox_request,
+                "api", "/1/delta",
+                access_token=access_token,
+                post_args=post_args)
+            if _check_bad_response(response, callback):
+                return
+            dbox_delta = json.loads(response.body)
+            has_more = dbox_delta['has_more']
+            cursor = dbox_delta['cursor']
+            if dbox_delta['reset']:
+                logger.debug(
+                    u"Reseting user all files for '{0}'".format(user.name))
+                yield motor.Op(db[user.name].drop)
+            for i, (e_path, entry) in enumerate(dbox_delta['entries']):
+                # TODO: find a way not call db on every file
+                dfile = yield motor.Op(DropboxFile.find_one,
+                    db, {"_id": e_path}, user.name)
+                if entry is None:
+                    if not dfile:
+                        # TODO
+                        # maybe there is a way to delete files in one db call
+                        updates[e_path] = None
+                        yield motor.Op(
+                            DropboxFile.remove_entries, db,
+                            {"_id": e_path}, collection=user.name)
+                else:
+                    # TODO
+                    # maybe there is a way to save files in one db call
+                    meta = yield gen.Task(_update_meta,
+                        db, entry, user.name, False)
+                    if not dfile:
+                        updates[e_path] = DropboxFile(**meta)
+                    elif dfile['modified'] != entry['modified']:
+                        for f in entry:
+                            if hasattr(dfile, f) and f != 'path':
+                                setattr(dfile, f, entry[f])
+                        updates[e_path] = dfile
+        user.dbox_cursor = cursor
+        yield motor.Op(user.save, db)
+    else:
+        logger.debug("Delta called recently")
+    if callback:
+        ret_val = {'status': ErrCode.ok}
+        if reg_update:
+            ret_val['updates'] = updates
+        else:
+            pub_rst = yield gen.Task(_dbox_process_publish,
+                updates, user, db, async_dbox)
+            if pub_rst['status'] != ErrCode.ok:
+                # TODO process errors
+                pass
+        callback(ret_val)
 
 
 @gen.engine
@@ -468,11 +476,11 @@ def _dbox_sync_user(user, error):
                 "ended with status = {1}".format(user.name, rst['status']))
         elif 'updates' in rst and rst['updates']:
             updates = rst['updates']
-            pub_rst = yield gen.Task(_dbox_process_reg_publish,
+            pub_rst = yield gen.Task(_dbox_process_publish,
                 updates, user, db, async_dbox)
             if pub_rst['status'] != ErrCode.ok:
-                logger.error(u"_dbox_process_reg_publish, return {0}".format(
-                    pub_rst))
+                # TODO process errors
+                pass
             # TODO notify user, that reg_publish failed.
             # For exmaple, it can be due to bad md headers
             skt_opened = SocketPool.is_socket_opened(user.name)
