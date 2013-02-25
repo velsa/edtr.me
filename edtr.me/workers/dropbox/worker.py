@@ -369,8 +369,11 @@ def _dbox_process_publish(updates, user, db, async_dbox, callback):
                     errors.append(md_obj)
             else:
                 # non md file
-                print "Processing NOT MD file", meta.path
-                pass
+                if meta.pub_status in (PS.draft, PS.published):
+                    result = yield gen.Task(_publish_object, meta,
+                        user, db, async_dbox, preview=True)
+                    if not result['status'] == ErrCode.ok:
+                        errors.append(result)
         else:
             # process deleted file
             print "Processing DELETED file", meta.path
