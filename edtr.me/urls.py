@@ -5,7 +5,7 @@ from handlers.accounts import (LoginHandler, RegisterHandler,
     UserNameAvailabilityHandler, LogoutHandler)
 from handlers.api.v1.dropbox import (DropboxGetTree, DropboxGetFile,
     DropboxSaveFile, DropboxCreateDir, DropboxDelete, DropboxMove,
-    DropboxSave)
+    DropboxSave, DropboxPublish)
 from handlers.fake import FakeHandler, RenderTrashHtml
 from handlers.home import HomeHandler
 
@@ -29,6 +29,7 @@ url_patterns = [
     url(r'/v1/dropbox/delete/', DropboxDelete, name="dropbox_delete"),
     url(r'/v1/dropbox/move/', DropboxMove, name="dropbox_move"),
     url(r'/v1/dropbox/copy/', DropboxSave, name="dropbox_copy"),
+    url(r'/v1/dropbox/publish/', DropboxPublish, name="dropbox_publish"),
 ]
 
 if options.debug:

@@ -220,10 +220,11 @@ class DropboxWorkerMixin(DropboxMixin):
                     if r['status'] != ErrCode.ok:
                         callback({'status': ErrCode.not_found})
                         return
+            else:
+                # Not allow to spam api very often
+                if self._skip_spam_filemeta(file_meta, callback):
+                    return
         if file_meta.mime_type in TEXT_MIMES:
-            # Not allow to spam api very often
-            if self._skip_spam_filemeta(file_meta, callback):
-                return
             # make dropbox request
             api_url = self._get_file_url(path, 'files')
             file_meta.last_updated = datetime.now()
@@ -399,6 +400,11 @@ class DropboxWorkerMixin(DropboxMixin):
         yield motor.Op(_save_meta, self.db, file_meta, user.name)
         # TODO: is it save to leave now, not to wait for delta result ?
         _update_dbox_delta(self.db, self, user, force_update=True)
+        callback({'status': ErrCode.ok})
+
+    @gen.engine
+    def wk_dbox_publish(self, user, path, callback=None):
+        # TODO: currently stub
         callback({'status': ErrCode.ok})
 
     def _unify_path(self, path):

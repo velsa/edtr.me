@@ -133,3 +133,19 @@ class DropboxSave(DropboxHandler):
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.wk_dbox_copy, user, from_path, to_path)
             self.finish_json_request(data)
+
+
+class DropboxPublish(DropboxHandler):
+    """Publish a file or folder."""
+
+    @tornado.web.asynchronous
+    @gen.engine
+    @tornado.web.authenticated
+    def post(self):
+        path = self.get_argument("path", None)
+        if not path:
+            self.finish_json_request({'status': ErrCode.bad_request})
+        else:
+            user = yield gen.Task(self.get_edtr_current_user)
+            data = yield gen.Task(self.wk_dbox_publish, user, path)
+            self.finish_json_request(data)

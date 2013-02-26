@@ -4,6 +4,10 @@
 // NOTE: this object uses knockout to interact with dom via data-bind
 //
 var edtrSettings = {
+    // One-off settings containers
+    // Used for convenience
+
+    // Edit markdown MetaData
     file_meta: {
         author:         ko.observable(""),
         title:          ko.observable(""),
@@ -13,6 +17,7 @@ var edtrSettings = {
         slug:           ko.observable("")
     },
 
+    // Settings for Codemirror
     editor: {
         theme:          ko.observable(""),
         theme_list:     [
@@ -25,6 +30,7 @@ var edtrSettings = {
         theme_tpl:      "codemirror-3.0-git/theme/{0}.css"
     },
 
+    // Settings for Preview pane
     preview: {
         theme:          ko.observable(""),
         theme_list:     [
