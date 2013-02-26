@@ -853,8 +853,7 @@ var edtrTree = {
     // Check for overwrites and fix node's and it children's ids
     // Also sort node within its new parent
     fix_node_after_paste: function(node, callback) {
-        if (!edtrTree.clipped)
-            return;
+        if (!edtrTree.clipped) return;
         // Check for overwrites
         var nodes = edtrTree.clipped.paste_node.children,
             confirm_callback  = function(arg) {
@@ -891,7 +890,7 @@ var edtrTree = {
                 var server_data = {}, new_path, server_action;
                 // Calculate new node path
                 new_path = edtrTree.clipped.paste_node.id;
-                if (node.id !== "/") new_path += "/";
+                if (new_path !== "/") new_path += "/";
                 new_path += node.name;
                 server_data.path        = node.id;
                 server_data.from_path   = node.id;
@@ -1340,11 +1339,20 @@ var edtrTree = {
             return true;
         } else {
             // Remove or Rename
-            node = edtrTree.ztree.getNodesByParam("name", filename, parent_node)[0];
+            node = edtrTree.ztree.getNodesByFilter(function(n) {
+                return n.name === filename && n.getParentNode().id === path;
+            }, false, parent_node);
             if (!node) {
-                messagesBar.show_internal_error("edtrTree.file_action", "Can't find node "+filename+" in "+path);
+                messagesBar.show_internal_error("edtrTree.file_action",
+                    "Can't find node "+filename+" in "+path);
                 return false;
             }
+            if (node.length > 1) {
+                messagesBar.show_internal_error("edtrTree.file_action",
+                    "Too many nodes with the same name ("+filename+") in "+path);
+                return false;
+            }
+            node = node[0];
             switch (action) {
                 case "rename_file":
                 case "rename_subdir":

@@ -13,6 +13,27 @@ var edtrSettings = {
         slug:           ko.observable("")
     },
 
+    editor: {
+        theme:          ko.observable(""),
+        theme_list:     [
+                            "ambiance-mobile", "cobalt", "erlang-dark",
+                            "neat", "solarized", "xq-dark", "ambiance",
+                            "eclipse", "lesser-dark", "night", "twilight",
+                            "blackboard", "elegant", "monokai", "rubyblue",
+                            "vibrant-ink"
+                        ],
+        theme_tpl:      "codemirror-3.0-git/theme/{0}.css"
+    },
+
+    preview: {
+        theme:          ko.observable(""),
+        theme_list:     [
+                            "alt", "dark", "default", "foghorn", "github", "light",
+                            "smalltext", "swiss.css"
+                        ],
+        theme_tpl:      "css/md_preview/{0}.css"
+    },
+
     init:                   function (root_dom) {
         // ko.applyBindings(edtrSettings, root_dom);
     }

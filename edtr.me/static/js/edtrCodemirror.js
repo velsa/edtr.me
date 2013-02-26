@@ -666,11 +666,11 @@ function edtrCodemirror(content_type, content) {
         this.is_hidden                  = false;
         this.is_preview_timer           = false;
         this.preview_timer_id           = null;
+        this.bookmarks                  = [];
         // TODO: Get those from folder/general settings
         this.tab_character              = "\t";
         this.tab_spaces                 = Array(4).join(" "); // should equal to tab_character
         this.list_character             = "-";
-        this.bookmarks                  = [];
         
         // Cache dom elements
         this.dom_elem           = dom_container;
