@@ -31,6 +31,10 @@ var modalDialog = {
             }
         });
 
+        modalDialog.dom_modal.draggable({
+            handle: ".modal-header"
+        });
+        
         // Expected to fire up when modal_close() has been called
         modalDialog.dom_modal.on("hidden", function() {
             // Unbind all events

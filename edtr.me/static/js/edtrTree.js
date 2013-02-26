@@ -29,6 +29,11 @@ var edtrTree = {
         edtrTree.dom_editor     = settings.dom_editor;
         edtrTree.dom_rc_menu    = settings.dom_rc_menu;
 
+        // Cache some menu items
+        edtrTree.dom_menu_refresh = $(".sb-file[data-action='refresh']").parent();
+        edtrTree.dom_menu_edit = $(".sb-file[data-action='edit']").parent();
+        edtrTree.dom_menu_cb = $(".sb-view[data-action='toggle_checkboxes']").parent();
+
         // Compile templates for popovers
         edtrTree.dir_info_template = _.template(settings.popover_dir_template.html());
         edtrTree.file_info_template = _.template(settings.popover_file_template.html());
@@ -388,13 +393,11 @@ var edtrTree = {
     toggle_checkboxes:          function() {
         // Also update menu items
         if (edtrTree.is_checkbox_mode()) {
-            $(".sb-view-multiselect").prop("checked", false);
-            $(".sb-view-clear-checkboxes").parent().addClass("disabled");
+            edtrTree.dom_menu_cb.addClass("disabled");
             edtrTree.ztree.setting.check.enable = false;
         }
         else {
-            $(".sb-view-multiselect").prop("checked", true);
-            $(".sb-view-clear-checkboxes").parent().removeClass("disabled");
+            edtrTree.dom_menu_cb.removeClass("disabled");
             edtrTree.ztree.setting.check.enable = true;
         }
         edtrTree.clear_clipboard();
@@ -452,10 +455,22 @@ var edtrTree = {
         return filtered_nodes;
     },
 
+    // Updated menu state on left click and on right click
+    _update_menu:           function(node) {
+        if (node.isParent) {
+            edtrTree.dom_menu_refresh.removeClass("disabled");
+            edtrTree.dom_menu_edit.removeClass("disabled");
+        } else {
+            edtrTree.dom_menu_refresh.addClass("disabled");
+            edtrTree.dom_menu_edit.addClass("disabled");
+        }
+    },
+
     // Called by zTree on left mouse click
     on_click:               function(e, ztree, node, flag) {
         // console.log("click", node.id);
-        edtrTree.dom_rc_menu.removeClass("open");
+        edtrTree.dom_rc_menu.dir.removeClass("open");
+        edtrTree.dom_rc_menu.file.removeClass("open");
         edtrTree.dom_db_tree.focus();
         // Shift-Click inserts clicked node into editor
         // Its up to the editor to decide how to insert it
@@ -465,27 +480,34 @@ var edtrTree = {
                 edtrTree.editor.insert_node(node, edtrTree.get_node_type(node));
             }
         }
+        edtrTree._update_menu(node);
     },
 
     // Called by zTree on right mouse click
     // show context menu for node
     on_right_click:         function(e, ztree, node) {
-        if (!node) {
-            // Right click NOT on node - remove context menu
-            edtrTree.dom_rc_menu.removeClass("open");
-            return;
-        }
-        var dom_elem = $("#"+node.tId);
+        // Always remove previous context menu
+        edtrTree.dom_rc_menu.dir.removeClass("open");
+        edtrTree.dom_rc_menu.file.removeClass("open");
+
+        // Right click NOT on node - ignore
+        if (!node) return;
+
+        edtrTree._update_menu(node);
+
+        var dom_elem = $("#"+node.tId), menu;
+        menu = node.isParent ? edtrTree.dom_rc_menu.dir : edtrTree.dom_rc_menu.file;
+
         // console.log(e.pageX, e.pageY, node);
         // console.log(dom_elem.position().left, dom_elem.position().top);
-        edtrTree.dom_rc_menu.css({
+        menu.css({
             left:   e.pageX-10,
             top:    e.pageY-40
         });
         edtrTree.ztree.selectNode(node);
-        edtrTree.dom_rc_menu.addClass("open");
+        menu.addClass("open");
         var remove_menu = function() {
-            edtrTree.dom_rc_menu.removeClass("open");
+            menu.removeClass("open");
             $('body').off("click", remove_menu);
         };
         $('body').on("click", remove_menu);
@@ -831,6 +853,8 @@ var edtrTree = {
     // Check for overwrites and fix node's and it children's ids
     // Also sort node within its new parent
     fix_node_after_paste: function(node, callback) {
+        if (!edtrTree.clipped)
+            return;
         // Check for overwrites
         var nodes = edtrTree.clipped.paste_node.children,
             confirm_callback  = function(arg) {

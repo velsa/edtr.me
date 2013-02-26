@@ -7,14 +7,18 @@ $(document).ready(function() {
     // callback
     edtrSettings.init($(".main-view-container").get(0));
     
-    // Build tree context menu
-    $(".tree-context-menu").html($(".menu-file").find(".dropdown-menu").clone());
-    $(".tree-context-menu").find(".dropdown-menu").append(
-        "<li class='divider'></li>" +
-        $(".menu-edit").find(".dropdown-menu").html() +
-        "<li class='divider'></li>" +
-        $(".menu-web").find(".dropdown-menu").html()
-    );
+    // Build tree context menus
+    var _build_context_menu = function(cls, container) {
+        var menu_html = "";
+        $(".nav-header").find(cls).each(function(index) {
+            // A hack, which allows to get an element's html including its tags
+            menu_html += $(this).clone().attr("style", "").wrap('<p>').parent().html();
+        });
+        $(container).append("<ul class='dropdown-menu'>"+ menu_html + "</ul>");
+    };
+
+    _build_context_menu(".dir-context", ".dir-context-menu");
+    _build_context_menu(".file-context", ".file-context-menu");
 
     //
     // Sidebar Menu (File/Edit)
@@ -74,7 +78,10 @@ $(document).ready(function() {
     edtrTree.init({
         dom_tree:               $('#db_tree'),
         dom_editor:             $(".main-view-right"),
-        dom_rc_menu:            $(".tree-context-menu"),
+        dom_rc_menu:            {
+            dir:    $(".dir-context-menu"),
+            file:   $(".file-context-menu")
+        },
         popover_dir_template:   $("#popover_dir_template"),
         popover_file_template:  $("#popover_file_template")
     });

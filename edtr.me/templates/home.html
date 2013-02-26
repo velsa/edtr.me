@@ -70,6 +70,11 @@
 
     -->
 
+    <!-- JQuery UI custom (mostly for dragging and dropping objects)
+    -->
+    <script src="{{ static_url('jquery-ui-1.10.1.custom/js/jquery-ui-1.10.1.custom.js') }}">
+    </script>
+
     <!-- Datetime picker for file settings dialog
     -->
     <script src="{{ static_url('bootstrap-datetimepicker-0.0.8/js/bootstrap-datetimepicker.min.js') }}"></script>
@@ -154,7 +159,8 @@
         </div>
 
         <!-- Context menu for ztree nodes -->
-        <div class="tree-context-menu"></div>
+        <div class="dir-context-menu"></div>
+        <div class="file-context-menu"></div>
 
         <!-- Templates for popovers in ztree -->
         {% include "sidebar/popover_ut.html" %}
