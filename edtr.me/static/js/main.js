@@ -86,6 +86,9 @@ $(document).ready(function() {
         popover_file_template:  $("#popover_file_template")
     });
 
+    // Misc links on page
+    $("#navbar_settings").on("click", edtrSettings.show_dialog);
+
     /*
     show_info("<b>Goodbye.</b> Come back again...");
     show_warning("<b>Ah oh</b> Something is wrong. But we will fix it...");

@@ -36,5 +36,15 @@ var edtrSettings = {
 
     init:                   function (root_dom) {
         // ko.applyBindings(edtrSettings, root_dom);
+    },
+
+    show_dialog:            function() {
+        modalDialog.params = {
+            action:         "general_settings",
+            view_model:     edtrSettings,
+            template_vars:  {
+                filename:   node.id
+            }
+        };
     }
 };
