@@ -1,5 +1,6 @@
 import logging
 from bson.objectid import ObjectId
+from tornado import gen
 from schematics.models import Model
 from schematics.types import NumberType
 from schematics.validation import validate_instance
@@ -38,9 +39,26 @@ class BaseModel(Model):
         c = cls.check_collection(collection)
         db[c].remove(params, callback=callback)
 
-    def save(self, db, collection=None, callback=None, **kwargs):
+    def save(self, db, collection=None, ser=None, callback=None, **kwargs):
         c = self.check_collection(collection)
-        db[c].save(to_python(self), callback=callback, **kwargs)
+        data = ser or to_python(self)
+        db[c].save(data, callback=callback, **kwargs)
+
+    @gen.engine
+    def update(self, db, collection=None, callback=None):
+        c = self.check_collection(collection)
+        data = to_python(self)
+        if '_id' not in data:
+            self.save(db, c, ser=data, callback=callback)
+        else:
+            _id = data.pop("_id")
+            (r, e), _ = yield gen.Task(db[c].update,
+                {"_id": _id}, {"$set": data})
+            if e or r['updatedExisting']:
+                callback((r, e), _)
+            else:
+                data['_id'] = _id
+                self.save(db, c, ser=data, callback=callback)
 
     @classmethod
     def find(cls, cursor, model=True, callback=None):

@@ -1,14 +1,15 @@
-from handlers.base import BaseHandler
-from models.accounts import UserModel
+import logging
+from collections import defaultdict
+
 from tornado import gen
 import tornado.web
 import tornado.escape
-from collections import defaultdict
-
 import motor
 from pymongo.errors import DuplicateKeyError
 
-import logging
+from handlers.base import BaseHandler
+from models.accounts import UserModel
+from utils.main import create_site_folder
 
 logger = logging.getLogger('edtr_logger')
 
@@ -84,6 +85,8 @@ class RegisterHandler(BaseHandler):
                 yield motor.Op(usr.save, self.db)
                 # user save succeeded
                 self.set_current_user(usr.name)
+                # create user's site data folder
+                create_site_folder(usr.name)
                 # create user dropbox collection
                 yield motor.Op(usr.create_dropbox_collection, self.db)
                 self.redirect(self.reverse_url("home"))

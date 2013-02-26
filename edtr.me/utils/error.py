@@ -6,6 +6,7 @@ class ErrCode:
     not_found = 4
     bad_request = 5
     called_too_often = 6
+    already_published = 7
 
     unknown_error = 20770
     not_implemented = 20771

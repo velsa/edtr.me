@@ -124,6 +124,21 @@
             <span id="btn_sio_publish_elem">SocketIO publish</span>
         </button>
     </div>
+
+    <div class="section">
+        <div>Preview element</div>
+        <div>
+            <span>Path:</span><input id='preview_path' type="text" value="">
+        </div>
+        <button id="preview_elem"
+                class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_preview_elem">AJAX preview</span>
+        </button>
+        <button id="sio_preview_elem"
+            class="btn btn-success btn-small cme-button-tooltip" href="#">
+            <span id="btn_sio_preview_elem">SocketIO preview</span>
+        </button>
+    </div>
 {% endblock %}
 
 {% block extra_footer %}
@@ -172,6 +187,17 @@
     function getPublishPath(){
         return $('#publish_path').val()
     }
+    function getPreviewPath(){
+        return $('#preview_path').val()
+    }
+    function getPublishRecurse(){
+        return $('#publish_recurse').prop("checked");
+    }
+    function checkStatus(response){
+        if (!response['status'] == 0){
+            alert("Bad status: " + response['status']);
+        }
+    }
     </script>
     <!-- AJAX -->
     <script type="text/javascript">
@@ -219,13 +245,13 @@
                     "content": $("#file_content").val()
                 },
                 function(response) {
-                    console.log("_______AJAX: dropbox_get_file_________");
+                    console.log("_______AJAX: dropbox_save_file_________");
                     for (f in response){
                         console.log(f+":")
                         console.log(response[f])
                     }
                     setFileContents(response);
-                    console.log("_______ AJAX: dropbox_get_file end_________");
+                    console.log("_______ AJAX: dropbox_save_file end_________");
             })
         }
     })
@@ -325,18 +351,41 @@
         if (path.length == 0){
             alert("Path not specified");
         } else {
+            // var recurse = getPublishRecurse();
             $.post("{{reverse_url('dropbox_publish')}}",
                 {
                     "_xsrf": getCookie("_xsrf"),
                     "path": path
                 },
                 function(response) {
+                    checkStatus(response);
                     console.log("__AJAX: publish_________");
                     for (f in response){
                         console.log(f+":")
                         console.log(response[f])
                     }
                     console.log("_______ AJAX: publish end_________");
+                })
+        }
+    })
+    $('#preview_elem').click(function(){
+        var path = getPreviewPath();
+        if (path.length == 0){
+            alert("Path not specified");
+        } else {
+            $.post("{{reverse_url('dropbox_preview')}}",
+                {
+                    "_xsrf": getCookie("_xsrf"),
+                    "path": path
+                },
+                function(response) {
+                    checkStatus(response);
+                    console.log("__AJAX: preview_________");
+                    for (f in response){
+                        console.log(f+":")
+                        console.log(response[f])
+                    }
+                    console.log("_______ AJAX: preview end_________");
                 })
         }
     })

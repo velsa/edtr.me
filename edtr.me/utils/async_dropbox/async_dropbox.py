@@ -98,9 +98,16 @@ class DropboxMixin(tornado.auth.OAuthMixin):
             copied_callback = copy(callback)
 
             def wrapped_callback(response):
-                logger.debug("\nDROPBOX RESPONSE: {0}".format(
-                    ",".join(['\n\t{0}:{1}'.format(p, getattr(response, p, None)) for p in ('body', 'code', 'error')])
-                ))
+                d_body = response.body
+                if d_body:
+                    if len(d_body) > 300:
+                        d_body = d_body[:300] + "........."
+                d_code = response.code
+                d_error = response.error
+                resp = "\n\tbody: {0},\n\tcode: {1},\n\terror: {2}".format(
+                    d_body, d_code, d_error)
+
+                logger.debug("\nDROPBOX RESPONSE: {0}".format(resp))
                 copied_callback(response)
             callback = wrapped_callback
         if post_args is not None:
