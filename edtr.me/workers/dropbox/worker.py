@@ -517,46 +517,11 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_get_file(self, user, path, callback=None):
-        path = self._unify_path(path)
-        for i in range(2):
-            # first try to find file_meta in database
-            file_meta = yield motor.Op(DropboxFile.find_one, self.db,
-                {"_id": path}, collection=user.name)
-            if not file_meta:
-                if i > 0:
-                    # file not found in database and in dropbox
-                    callback({'status': ErrCode.not_found})
-                    return
-                elif not _delta_called_recently(user):
-                    # make sync with dropbox and check again
-                    r = yield gen.Task(
-                        _update_dbox_delta, self.db, self, user)
-                    if r['status'] != ErrCode.ok:
-                        callback({'status': ErrCode.not_found})
-                        return
-            else:
-                # Not allow to spam api very often
-                if self._skip_spam_filemeta(file_meta, callback):
-                    return
-        if file_meta.mime_type in TEXT_MIMES:
-            # make dropbox request
-            api_url = self._get_file_url(path, 'files')
-            file_meta.last_updated = datetime.now()
-            # TODO find a way to call save one time in this func
-            yield motor.Op(file_meta.save, self.db, collection=user.name)
-            access_token = user.get_dropbox_token()
-            response = yield gen.Task(self.dropbox_request,
-                "api-content", api_url,
-                access_token=access_token)
-            if _check_bad_response(response, callback):
-                return
-            encoding = self._get_response_encoding(response)
-            yield motor.Op(file_meta.save, self.db, collection=user.name)
-            callback({
-                'status': ErrCode.ok,
-                # TODO check file magic number to find encoding
-                'content': response.body.decode(encoding, 'replace'),
-            })
+        # TODO: not allow call this api very often
+        path = _unify_path(path)
+        success, data = yield gen.Task(self._get_filemeta, path, user.name)
+        if not success:
+            callback(data)
             return
         file_meta = data
         result = yield gen.Task(_get_obj_content,
