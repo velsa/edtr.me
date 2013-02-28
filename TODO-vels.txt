@@ -3,22 +3,24 @@ UI:
 - codemirror themes
 - replace home icon in tree with dropbox icon
 - general settings dialog:  codemirror theme, preview follows cursor
-- folder settings: bind to existing domain name, 
+- folder settings: bind to existing domain name,
 - tabs in editor
 - dropbox tree with icons according to filetype and also special icons for each type: 'editing', 'published'
 - add sort by name, ext (default), date, sort order (ascending/descending)
 - show file info (get from server)
 - recent files submenu in File menu
 - tree and editor keyboard shortcuts. decide where to use alt and ctrl (avoid clashing with mac and windows browser shortcuts) and make tree actions accessible from within editor
-- add search field on toolbar with autocomplete 
+- add search field on toolbar with autocomplete
+- enable Ctrl - cursor movement (currently only Option works)
+- Override Meta-S ?
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
 
 JS:
 - marked: add code highlighting (see example on their github page)
-- publish functionality: 
-    - *from editor* with Publish button. If file is already published and unmodified, Publish button is greyed out. 
+- publish functionality:
+    - *from editor* with Publish button. If file is already published and unmodified, Publish button is greyed out.
     - *from tree*: Web->Publish. If on directory, a confirmation dialog pops up, asking wether to publish all subdirs and files in this dir.
 
 BUGS:

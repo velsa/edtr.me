@@ -187,7 +187,7 @@ function edtrCodemirror(content_type, content) {
         if (self.cm_editor.somethingSelected()) {
             //cm_editor.indentSelection("prev");
             var lines = CodeMirror.splitLines(self.cm_editor.getSelection());
-            for (var i=0; i<lines.length; i++) {
+            for (var i=0; i <lines.length; i++) {
                 if (lines[i]) {
                     if (/^\s*[*\-+]\s+/.test(lines[i]))
                         lines[i] = lines[i].replace(/^(\s*)([*\-+]\s+)(.*)$/,"$1$3");
@@ -212,7 +212,7 @@ function edtrCodemirror(content_type, content) {
     this.ordered_list = function() {
         if (self.cm_editor.somethingSelected()) {
             var lines = CodeMirror.splitLines(self.cm_editor.getSelection());
-            for (var i=0; i<lines.length; i++) {
+            for (var i=0; i <lines.length; i++) {
                 if (lines[i]) {
                     if (/^\s*[0-9]+\.\s+/.test(lines[i]))
                         lines[i] = lines[i].replace(/^(\s*)([0-9]+\.\s+)(.*)$/,"$1$3");
@@ -238,7 +238,7 @@ function edtrCodemirror(content_type, content) {
         if (self.cm_editor.somethingSelected()) {
             //self.cm_editor.indentSelection("prev");
             var lines = CodeMirror.splitLines(self.cm_editor.getSelection());
-            for (var i in lines) {
+            for (var i=0; i < lines.length; i++) {
                 if (lines[i]) {
                     if (/^\s*>\s+/.test(lines[i]))
                         lines[i] = lines[i].replace(/^(\s*)(> )(.*)$/,"$1$3");
@@ -377,6 +377,9 @@ function edtrCodemirror(content_type, content) {
     //      content:    content without metadata AND without the new line after metadata
     //      data:       { key: value, ... } array of metadata
     //
+    // TODO: optimize:  save all metadata as string and on each parse compare it to the text
+    //                  and see if it has changed or text has more metadata after the match
+    //
     this.parse_metadata = function(text) {
         var i = 0, eol,
             line, j, key, val,
@@ -412,6 +415,54 @@ function edtrCodemirror(content_type, content) {
             content:    content,
             data:       data
         };
+    };
+
+    // Show modal for convenient meta-data editing
+    this.edit_metadata = function() {
+        var key, ko_meta, prefix="meta_";
+
+        // Clear file_meta (its a temp object)
+        for (key=0; key < edtrSettings.file_meta.length; key++) {
+            if (key.startsWith(prefix))
+                edtrSettings.file_meta[key]("");
+        }
+        // Copy parsed meta into view model
+        for (key=0; key < self.metadata.length; key++) {
+            ko_meta = edtrSettings.file_meta[prefix+key.toLowerCase()];
+            if (ko_meta)
+                ko_meta(self.metadata.data[key]);
+        }
+        edtrSettings.file_meta_modal(self.node.id, function(args) {
+            if (args.button === "ok") {
+                // TODO: Save metadata into codemirror's text
+                var metadata_text = "", max_key_length=0, key;
+
+                // Find longest key
+                for (key=0; key < edtrSettings.file_meta.length; key++) {
+                    if (key.startsWith(prefix) && key.length > max_key_length)
+                        max_key_length = key.length;
+                }
+                // Create aligned metadata text
+                for (key=0; key < edtrSettings.file_meta.length; key++) {
+                    // Ignore knockout and validator fields
+                    if (!key.startsWith(prefix)) continue;
+                    // Add meta key only if it has value
+                    ko_meta = edtrSettings.file_meta[key];
+                    if (ko_meta().length) {
+                        metadata_text += key.replace(prefix, "").capitalize() + ":" +
+                            Array(max_key_length-key.length+2).join(" ") +
+                            ko_meta() + "\n";
+                    }
+                }
+                // Always end metadata with new line
+                if (metadata_text.length)
+                    metadata_text += "\n";
+                self.cm_editor.setValue(metadata_text + self.metadata.content);
+            } else if (args.button === "cancel") {
+                // Modal canceled
+                // Should we do anything here ?
+            }
+        });
     };
 
     //
@@ -491,9 +542,9 @@ function edtrCodemirror(content_type, content) {
             this.preview_timer_id = setTimeout(function() {
                 self.is_preview_timer = false;
                 // Parse metadata
-                var metadata = self.parse_metadata(self.cm_editor.getValue());
+                self.metadata = self.parse_metadata(self.cm_editor.getValue());
                 // Generate preview
-                self.dom_preview_body.html(marked(metadata.content));
+                self.dom_preview_body.html(marked(self.metadata.content));
                 // Get anchors from generated preview
                 self.aTags = self.dom_preview_body.find("a.marked-anchor");
                 self.scroll_to_anchor();
@@ -658,6 +709,15 @@ function edtrCodemirror(content_type, content) {
             clearTimeout(this.preview_timer_id);
     };
 
+    this.update_preview_theme   = function() {
+        self.dom_preview_head.find("link[rel=stylesheet]").remove();
+        self.dom_preview_head.
+            append("<link rel=\"stylesheet\" href=\"/static/css/md_preview/" +
+                edtrSettings.general.preview.theme() +
+                ".css?reload=" +
+                (new Date()).getTime() + "\">");
+    };
+
     this.init                   = function(dom_container, dom_preview) {
         //
         // INITIALIZATION (constructor)
@@ -671,7 +731,7 @@ function edtrCodemirror(content_type, content) {
         this.tab_character              = "\t";
         this.tab_spaces                 = Array(4).join(" "); // should equal to tab_character
         this.list_character             = "-";
-        
+
         // Cache dom elements
         this.dom_elem           = dom_container;
         this.dom_textarea       = dom_container.find(".cme-textarea");
@@ -685,11 +745,7 @@ function edtrCodemirror(content_type, content) {
 
         /* Allows last line to be positioned above the bottom */
         this.dom_preview_body.css("margin-bottom", "90px");
-        // TODO: load this from settings
-        this.dom_preview_head.
-            append("<link rel=\"stylesheet\" href=\"/static/css/md_preview/default.css?reload=" +
-                (new Date()).getTime() + "\">");
-
+        this.update_preview_theme();
 
         // TODO: get those from general settings
         var cm_settings = {
@@ -699,7 +755,7 @@ function edtrCodemirror(content_type, content) {
             matchBrackets:      true,
             pollInterval:       300,
             undoDepth:          500,
-            theme:              "eclipse", //solarized light",
+            theme:              edtrSettings.general.editor.theme(),
             indentUnit:         this.tab_spaces.length,
             tabSize:            this.tab_spaces.length, // should be the same !
             indentWithTabs:     true,
@@ -715,9 +771,10 @@ function edtrCodemirror(content_type, content) {
                 "Ctrl-W":       this.toggle_width,
                 "Shift-Ctrl-W": this.toggle_fullscreen,
                 // "Esc":          this.out_of_fullscreen,
-                
+
                 // File
                 "Ctrl-S":       this.save_codemirror,
+                "Ctrl-M":       this.edit_metadata,
 
                 // Edit
                 "Tab":          this.tab,
@@ -750,6 +807,14 @@ function edtrCodemirror(content_type, content) {
         this.cm_editor.on("change", this.on_change);
         this.cm_editor.on("cursorActivity", this.on_cursor_activity);
         this.cm_editor.on("gutterClick", this.on_gutter_clicked);
+
+        // Subscribe to various settings
+        edtrSettings.general.editor.theme.subscribe(function(new_theme) {
+            // Change editor theme
+            self.cm_editor.setOption("theme", new_theme);
+        });
+        // Change preview stylesheet
+        edtrSettings.general.preview.theme.subscribe(this.update_preview_theme);
 
         // Hides original text area, just in case
         // this.dom_elem.hide();

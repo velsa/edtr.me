@@ -1,4 +1,8 @@
 <!--
+    Underscore templates - we use them to avoid conflicts with tornado jinja templates
+-->
+
+<!--
     Add New File
 -->
 <script id="modal_add_file_template" class="modal-template"
@@ -10,7 +14,8 @@
         </div>
         <div class="modal-body">
             <h4 class="modal-heading">In SubFolder:</h4>
-            <p><pre><%= path %></pre></p>
+            <p></p>
+            <pre><%= path %></pre>
             <h4 class="modal-heading">Use presets:</h4>
             <div class="controls">
                 <label class="radio">
@@ -43,7 +48,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <a href="#" class="btn btn-primary modal-submit-button">Create new file</a>
+            <a href="#" class="btn btn-primary modal-submit-button">Create File</a>
             <a href="#" class="btn" data-dismiss="modal">Cancel</a>
         </div>
     </div>
@@ -61,7 +66,8 @@
         </div>
         <div class="modal-body">
             <h4 class="modal-heading">In SubFolder:</h4>
-            <p><pre><%= path %></pre></p>
+            <p></p>
+            <pre><%= path %></pre>
             <h4 class="modal-heading">Use presets:</h4>
             <div class="controls">
                 <label class="radio">
@@ -81,7 +87,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <a href="#" class="btn btn-primary modal-submit-button">Create directory</a>
+            <a href="#" class="btn btn-primary modal-submit-button">Create Directory</a>
             <a href="#" class="btn" data-dismiss="modal">Cancel</a>
         </div>
     </div>
@@ -90,7 +96,7 @@
 <!--
     Rename File
 -->
-<script id="modal_rename_file_template" class="modal-template" 
+<script id="modal_rename_file_template" class="modal-template"
     type="text/x-underscore-template">
     <div id="modal_rename_file" class="modal hide" tabindex="-1">
         <div class="modal-header">
@@ -99,7 +105,8 @@
         </div>
         <div class="modal-body">
             <h4>From:</h4>
-            <p><pre><%= from_filename %></pre></p>
+            <p></p>
+            <pre><%= from_filename %></pre>
             <h4>To:</h4>
             <div class="controls">
                 <label class="radio">
@@ -132,7 +139,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <a href="#" class="btn btn-primary modal-submit-button">Rename file</a>
+            <a href="#" class="btn btn-primary modal-submit-button">Rename File</a>
             <a href="#" class="btn" data-dismiss="modal">Cancel</a>
         </div>
     </div>
@@ -141,7 +148,7 @@
 <!--
     Rename SubDirectory
 -->
-<script id="modal_rename_subdir_template" class="modal-template" 
+<script id="modal_rename_subdir_template" class="modal-template"
     type="text/x-underscore-template">
     <div id="modal_rename_subdir" class="modal hide" tabindex="-1">
         <div class="modal-header">
@@ -150,7 +157,8 @@
         </div>
         <div class="modal-body">
             <h4>From:</h4>
-            <p><pre><%= from_filename %></pre></p>
+            <p></p>
+            <pre><%= from_filename %></pre>
             <h4>To:</h4>
             <div class="controls">
                 <label class="radio">
@@ -170,7 +178,7 @@
             </div>
         </div>
         <div class="modal-footer">
-            <a href="#" class="btn btn-primary modal-submit-button">Rename directory</a>
+            <a href="#" class="btn btn-primary modal-submit-button">Rename Directory</a>
             <a href="#" class="btn" data-dismiss="modal">Cancel</a>
         </div>
     </div>
@@ -179,7 +187,7 @@
 <!--
     Delete File
 -->
-<script id="modal_remove_file_template" class="modal-template" 
+<script id="modal_remove_file_template" class="modal-template"
     type="text/x-underscore-template">
     <div id="modal_remove_file" class="modal hide" tabindex="-1">
         <div class="modal-header">
@@ -188,21 +196,21 @@
         </div>
         <div class="modal-body">
             <h4>Please confirm removal of the following file:</h4>
-            <p><pre><%= filename %></pre></p>
-            Editor window will be closed !
-            <br/>
+            <p></p>
+            <pre><%= filename %></pre>
+            <p>Editor window will be closed !</p>
         </div>
         <div class="modal-footer">
-            <a href="#" class="btn btn-danger modal-submit-button">Delete</a>
+            <a href="#" class="btn btn-danger modal-submit-button">Delete File</a>
             <a href="#" class="btn" data-dismiss="modal">Cancel</a>
         </div>
     </div>
 </script> <!-- modal_remove_file_template -->
 
 <!--
-    Delete Dir
+    Delete Directory
 -->
-<script id="modal_remove_subdir_template" class="modal-template" 
+<script id="modal_remove_subdir_template" class="modal-template"
     type="text/x-underscore-template">
     <div id="modal_remove_subdir" class="modal hide" tabindex="-1">
         <div class="modal-header">
@@ -211,23 +219,25 @@
         </div>
         <div class="modal-body">
             <h4>Please confirm removal of the following directory:</h4>
-            <p><pre><%= filename %></pre></p>
-            Please make sure this directory does not contain any important files !
-            <br/>
+            <p></p>
+            <pre><%= filename %></pre>
+            <p>
+            All files in this directory will also be removed.<br/>
+            Make sure it does not contain any important files !
+            </p>
             <strong>Consider reviewing the files in this directory first.</strong>
-            <br/>
         </div>
         <div class="modal-footer">
-            <a href="#" class="btn btn-danger modal-submit-button">Delete</a>
+            <a href="#" class="btn btn-danger modal-submit-button">Delete Directory</a>
             <a href="#" class="btn" data-dismiss="modal">Cancel</a>
         </div>
     </div>
 </script> <!-- modal_remove_subdir_template -->
 
 <!--
-    Delete Checked
+    Delete Checked nodes
 -->
-<script id="modal_remove_checked_template" class="modal-template" 
+<script id="modal_remove_checked_template" class="modal-template"
     type="text/x-underscore-template">
     <div id="modal_remove_checked" class="modal hide" tabindex="-1">
         <div class="modal-header">
@@ -236,11 +246,13 @@
         </div>
         <div class="modal-body">
             <h4>Please confirm removal of the following items:</h4>
-            <p><pre><%= filenames %></pre></p>
-            Please make sure you are not deleting any important files !
-            <br/>
+            <p></p>
+            <pre><%= filenames %></pre>
+            <p>
+            All files in selected directories will also be removed.<br/>
+            Make sure you are not deleting any important files !
+            </p>
             <strong>Consider reviewing the checked files again.</strong>
-            <br/>
         </div>
         <div class="modal-footer">
             <a href="#" class="btn btn-danger modal-submit-button">Delete the files</a>
@@ -250,9 +262,181 @@
 </script> <!-- modal_remove_checked_template -->
 
 <!--
+    Publish File
+-->
+<script id="modal_publish_file_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_publish_file" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Publish file to Web</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm publishing the file:</h4>
+            <p></p>
+            <pre><%= filename %></pre>
+            <hr>
+            <h2><small>It will be available at the following url:</small></h2>
+            <p></p>
+            <a href="<%= publish_url %>" target="_blank"><%= publish_url %></a>
+            <p></p>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary modal-submit-button">Publish File</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_publish_file_template -->
+
+<!--
+    Unpublish File
+-->
+<script id="modal_unpublish_file_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_unpublish_file" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Unpublish file from Web</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm unpublishing of the file:</h4>
+            <p></p>
+            <pre><%= filename %></pre>
+            <hr>
+            <h2><small>It is currently available at the following url:</small></h2>
+            <p></p>
+            <a href="<%= publish_url %>" target="_blank"><%= publish_url %></a>
+            <p></p>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-danger modal-submit-button">Unpublish File</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_unpublish_file_template -->
+
+<!--
+    Publish Directory
+-->
+<script id="modal_publish_subdir_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_publish_subdir" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Publish directory to Web</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm publishing of the following directory:</h4>
+            <p></p>
+            <pre><%= filename %></pre>
+            <p>
+            All files in this directory will also be published.<br/>
+            Make sure it does not contain any private files !
+            </p>
+            <strong>Consider reviewing the files in this directory first.</strong>
+            <hr>
+            <h2><small>It will be available at the following url:</small></h2>
+            <p></p>
+            <a href="<%= publish_url %>" target="_blank"><%= publish_url %></a>
+            <p></p>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary modal-submit-button">Publish Directory</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_publish_subdir_template -->
+
+<!--
+    Unpublish Directory
+-->
+<script id="modal_unpublish_subdir_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_unpublish_subdir" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Unpublish directory from Web</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm unpublishing of the following directory:</h4>
+            <p></p>
+            <pre><%= filename %></pre>
+            <p>
+            All files in this directory will also be unpublished.<br/>
+            Make sure you are not unpublishing anything important !
+            </p>
+            <strong>Consider reviewing the files in this directory first.</strong>
+            <hr>
+            <h2><small>It is currently available at the following url:</small></h2>
+            <p></p>
+            <a href="<%= publish_url %>" target="_blank"><%= publish_url %></a>
+            <p></p>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-danger modal-submit-button">Unpublish Directory</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_unpublish_subdir_template -->
+
+<!--
+    Publish Checked nodes
+-->
+<script id="modal_publish_checked_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_publish_checked" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Publish checked items to Web</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm that you want to Publish the following items:</h4>
+            <p></p>
+            <pre><%= filenames %></pre>
+            <p>
+            All files in selected directories will also be published.<br/>
+            Make sure you are not publishing anything private !
+            </p>
+            <strong>Consider reviewing the checked files again.</strong>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-primary modal-submit-button">Publish the files</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_publish_checked_template -->
+
+<!--
+    Unpublish Checked nodes
+-->
+<script id="modal_unpublish_checked_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_unpublish_checked" class="modal hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Unpublish checked items from Web</h3>
+        </div>
+        <div class="modal-body">
+            <h4>Please confirm that you want to Unpublish the following items:</h4>
+            <p></p>
+            <pre><%= filenames %></pre>
+            <p>
+            All files in selected directories will also be unpublished.<br/>
+            Make sure you are not unpublishing anything important !
+            </p>
+            <strong>Consider reviewing the checked files again.</strong>
+        </div>
+        <div class="modal-footer">
+            <a href="#" class="btn btn-danger modal-submit-button">Unpublish the files</a>
+            <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+        </div>
+    </div>
+</script> <!-- modal_unpublish_checked_template -->
+
+<!--
     Show clipped files
 -->
-<script id="modal_show_clipboard_template" class="modal-template" 
+<script id="modal_show_clipboard_template" class="modal-template"
     type="text/x-underscore-template">
     <div id="modal_show_clipboard" class="modal hide" tabindex="-1">
         <div class="modal-header">
@@ -261,7 +445,8 @@
         </div>
         <div class="modal-body">
             <h4>The following items have been clipped:</h4>
-            <p><pre><%= filenames %></pre></p>
+            <p></p>
+            <pre><%= filenames %></pre>
         </div>
         <div class="modal-footer">
             <a href="#" class="btn btn-success modal-submit-button">Got it !</a>
@@ -272,7 +457,7 @@
 <!--
     Overwrite confirmation
 -->
-<script id="modal_overwrite_confirm_template" class="modal-template" 
+<script id="modal_overwrite_confirm_template" class="modal-template"
     type="text/x-underscore-template">
     <div id="modal_overwrite_confirm" class="modal hide" tabindex="-1">
         <div class="modal-header">
@@ -281,18 +466,19 @@
         </div>
         <div class="modal-body">
             <h4>Please confirm that you want to overwrite</h4>
-            <br/>
-            <p><pre><%= filename %></pre></p>
+            <p></p>
+            <pre><%= filename %></pre>
             <h4>with</h4>
-            <p><pre><%= with_filename %></pre></p>
+            <p></p>
+            <pre><%= with_filename %></pre>
         </div>
         <div class="modal-footer">
-            <a id="overwrite_confirm" href="#"
+            <a href="#"
                style="width: 120px;"
                class="btn btn-success modal-submit-button pull-left">
                 Yes, overwrite it
             </a>
-            <a id="overwrite_cancel" href="#"
+            <a href="#"
                style="width: 120px;"
                class="btn btn-danger pull-right" data-dismiss="modal">
                 No, skip this one
@@ -305,7 +491,7 @@
 <!--
     Save, Continue Editing or Discard changes
 -->
-<script id="modal_save_continue_lose_template" class="modal-template" 
+<script id="modal_save_continue_lose_template" class="modal-template"
     type="text/x-underscore-template">
     <div id="modal_save_continue_lose" class="modal hide" tabindex="-1">
         <div class="modal-header">
@@ -314,21 +500,20 @@
         </div>
         <div class="modal-body">
             <h4>Please select appropriate action for file:</h4>
-            <br/>
-            <p><pre><%= filename %></pre></p>
-            <br/>
+            <p></p>
+            <pre><%= filename %></pre>
         </div>
         <div class="modal-footer">
-            <a class="modal-btn-save" href="#"
+            <a data-modal-button="save" href="#"
                style="width: 120px;"
                class="btn btn-success modal-submit-button pull-left">
                 Save
             </a>
-            <a class="modal-btn-continue" href="#"
+            <a data-modal-button="continue" href="#"
                class="btn btn-default pull-left" data-dismiss="modal">
                 Continue editing...
             </a>
-            <a class="modal-btn-lose" href="#"
+            <a data-modal-button="lose" href="#"
                style="width: 120px;"
                class="btn btn-danger modal-submit-button pull-right">
                 Discard all changes
@@ -336,90 +521,3 @@
         </div>
     </div>
 </script> <!-- modal_save_continue_lose_template -->
-
-<!--
-    Edit file settings
--->
-<script id="modal_edit_file_settings_template" class="modal-template" 
-    type="text/x-underscore-template">
-    <div id="modal_edit_file_settings" class="modal edtr-settings hide" tabindex="-1">
-        <div class="modal-header">
-            <a class="close" data-dismiss="modal">×</a>
-            <h3>Edit settings for:</h3>
-            <p><pre><%= filename %></pre></p>
-        </div>
-        <div class="modal-body">
-            <table class="table-condensed"> <!-- cells in a row: 6 -->
-                <tbody>
-                    <tr>
-                        <td colspan="1"> <label>Author:</label> </td>
-                        <td colspan="3">
-                        <input type="text"
-                            data-bind="value: author, valueUpdate: 'keyup'"
-                            placeholder="Author name">
-                        </td>
-                        <td colspan="1"> <label>Date:</label> </td>
-                        <td colspan="1">
-                            <div id="efs_datetime" class="datetime-picker input-append">
-                                <input data-format="MM/dd/yyyy HH:mm PP" type="text"
-                                data-bind="value: date, valueUpdate: 'keyup'"></input>
-                                <span class="add-on">
-                                  <i data-time-icon="icon-time" 
-                                  data-date-icon="icon-calendar"></i>
-                                </span>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="1"> <label>Title:</label> </td>
-                        <td colspan="5">
-                        <input type="text"
-                            data-bind="value: title, valueUpdate: 'keyup'"
-                            placeholder="Page title">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="1"> <label>Tags:</label> </td>
-                        <td colspan="5">
-                        <input type="text"
-                            data-bind="value: tags, valueUpdate: 'keyup'"
-                            placeholder="separated with coma">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="1"> <label>Style:</label> </td>
-                        <td colspan="3">
-                        <input type="text"
-                            data-bind="value: style, valueUpdate: 'keyup'"
-                            placeholder="preset or css file">
-                        </td>
-                        <td colspan="1"> <label>Slug:</label> </td>
-                        <td colspan="1">
-                        <input type="text"
-                            data-bind="value: slug, valueUpdate: 'keyup'"
-                            placeholder="no spaces">
-                        </td>
-                    </tr>
-                    <tr>
-                        <td colspan="1"> <label>Status:</label> </td>
-                        <td colspan="3">
-                            <span class="label"> Never Published </span>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-        <div class="modal-footer">
-            <a id="modal-btn-ok" href="#"
-               style="width: 120px;"
-               class="btn btn-success modal-submit-button pull-left">
-                OK
-            </a>
-            <a id="modal-btn-cancel" href="#"
-               style="width: 120px;"
-               class="btn btn-danger modal-submit-button pull-right">
-                Cancel
-            </a>
-        </div>
-    </div>
-</script> <!-- modal_edit_file_settings_template -->

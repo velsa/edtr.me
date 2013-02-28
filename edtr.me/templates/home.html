@@ -30,30 +30,34 @@
     <link rel="stylesheet" href="{{ static_url('codemirror-3.0-git/theme/solarized.css') }}">
     <link rel="stylesheet" href="{{ static_url('codemirror-3.0-git/theme/twilight.css') }}">
 
-    <!-- Datetime picker for file settings dialog 
+    <!-- Datetime picker for file settings dialog
     -->
     <link rel="stylesheet" href="{{ static_url('bootstrap-datetimepicker-0.0.8/css/bootstrap-datetimepicker.min.css') }}">
 
-    <!-- JQuery FancyBox CSS 
+    <!-- Bootstrap select - modifies select/option to look like button
+    -->
+    <link rel="stylesheet" href="{{ static_url('bootstrap-select/bootstrap-select.css') }}">
+
+    <!-- JQuery FancyBox CSS
     -->
     <link rel="stylesheet" href="{{ static_url('fancybox-2.1.4/source/jquery.fancybox.css') }}">
 
-    <!-- zTree styles 
-    -->    
+    <!-- zTree styles
+    -->
     <link rel="stylesheet" href="{{ static_url('ztree/css/zTreeStyle/zTreeStyle.css') }}">
     <!-- zTree Icons -->
     <style type="text/css">
-        .ztree li span.button.parent_ico_open { 
+        .ztree li span.button.parent_ico_open {
             margin-right: 2px;
             background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/1_open.png') }}")
             no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
         }
-        .ztree li span.button.parent_ico_close { 
+        .ztree li span.button.parent_ico_close {
             margin-right: 2px;
             background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/1_close.png') }}")
             no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
         }
-        .ztree li span.button.icon_edit_ico_docu { 
+        .ztree li span.button.icon_edit_ico_docu {
             margin-right: 2px;
             background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/2.png') }}")
             no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
@@ -79,6 +83,10 @@
     -->
     <script src="{{ static_url('bootstrap-datetimepicker-0.0.8/js/bootstrap-datetimepicker.min.js') }}"></script>
 
+    <!-- Bootstrap select - modifies select/option to look like button
+    -->
+    <script src="{{ static_url('bootstrap-select/bootstrap-select.js') }}"></script>
+
     <!-- JQuery FancyBox
     -->
     <script src="{{ static_url('fancybox-2.1.4/source/jquery.fancybox.js') }}"></script>
@@ -89,7 +97,7 @@
     <script src="{{ static_url('ztree/js/jquery.ztree.excheck-3.5.js') }}"></script>
     <script src="{{ static_url('ztree/js/jquery.ztree.exedit-3.5.js') }}"></script>
 
-    <!-- CodeMirror 
+    <!-- CodeMirror
     -->
     <script src="{{ static_url('codemirror-3.0-git/lib/codemirror.js') }}"></script>
     <script src="{{ static_url('codemirror-3.0-git/addon/mode/overlay.js') }}"></script>
@@ -108,9 +116,16 @@
     -->
     <script src="{{ static_url('underscore-1.4.4/underscore.js') }}"></script>
 
-    <!-- Knockout
+    <!-- Amplify - store knockout models in browser storage
+         (used to process Cancel in modals)
+    -->
+    <script src="{{ static_url('amplify-1.1.0/amplify.js') }}"></script>
+
+    <!-- Knockout (with mapping plugin)
     -->
     <script src="{{ static_url('knockout-2.2.1/knockout.debug.js') }}"></script>
+    <script src="{{ static_url('knockout-2.2.1/knockout.mapping.debug.js') }}"></script>
+    <script src="{{ static_url('knockout-validation/Dist/knockout.validation.js') }}"></script>
 
     <!-- Marked (hacked for live preview)
     -->
@@ -146,14 +161,16 @@
         <!-- Placeholder for modal dialogs -->
         <div id="modal_placeholder"></div>
         <!-- Templates for modals -->
-        {% include "editor/modals_ut.html" %}
+        {% include "modals/file_ut.html" %}
+        {% include "modals/settings_ut.html" %}
+        {% include "modals/efs_ut.html" %}
 
         <!-- Bar for messages, errors and info -->
         <div id="messages_bar"></div>
 
         <!-- Loading animation -->
         <div class="modal-backdrop file-loading" style="display:none"></div>
-        <!-- Editors (include specific toolbar) --> 
+        <!-- Editors (include specific toolbar) -->
         <div id="markdown_editor_html" style="display:none">
             {% include "editor/cm_markdown.html" %}
         </div>
@@ -185,17 +202,17 @@
             <div class="right-splitter">
             </div>
         </div>  <!-- .main-view-container -->
-        <div class="sticky-footer"> 
+        <div class="sticky-footer">
             <!-- Horizontal splitter between main-view-container and extra footer -->
             <div class="bottom-splitter">
             </div>
             <!--
-                Preview pane - by including it into footer , we glue it to the bottom 
+                Preview pane - by including it into footer , we glue it to the bottom
             -->
             <iframe src="about:blank" class="preview-container">
                 <div class="preview-area">
                     <pre class="preview-area-stub">
-            Realtime preview will be available here 
+            Realtime preview will be available here
 
             when you select file on the left or create a new one
                     </pre>

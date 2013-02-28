@@ -1,0 +1,72 @@
+<!--
+    Dialog for editing misc settings for EDTR - all input fields are data-bound via knockout
+-->
+<script id="modal_general_settings_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_general_settings" class="modal edtr-settings hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>EDTR.me settings</h3>
+        </div>
+        <div class="modal-body">
+            <ul class="nav nav-tabs">
+              <li class="active"><a href="#es_tab_general" data-toggle="tab">General</a></li>
+              <li><a href="#es_tab_editor" data-toggle="tab">Editor</a></li>
+              <li><a href="#es_tab_preview" data-toggle="tab">Preview</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="es_tab_general">
+                    Coming soon...
+                </div> <!-- tab-pane -->
+                <div class="tab-pane" id="es_tab_editor">
+                    <!-- cells in a table row: 6 -->
+                    <table class="table-condensed"><tbody>
+                        <tr>
+                            <td colspan="1"> <label>Theme:</label> </td>
+                            <td colspan="3">
+                                <select class="selectpicker"
+                                    data-bind= "options: editor.theme_list,
+                                                optionsText: function(item) {
+                                                    return item.humanReadable()
+                                                },
+                                                value: editor.theme">
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody></table>
+                </div> <!-- tab-pane -->
+                <div class="tab-pane" id="es_tab_preview">
+                    <!-- cells in a table row: 6 -->
+                    <table class="table-condensed"><tbody>
+                        <tr>
+                            <td colspan="1"> <label>Theme:</label> </td>
+                            <td colspan="3">
+                                <select class="selectpicker"
+                                    data-bind= "options: preview.theme_list,
+                                                optionsText: function(item) {
+                                                    return item.humanReadable()
+                                                },
+                                                value: preview.theme">
+                                </select>
+                            </td>
+                        </tr>
+                    </tbody></table>
+                </div> <!-- tab-pane -->
+            </div>  <!-- tab-content -->
+
+        </div>  <!-- modal-body -->
+
+        <div class="modal-footer">
+            <a data-modal-button="ok" href="#"
+               style="width: 120px;"
+               class="btn btn-success modal-submit-button pull-left">
+                OK
+            </a>
+            <a data-modal-button="cancel" href="#"
+               style="width: 120px;"
+               class="btn btn-danger modal-submit-button pull-right">
+                Cancel
+            </a>
+        </div>
+    </div>
+</script> <!-- modal_general_settings_template -->

@@ -6,7 +6,7 @@ $(document).ready(function() {
     // TODO: get settings from server and process rest of the main code in
     // callback
     edtrSettings.init($(".main-view-container").get(0));
-    
+
     // Build tree context menus
     var _build_context_menu = function(cls, container) {
         var menu_html = "";
@@ -21,10 +21,11 @@ $(document).ready(function() {
     _build_context_menu(".file-context", ".file-context-menu");
 
     //
-    // Sidebar Menu (File/Edit)
+    // Sidebar Menu (File/Edit/Web)
     //
-    // Add/Rename/Remove/Refresh/Copy/Cut/Paste node
-    $(".sb-file, .sb-edit").on("click", function() {
+    // Add/Rename/Remove, Refresh, Copy/Cut/Paste, Publish/Unpublish node
+    $(".sb-file, .sb-edit, .sb-web").on("click", function() {
+        // All file and edit actions are processed in node_action()
         edtrTree.node_action($(this).data("action"));
     });
 
@@ -32,8 +33,15 @@ $(document).ready(function() {
     // Sidebar Menu (View)
     //
     $(".sb-view").on("click", function(e) {
+        // Each view and web action has it's own method in edtrTree
         edtrTree[$(this).data("action")]();
     });
+
+    // Links on page that lead to settings dialogs
+    $(".navbar-settings").on("click", function(e) {
+        edtrSettings[$(this).data("action")]();
+    });
+
 
     // Setup tooltips
     $(".edtr-tooltip").tooltip({ placement: "right", html: true, delay: { show: 1000, hide: 300 } });
@@ -45,7 +53,7 @@ $(document).ready(function() {
     $(".shortcut").each(function() {
         $(this).html($(this).text().format(modifier));
     });
-    
+
     //
     // Init modal dialogs
     //
@@ -85,9 +93,6 @@ $(document).ready(function() {
         popover_dir_template:   $("#popover_dir_template"),
         popover_file_template:  $("#popover_file_template")
     });
-
-    // Misc links on page
-    $("#navbar_settings").on("click", edtrSettings.show_dialog);
 
     /*
     show_info("<b>Goodbye.</b> Come back again...");

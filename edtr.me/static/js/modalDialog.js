@@ -34,13 +34,14 @@ var modalDialog = {
         modalDialog.dom_modal.draggable({
             handle: ".modal-header"
         });
-        
+
         // Expected to fire up when modal_close() has been called
         modalDialog.dom_modal.on("hidden", function() {
             // Unbind all events
             modalDialog.dom_modal.off("hidden");
-            modalDialog.dom_modal.find('.modal-submit-button').off("click");
+            modalDialog.dom_modal.find(".modal-submit-button").off("click");
             modalDialog.dom_modal.off("keyup");
+            modalDialog.dom_modal.find("input[type='text']").off("keyup");
 
             // HACK: datetimepicker leaves its elements in the dom
             // remove them manually
@@ -50,8 +51,9 @@ var modalDialog = {
             if (modalDialog.params.callback)
                 modalDialog.params.callback.call($(this), modalDialog.callback_arg);
 
-            // Remove knockout bindings if we had view model
+            // Settings dialog was hidden - process necessary knockout actions
             if (modalDialog.params.view_model) {
+                // Remove knockout bindings
                 modalDialog.dom_modal.find("*").each(function () {
                     $(this).unbind();
                 });
@@ -252,7 +254,7 @@ var modalDialog = {
 
         // Form submission
         modalDialog.dom_modal.find(".modal-submit-button").on("click", function() {
-            modalDialog.callback_arg.button = $(this).attr("class");
+            modalDialog.callback_arg.button = $(this).data("modal-button");
             modalDialog.modal_close();
         }); // modal-submit-button.click()
 
@@ -273,23 +275,56 @@ var modalDialog = {
 
         // Form submission
         modalDialog.dom_modal.find(".modal-submit-button").on("click", function() {
-            modalDialog.callback_arg.button = $(this).attr("class");
+            if (!modalDialog.view_model_validated.isValid())
+                return;
+            modalDialog.callback_arg.button = $(this).data("modal-button");
             modalDialog.modal_close();
         }); // modal-submit-button.click()
 
-        // If dialog has datetime picker - initiate it
-        modalDialog.dom_modal.find('.datetime-picker').datetimepicker({
-          language: 'en',
-          pick12HourFormat: true
+        // Process submit on Enter in input fields
+        modalDialog.dom_modal.find("input[type='text']").on("keyup", function() {
+            // recommended to use e.which, it's normalized across browsers
+            var key = event.which;
+            if (key === 13 && modalDialog.view_model_validated.isValid()) {
+                modalDialog.callback_arg.button = "ok";
+                modalDialog.modal_close();
+            }
         });
 
+        // If dialog has datetime picker - initiate it
+        modalDialog.dom_modal.find('.datetime-picker').datetimepicker({
+            language: 'en',
+            pick12HourFormat: true
+        });
+
+        modalDialog.view_model_validated = ko.validatedObservable(edtrSettings[modalDialog.params.view_model]);
+
         // Initialize knockout
-        ko.applyBindings(modalDialog.params.view_model, modalDialog.dom_modal.get(0));
+        ko.applyBindingsWithValidation(modalDialog.view_model_validated,
+            modalDialog.dom_modal.get(0),
+            {
+                insertMessages:         true,
+                messagesOnModified:     false,
+                errorMessageClass:      "text-error",
+                parseInputAttributes:   true,
+                decorateElement:        true,
+                errorElementClass:      "edtr-input-error"
+            });
+
+        // Subscribe to validation checks
+        var dom_modal_ok_button = modalDialog.dom_modal.find(".modal-submit-button[data-modal-button=ok]");
+        modalDialog.view_model_validated.isValid.subscribe(function(valid) {
+            if (valid)
+                dom_modal_ok_button.removeAttr('disabled');
+            else
+                dom_modal_ok_button.attr('disabled', 'disabled');
+
+        });
 
         // Show modal
         modalDialog.dom_modal.modal({backdrop: true});
 
         // Set focus on first input element
-        modalDialog.dom_modal.find("input").eq(0).focus();
+        modalDialog.dom_modal.find("input").eq(0).focus().select();
     }
 };

@@ -20,6 +20,16 @@ if (typeof String.prototype.format != 'function') {
     };
 }
 
+// Capitalize each word in string
+String.prototype.capitalize = function() {
+    return this.toLowerCase().replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+};
+
+// Converts dashed name into human readable string
+String.prototype.humanReadable = function() {
+    return this.replace(/-/g, ' ').capitalize();
+};
+
 // adds element any array
 if (!Array.prototype.push) {
     Array.prototype.push = function(elem) {
@@ -71,15 +81,15 @@ var edtrHelper = {
         }
         return false;
     },
-    
+
     check_valid_username:   function(username) {
         return !this.check_invalid_chars(this.username_chars, username);
     },
-    
+
     check_valid_filename:   function(filename) {
         return !this.check_invalid_chars(this.filename_chars, filename);
     },
-    
+
     // Get extension from file path or filename
     // Will return:
     //      null if no ext in filename or filename is ''
@@ -94,7 +104,7 @@ var edtrHelper = {
         else
             return null;
     },
-    
+
     // Strip extension from file path or filename
     // Will return:
     //      null if no bare part in filename (e.g. '.gif' or '')
@@ -106,7 +116,7 @@ var edtrHelper = {
         else
             return null;
     },
-    
+
     // Extract path from full filename path
     // Will return:
     //      null if no path precedes filename (e.g. 'filename.ext' or '')

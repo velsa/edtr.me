@@ -159,7 +159,7 @@ var edtrSplitters = {
         this.container_shift = this.container_elem.position().top +
             parseInt(this.container_elem.css('bottom'), 10);
         this.is_dragging = false;
-        
+
         $this_es = this;
 
         this.vl_splitter

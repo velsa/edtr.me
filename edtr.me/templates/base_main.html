@@ -16,14 +16,16 @@
                 </a>
                 <a class="brand" href="/">EDTR</a>
                 <div class="nav-collapse">
-                    <ul class="nav">
-                        <li id="navbar_home" class="navbar_li">
+                    <ul class="nav main-menu">
+                        <li class="navbar_li">
                             <a href="/">Home</a>
                         </li>
-                        <li id="navbar_settings" class="navbar_li">
+                        <li class="navbar-settings navbar_li"
+                            data-action="edtr_settings_modal">
                             <a href="#">Settings</a>
                         </li>
-                        <li id="navbar_profile" class="navbar_li">
+                        <li class="navbar-settings navbar_li"
+                            data-action="user_profile_modal">
                             <a href="{{reverse_url('profile')}}">Profile</a>
                         </li>
                     </ul>

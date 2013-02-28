@@ -1,8 +1,8 @@
 <ul class="sidebar-header nav nav-list">
-<!--         
+<!--
     <form class="form-search" _lpchecked="1">
         <i class="icon-search icon-black"></i>
-        <input type="text" class="input-large search-query" 
+        <input type="text" class="input-large search-query"
             placeholder="Find in files…"/>
     </form>
 -->
@@ -11,7 +11,7 @@
 
     <li class="nav-header">
         <ul class="nav nav-tabs">
-<!-- 
+<!--
             <li class="active">
                 <a href="#">Files:</a>
             </li>
@@ -122,7 +122,7 @@
                         </a>
                     </li>
                     <li>
-                        <label style="padding-right: 20px;"> 
+                        <label style="padding-right: 20px;">
                             <input type="checkbox" class="sb-view"
                                 data-action="toggle_checkboxes">
                             Toggle checkboxes<strong class="shortcut"></strong>
@@ -137,20 +137,20 @@
                 <ul class="dropdown-menu">
                     <li class="divider dir-context file-context" style="display:none"></li>
                     <li class="dir-context file-context">
-                        <a class="sb-web" data-action="publish_selected" href="#">
+                        <a class="sb-web" data-action="preview" href="#">
                             <i class="icon-eye-open icon-black"></i>
                             Preview in new tab<strong class="shortcut">Ctrl-P</strong>
                         </a>
                     </li>
                     <li class="divider dir-context file-context"></li>
                     <li class="dir-context file-context">
-                        <a class="sb-web" data-action="publish_selected" href="#">
+                        <a class="sb-web" data-action="publish" href="#">
                             <i class="icon-globe icon-black"></i>
                             Publish to Web<strong class="shortcut">Ctrl-Shift-P</strong>
                         </a>
                     </li>
                     <li class="dir-context file-context">
-                        <a class="sb-web" data-action="unpublish_selected" href="#">
+                        <a class="sb-web" data-action="unpublish" href="#">
                             <i class="icon-remove-sign icon-black"></i>
                             Unpublish from Web<strong class="shortcut">Ctrl-Shift-U</strong>
                         </a>
@@ -158,7 +158,7 @@
                 </ul>
             </li>
             <li class="sync-button-li">
-                <img src="{{ static_url('images/refresh-static.gif') }}" 
+                <img src="{{ static_url('images/refresh-static.gif') }}"
                     alt="()" class="sync-button edtr-tooltip"
                     title="Refresh opened directories"
                     >

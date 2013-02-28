@@ -4,53 +4,95 @@
 // NOTE: this object uses knockout to interact with dom via data-bind
 //
 var edtrSettings = {
-    // One-off settings containers
-    // Used for convenience
+    amplify_key: "edtr_modal_view_model",
 
-    // Edit markdown MetaData
-    file_meta: {
-        author:         ko.observable(""),
-        title:          ko.observable(""),
-        date:           ko.observable(""),
-        tags:           ko.observable(""),
-        style:          ko.observable(""),
-        slug:           ko.observable("")
-    },
+    //
+    // Knockout models for dialogs
+    //
 
-    // Settings for Codemirror
-    editor: {
-        theme:          ko.observable(""),
-        theme_list:     [
-                            "ambiance-mobile", "cobalt", "erlang-dark",
-                            "neat", "solarized", "xq-dark", "ambiance",
-                            "eclipse", "lesser-dark", "night", "twilight",
-                            "blackboard", "elegant", "monokai", "rubyblue",
-                            "vibrant-ink"
-                        ],
-        theme_tpl:      "codemirror-3.0-git/theme/{0}.css"
-    },
+    // Markdown MetaData
+    // HACK: we prepend meta_ to avoid clashes with knockout and validatedObservable properties
+    file_meta: ko.mapping.fromJS({
+        meta_title:          ko.observable(""),
+        meta_author:         ko.observable(""),
+        meta_tags:           ko.observable(""),
+        meta_style:          ko.observable(""),
+        meta_slug:           ko.observable(""),
+        meta_status:         ko.observable(""),
+        meta_date:           ko.observable("")
+    }),
 
-    // Settings for Preview pane
-    preview: {
-        theme:          ko.observable(""),
-        theme_list:     [
-                            "alt", "dark", "default", "foghorn", "github", "light",
-                            "smalltext", "swiss.css"
-                        ],
-        theme_tpl:      "css/md_preview/{0}.css"
-    },
+    // General Settings
+    general: ko.mapping.fromJS({
+        editor: {
+            theme:          ko.observable(""),
+            theme_list:     [
+                                "ambiance-mobile", "cobalt", "erlang-dark",
+                                "neat", "solarized", "xq-dark", "ambiance",
+                                "eclipse", "lesser-dark", "night", "twilight",
+                                "blackboard", "elegant", "monokai", "rubyblue",
+                                "vibrant-ink"
+                            ]
+            // theme_tpl:      "codemirror-3.0-git/theme/{0}.css"
+        },
+
+        // Settings for Preview pane
+        preview: {
+            theme:          ko.observable(""),
+            theme_list:     [
+                                "alt", "dark", "default", "foghorn", "github", "light",
+                                "smalltext", "swiss"
+                            ]
+            // theme_tpl:      "css/md_preview/{0}.css"
+        }
+    }),
 
     init:                   function (root_dom) {
-        // ko.applyBindings(edtrSettings, root_dom);
+        // Convert all settings to validatedObservable
+        // edtrSettings.file_meta = ko.validatedObservable(edtrSettings.file_meta);
+        // edtrSettings.general = ko.validatedObservable(edtrSettings.general);
+
+        // TODO: Load settings from server
+        edtrSettings.general.editor.theme("eclipse");
+        edtrSettings.general.preview.theme("default");
     },
 
-    show_dialog:            function() {
+    // Show modal for general settings
+    edtr_settings_modal:        function() {
+        // Save model to browser storage
+        amplify.store(edtrSettings.amplify_key, ko.mapping.toJSON(edtrSettings.general));
+
         modalDialog.params = {
             action:         "general_settings",
-            view_model:     edtrSettings,
+            view_model:     'general',
             template_vars:  {
-                filename:   node.id
+                editor:     edtrSettings.general.editor,
+                preview:    edtrSettings.general.preview
+            },
+            callback:       function(args) {
+                // Restore previous settings if "OK" wasn't clicked
+                if (args.button !== "ok") {
+                    ko.mapping.fromJSON(amplify.store(edtrSettings.amplify_key), edtrSettings.general);
+                }
             }
         };
+        modalDialog.show_settings_modal();
+    },
+
+    // Show modal for file-meta settings
+    // We don't store model in local storage, because file_meta is used as temporary storage
+    // for metadata
+    file_meta_modal:            function(filename, cb) {
+        modalDialog.params = {
+            action:         "edit_file_settings",
+            view_model:     "file_meta",
+            template_vars:  {
+                filename:   filename
+            },
+            callback:       function(args) {
+                cb.call(null, args);
+            }
+        };
+        modalDialog.show_settings_modal();
     }
 };
