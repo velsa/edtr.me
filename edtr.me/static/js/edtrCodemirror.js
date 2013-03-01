@@ -422,12 +422,12 @@ function edtrCodemirror(content_type, content) {
         var key, ko_meta, prefix="meta_";
 
         // Clear file_meta (its a temp object)
-        for (key=0; key < edtrSettings.file_meta.length; key++) {
+        for (key in edtrSettings.file_meta) {
             if (key.startsWith(prefix))
                 edtrSettings.file_meta[key]("");
         }
         // Copy parsed meta into view model
-        for (key=0; key < self.metadata.length; key++) {
+        for (key in self.metadata.data) {
             ko_meta = edtrSettings.file_meta[prefix+key.toLowerCase()];
             if (ko_meta)
                 ko_meta(self.metadata.data[key]);
@@ -438,17 +438,18 @@ function edtrCodemirror(content_type, content) {
                 var metadata_text = "", max_key_length=0, key;
 
                 // Find longest key
-                for (key=0; key < edtrSettings.file_meta.length; key++) {
+                for (key in edtrSettings.file_meta) {
                     if (key.startsWith(prefix) && key.length > max_key_length)
                         max_key_length = key.length;
                 }
                 // Create aligned metadata text
-                for (key=0; key < edtrSettings.file_meta.length; key++) {
+                for (key in edtrSettings.file_meta) {
                     // Ignore knockout and validator fields
                     if (!key.startsWith(prefix)) continue;
                     // Add meta key only if it has value
                     ko_meta = edtrSettings.file_meta[key];
                     if (ko_meta().length) {
+                        // Align value with spaces
                         metadata_text += key.replace(prefix, "").capitalize() + ":" +
                             Array(max_key_length-key.length+2).join(" ") +
                             ko_meta() + "\n";
@@ -557,17 +558,17 @@ function edtrCodemirror(content_type, content) {
         if (saved === "SAVED") {
             this.saved_state = 2;
             this.is_saved = true;
-            this.dom_save_btn_text.text("SAVED");
+            this.dom_save_btn_text.text("SAVED (draft)");
             this.dom_save_btn.removeClass("btn-success").tooltip("hide").attr('disabled', 'disabled');
         } else if (saved === "SAVING") {
             this.saved_state = 1;
             this.is_saved = false;
-            this.dom_save_btn_text.text("saving...");
+            this.dom_save_btn_text.text("saving draft...");
             this.dom_save_btn.removeClass("btn-success").attr('disabled', 'disabled');
         } else { // "NOT SAVED"
             this.saved_state = 0;
             this.is_saved = false;
-            this.dom_save_btn_text.text("Save");
+            this.dom_save_btn_text.text("Save Draft");
             this.dom_save_btn.addClass("btn-success").removeAttr('disabled');
         }
     };

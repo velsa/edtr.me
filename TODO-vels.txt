@@ -13,6 +13,10 @@ UI:
 - add search field on toolbar with autocomplete
 - enable Ctrl - cursor movement (currently only Option works)
 - Override Meta-S ?
+- Save button should show the Draft/Published status in all states:
+    Save Draft
+    SAVED (draft/published)
+    SAVING DRAFT...
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)

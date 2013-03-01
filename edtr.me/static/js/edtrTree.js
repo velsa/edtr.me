@@ -203,8 +203,8 @@ var edtrTree = {
             (e.ctrlKey  << 1) +
             (e.altKey   << 2) +
             (e.metaKey  << 3);
-        for (i=0; i < shortcuts; i++) {
-            for (k=0; k < shortcuts[i].keys.length; k++) {
+        for (i in shortcuts) {
+            for (k in shortcuts[i].keys) {
                 shortcut_parts = shortcuts[i].keys[k].toLowerCase().split('-');
                 shortcut_mods = {
                     shift:      0,
@@ -212,7 +212,7 @@ var edtrTree = {
                     alt:        0,
                     meta:       0
                 };
-                for (l=0; l < shortcut_parts.length; l++)
+                for (l in shortcut_parts)
                     shortcut_mods[shortcut_parts[l]] = 1;
                 shortcut_bits = (shortcut_mods.shift << 0) +
                                 (shortcut_mods.ctrl  << 1) +
@@ -242,7 +242,7 @@ var edtrTree = {
         if (!node.children)
             return 0;
         var count = 0;
-        for (var i=0; i < node.children.length; i++) {
+        for (var i in node.children) {
             callback.call(edtrTree, node.children[i]);
             count++;
             if (node.children[i].isParent && node.children[i].children)
@@ -268,7 +268,7 @@ var edtrTree = {
             return;
         var nodes = parent_node.children;
         if (nodes.length > 1) {
-            for (i=0; i < nodes.length; i++) {
+            for (i in nodes) {
                 if (node.isParent && !nodes[i].isParent ||
                     (node.isParent === nodes[i].isParent && edtrTree._name_ext_sort(node, nodes[i]) <= 0))
                     break;
@@ -325,7 +325,7 @@ var edtrTree = {
     process_server_json:    function (ztree, parent_node, data) {
         var nodes = [], i;
         // Build tree nodes from server data
-        for (i=0; i < data.tree.length; i++) {
+        for (i in data.tree) {
             nodes[i] = edtrTree._create_tree_node(data.tree[i]);
         }
         return edtrTree.sort_nodes(nodes);
@@ -430,7 +430,7 @@ var edtrTree = {
         var nodes = edtrTree.ztree.getCheckedNodes(true),
             filtered_nodes = [], i, k, parent_id;
         // Filter the nodes list
-        for (i=0; i < nodes.length; i++) {
+        for (i in nodes) {
             // Always ignore root
             if (!nodes[i].getParentNode())
                 continue;
@@ -703,7 +703,7 @@ var edtrTree = {
             edtrTree.clipped = null;
             // Gets ALL ztree nodes
             var nodes = edtrTree.ztree.getNodesByFilter(function() {return true;}), i;
-            for (i=0; i < nodes.length; i++) {
+            for (i in nodes) {
                 $("#"+nodes[i].tId+"_span").css("color", "");
             }
         }
@@ -714,7 +714,7 @@ var edtrTree = {
         var nodes, i, text="";
         if (edtrTree.clipped) {
             nodes = edtrTree.clipped.nodes;
-            for (i=0; i < nodes.length; i++) {
+            for (i in nodes) {
                 text += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
             }
         } else {
@@ -741,7 +741,7 @@ var edtrTree = {
             paste_node: null
         };
         var i, color = action === "copy" ? "blue" : "lightblue";
-        for (i=0; i < nodes.length; i++) {
+        for (i in nodes) {
             $("#"+nodes[i].tId+"_span").css("color", color);
         }
     },
@@ -786,7 +786,7 @@ var edtrTree = {
             return false;
         }
         // Check if we can perform the paste
-        for (var i=0; i < edtrTree.clipped.nodes.length; i++) {
+        for (var i in edtrTree.clipped.nodes) {
             // We shouldn't paste into ourselves or into the same parent
             if (edtrTree.clipped.nodes[i].id === node.id) {
                 messagesBar.show_notification_warning("Can't paste <strong>"+
@@ -927,7 +927,7 @@ var edtrTree = {
 
         // Go through nodes (children of paste_node)
         // and see if we overwrite anything
-        for (var i=0; i < nodes.length; i++) {
+        for (var i in nodes) {
             // Same name, but different path - it's an overwrite
             if (node.name === nodes[i].name &&
                 node.id !== nodes[i].id) {
@@ -1004,7 +1004,7 @@ var edtrTree = {
                 edtrTree.ajaxing_nodes = [];
                 edtrTree.ajaxing_callback = refresh_children;
                 // Refresh every opened child (if it still exists in new tree)
-                for (var k=0; k< old_children.length; k++) {
+                for (var k in old_children) {
                     // Refresh level by level
                     if (old_children[k].level != refresh_level)
                         continue;
@@ -1110,7 +1110,7 @@ var edtrTree = {
                     case "unpublish":
                         // Create text view from nodes
                         var filenames="";
-                        for (i=0; i < nodes.length; i++)
+                        for (i in nodes)
                             filenames += nodes[i].id + (nodes[i].isParent? "/\n" : "\n");
                         modalDialog.params = {
                             action:         action + "_checked",
@@ -1182,7 +1182,7 @@ var edtrTree = {
                 edtrTree.expand_node(selected_node, function() {
                     // Create list of files in the parent directory to disallow user
                     // adding the file with the same filename as any of the existing filenames
-                    for (var k=0; k < selected_node.children.length; k++)
+                    for (var k in selected_node.children)
                         modalDialog.params.no_names.push(selected_node.children[k].name);
                     modalDialog.show_file_modal();
                 });
@@ -1206,7 +1206,7 @@ var edtrTree = {
                 };
                 // Create list of files in the parent directory to disallow user
                 // renaming the file to the same filename as any of the existing filenames
-                for (i=0; i < parent.children.length; i++)
+                for (i in parent.children)
                     modalDialog.params.no_names.push(parent.children[i].name);
                 modalDialog.show_file_modal();
         }
