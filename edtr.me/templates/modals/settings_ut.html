@@ -24,13 +24,36 @@
                         <tr>
                             <td colspan="1"> <label>Theme:</label> </td>
                             <td colspan="3">
-                                <select class="selectpicker"
+                                <select
                                     data-bind= "options: editor.theme_list,
                                                 optionsText: function(item) {
                                                     return item.humanReadable()
                                                 },
                                                 value: editor.theme">
                                 </select>
+                            </td>
+                            <td colspan="1"> <label>Font size:</label> </td>
+                            <td colspan="1">
+                                <select class="input-mini"
+                                    data-bind= "options: editor.font_size_list,
+                                                value: editor.font_size">
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="3">
+                                <label class="checkbox">
+                                    <input type="checkbox"
+                                        data-bind="checked: editor.line_numbers">
+                                        Show line numbers
+                                </label>
+                            </td>
+                            <td colspan="3">
+                                <label class="checkbox">
+                                    <input type="checkbox"
+                                        data-bind="checked: editor.show_toolbar">
+                                        Show toolbar
+                                </label>
                             </td>
                         </tr>
                     </tbody></table>

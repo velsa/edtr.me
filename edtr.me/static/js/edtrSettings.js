@@ -4,7 +4,13 @@
 // NOTE: this object uses knockout to interact with dom via data-bind
 //
 var edtrSettings = {
+    //
+    // Static settings
+    //
     amplify_key: "edtr_modal_view_model",
+
+    // Various server statuses that we check against
+    pub_status: [ "unpublished", "published", "draft" ],
 
     //
     // Knockout models for dialogs
@@ -32,8 +38,12 @@ var edtrSettings = {
                                 "eclipse", "lesser-dark", "night", "twilight",
                                 "blackboard", "elegant", "monokai", "rubyblue",
                                 "vibrant-ink"
-                            ]
+                            ],
             // theme_tpl:      "codemirror-3.0-git/theme/{0}.css"
+            font_size:      ko.observable("14"),
+            font_size_list: [ "14", "15", "16", "17" ],
+            line_numbers:   ko.observable(true),
+            show_toolbar:   ko.observable(true)
         },
 
         // Settings for Preview pane

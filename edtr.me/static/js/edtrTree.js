@@ -238,7 +238,7 @@ var edtrTree = {
     // Go through all node's children recursively and perform
     // callback on each (excluding the node itself !)
     // returns number of callbacks performed
-    traverse_tree:          function (node, callback) {
+    traverse_tree:          function(node, callback) {
         if (!node.children)
             return 0;
         var count = 0;
@@ -252,7 +252,7 @@ var edtrTree = {
     },
 
     // Sort alphabetically by filename and by extension
-    _name_ext_sort:         function (n1, n2) {
+    _name_ext_sort:         function(n1, n2) {
         var ext1 = edtrHelper.get_filename_ext(n1.id),
             ext2 = edtrHelper.get_filename_ext(n2.id);
         if (ext1 > ext2) return 1;
@@ -263,10 +263,10 @@ var edtrTree = {
     },
 
     // Move node to alphabetical position within parent
-    sort_node_in_parent:    function (node, parent_node) {
+    sort_node_in_parent:    function(node, parent_node) {
         if (!parent_node.isParent)
             return;
-        var nodes = parent_node.children;
+        var nodes = parent_node.children, i;
         if (nodes.length > 1) {
             for (i in nodes) {
                 if (node.isParent && !nodes[i].isParent ||
@@ -283,7 +283,7 @@ var edtrTree = {
     },
 
     // Sort dirs and files alphabetically and place dirs first
-    sort_nodes:             function (nodes) {
+    sort_nodes:             function(nodes) {
         // Separate dirs and files
         dirs = nodes.filter(function(elem, index, array) {return elem.isParent;});
         files = nodes.filter(function(elem, index, array) {return !elem.isParent;});
@@ -295,6 +295,43 @@ var edtrTree = {
         return dirs.concat(files);
     },
 
+    // Update existing ztree node with new server data
+    _update_tree_node:      function(node, server_data) {
+        // We don't touch the essentials (id, name, isParent)
+        // and expect them to be the same
+
+        // But do the sanity check, just in case
+        if (node.id !== server_data._id ||
+            node.name !== edtrHelper.get_filename(server_data._id) ||
+            node.isParent !== server_data.is_dir) {
+            messagesBar.show_internal_error("edtrTree._update_tree_node", "essential data has changed ?!");
+        }
+
+        // Update extra file info
+        node.size_bytes     = server_data.bytes;
+        node.size_text      = server_data.size;
+        node.mime_type      = server_data.mime_type;
+        node.modified       = server_data.modified;
+        node.rev_id         = server_data.rev;
+        node.rev_num        = server_data.revision;
+        node.thumb_exists   = server_data.thumb_exists;
+        // Meta data
+        node.pub_status     = server_data.pub_status;
+
+        // Set correct icon
+        edtrTree._update_node_icon(node);
+    },
+
+    // Change node icon to state
+    // should be one of the values from node.icons
+    _update_node_icon:      function(node, state) {
+        // If state is not provided - set icon according to pub_state
+        if (state === undefined)
+            state = edtrSettings.pub_status[node.pub_status];
+        node.icon = node.icons[state];
+        edtrTree.ztree.updateNode(node);
+    },
+
     // Transform server data into ztree node
     _create_tree_node:      function (server_data) {
         var tree_node = {
@@ -304,19 +341,38 @@ var edtrTree = {
             // path:               edtrHelper.get_filename_path(server_data._id),
             isParent:           server_data.is_dir,
             // Extra file info
+            encoding:           server_data.encoding,
             size_bytes:         server_data.bytes,
             size_text:          server_data.size,
             mime_type:          server_data.mime_type,
             modified:           server_data.modified,
             rev_id:             server_data.rev,
             rev_num:            server_data.revision,
-            thumb_exists:       server_data.thumb_exists
+            thumb_exists:       server_data.thumb_exists,
+            // Meta data
+            pub_status:         0
         };
+        if (server_data.pub_status !== undefined)
+            tree_node.pub_status = server_data.pub_status;
         // Set specific icons for all files
         // folders will have default ztree open/close icons
+        // TODO: add specific icons for each state:
+        //      published:      small world icon at bottom right corner of the def icon
+        //      draft:          small edit icon at bottom right corner of the def icon
+        //      unpublished:    def icon
+        //      editing:        large edit icon over the def icon
         if (!tree_node.isParent) {
-            tree_node.icon = "/static/images/dropbox-api-icons/16x16/"+server_data.icon+".gif";
-            tree_node.large_icon = "/static/images/dropbox-api-icons/48x48/"+server_data.icon+"48.gif";
+            var base_url = "/static/images/";
+            tree_node.icons = {
+                def:        base_url+"dropbox-api-icons/16x16/"+server_data.icon+".gif",
+                large:      base_url+"dropbox-api-icons/48x48/"+server_data.icon+"48.gif",
+                published:  base_url+"famfamfam_silk_icons_v013/icons/world.png",
+                editing:    base_url+"famfamfam_silk_icons_v013/icons/page_edit.png"
+            };
+            tree_node.icons.draft = tree_node.icons.def;
+            tree_node.icons.unpublished = tree_node.icons.def;
+            // Set icon according to publish status
+            tree_node.icon = tree_node.icons[edtrSettings.pub_status[tree_node.pub_status]];
         }
         return tree_node;
     },
@@ -324,6 +380,7 @@ var edtrTree = {
     // Called by zTree after receiving ajax response for node
     process_server_json:    function (ztree, parent_node, data) {
         var nodes = [], i;
+        // debugger;
         // Build tree nodes from server data
         for (i in data.tree) {
             nodes[i] = edtrTree._create_tree_node(data.tree[i]);
@@ -1561,16 +1618,21 @@ var edtrTree = {
         serverComm.action("dropbox", "get_file",
             { path: node.id },
             function(data) {
+                // debugger;
                 edtrTree.show_loading_node(node, false);
                 if (data.status > serverComm.max_success_status) {
                     // Error should already be displayed
                     return;
                 }
+
                 // For images we get dropbox url in data.url and use it in fancybox preview
                 if (content_type === "image") {
                     edtrTree.show_img_gallery(node, data.url);
                     return;
                 }
+
+                // Update node data
+                edtrTree._update_tree_node(node, data.meta);
 
                 // Insert editor HTML code (toolbar, textarea, buttons) into content div
                 // TODO: remove previous codemirror and all bindings (?)
@@ -1592,8 +1654,10 @@ var edtrTree = {
                         $('body').find(".preview-container"));
                 }
 
+                // Change tree icon to reflect that file was opened for editing
+                edtrTree._update_node_icon(node, "editing");
                 edtrTree.editor.add_tab(node, content_type, data.content);
-                messagesBar.show_notification("File <b>"+node.id+"</b> was loaded into the editor");
+                // messagesBar.show_notification("File <b>"+node.id+"</b> was loaded into the editor");
         });
     },
 

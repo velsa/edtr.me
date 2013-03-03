@@ -555,10 +555,14 @@ function edtrCodemirror(content_type, content) {
 
     // SAVE state helpers: changes state while saving
     this.set_saved_state = function(saved) {
+        if (!this.node)
+            return;
         if (saved === "SAVED") {
             this.saved_state = 2;
             this.is_saved = true;
-            this.dom_save_btn_text.text("SAVED (draft)");
+            // debugger;
+            // edtrSettings.pub_state[this.node.pub_state]
+            this.dom_save_btn_text.text("SAVED ("+"draft"+")");
             this.dom_save_btn.removeClass("btn-success").tooltip("hide").attr('disabled', 'disabled');
         } else if (saved === "SAVING") {
             this.saved_state = 1;
@@ -688,13 +692,25 @@ function edtrCodemirror(content_type, content) {
         //if (self.content_type !== content_type) {
 
         // TODO: node and type should be part of the tabs array
-        var new_dom_ico = edtrTree.dom_db_tree.find("#" + tree_node.tId + "_ico");
-        if (this.node) {
-            var old_dom_ico = edtrTree.dom_db_tree.find("#" + this.node.tId + "_ico");
-            old_dom_ico.attr("class", this.node_saved_class);
-        }
-        this.node_saved_class = new_dom_ico.attr("class");
-        new_dom_ico.attr("class", "button edit");
+        // var new_dom_ico = edtrTree.dom_db_tree.find("#" + tree_node.tId + "_ico");
+        // if (this.node) {
+        //     var old_dom_ico = edtrTree.dom_db_tree.find("#" + this.node.tId + "_ico");
+        //     old_dom_ico.attr("class", this.node_saved_class);
+        // }
+        // this.node_saved_class = new_dom_ico.attr("class");
+        // new_dom_ico.attr("class", "button edit");
+
+        // Clear current active tab
+        this.dom_tabs_ul.find("li").removeClass("active");
+        // Create new active tab
+        var li = $("<li>").addClass("active"),
+            elem = $("<a>").addClass("editor-tab")
+            .attr("href", "#")
+            .attr("data-toggle", "tab")
+            .attr("data-filename", tree_node.id)
+            .text(tree_node.name)
+            .appendTo(li);
+        this.dom_tabs_ul.append(li);
 
         this.node               = tree_node;
         this.content_type       = content_type;
@@ -711,12 +727,13 @@ function edtrCodemirror(content_type, content) {
     };
 
     this.update_preview_theme   = function() {
-        self.dom_preview_head.find("link[rel=stylesheet]").remove();
+        var prev_css = self.dom_preview_head.find("link[rel=stylesheet]");
         self.dom_preview_head.
             append("<link rel=\"stylesheet\" href=\"/static/css/md_preview/" +
                 edtrSettings.general.preview.theme() +
                 ".css?reload=" +
                 (new Date()).getTime() + "\">");
+        prev_css.remove();
     };
 
     this.init                   = function(dom_container, dom_preview) {
@@ -735,7 +752,11 @@ function edtrCodemirror(content_type, content) {
 
         // Cache dom elements
         this.dom_elem           = dom_container;
+        this.dom_tabs           = dom_container.find(".editor-tabs");
+        this.dom_toolbar        = dom_container.find(".editor-toolbar");
+        this.dom_editor         = dom_container.find(".editor-area");
         this.dom_textarea       = dom_container.find(".cme-textarea");
+        this.dom_tabs_ul        = this.dom_tabs.find("ul");
         this.dom_save_btn       = this.dom_elem.find('#btn_save');
         this.dom_save_btn_text  = this.dom_elem.find('#btn_save_text');
         // Preview iframe
@@ -764,7 +785,7 @@ function edtrCodemirror(content_type, content) {
             autoCloseTags:      true,   // TODO: apparently works only in text/html mode
                                         // make it work in gfm mode as well
             lineNumbers:        true,
-            gutters:            ["CodeMirror-linenumbers", "bookmarks"],
+            gutters:            [ "CodeMirror-linenumbers" ], //"bookmarks"],
 
             // TODO: find Mac equivalents
             extraKeys: {
@@ -809,13 +830,33 @@ function edtrCodemirror(content_type, content) {
         this.cm_editor.on("cursorActivity", this.on_cursor_activity);
         this.cm_editor.on("gutterClick", this.on_gutter_clicked);
 
+        //
         // Subscribe to various settings
+        //
+        // Change editor theme
         edtrSettings.general.editor.theme.subscribe(function(new_theme) {
-            // Change editor theme
             self.cm_editor.setOption("theme", new_theme);
         });
         // Change preview stylesheet
         edtrSettings.general.preview.theme.subscribe(this.update_preview_theme);
+        // Change editor font size
+        edtrSettings.general.editor.font_size.subscribe(function(new_size) {
+            $(".CodeMirror-scroll").css("font-size", new_size+"px");
+        });
+        // Show/hide line numbers
+        edtrSettings.general.editor.line_numbers.subscribe(function(state) {
+            self.cm_editor.setOption("lineNumbers", state);
+        });
+        // Show/hide toolbar
+        edtrSettings.general.editor.show_toolbar.subscribe(function(state) {
+            if (state) {
+                self.dom_editor.css("top", self.dom_tabs.height()+self.dom_toolbar.height()+"px");
+                self.dom_toolbar.show();
+            } else {
+                self.dom_editor.css("top", self.dom_tabs.height()+"px");
+                self.dom_toolbar.hide();
+            }
+        });
 
         // Hides original text area, just in case
         // this.dom_elem.hide();

@@ -151,18 +151,37 @@ body {
     bottom:             0;
     min-width:          530px;  /* depends on amount of buttons on toolbar */
 }
-/* Toolbar */
-.editor-toolbar {
+/* Tabs */
+.editor-tabs {
+    margin:             0;
+    padding:            0;
     position:           absolute;
     top:                0;
     left:               0;
     right:              0;
-    height:             40px;   /* must be equal to .editor-area top */
+    height:             25px;   /* must be equal to .editor-area top */
+}
+.active .editor-tab {
+    padding:            2px 10px 2px;
+    font-size:          12px;
+    font-weight:        bold;
+}
+.editor-tab {
+    padding:            3px 10px 2px !important;
+    font-size:          12px;
+}
+/* Toolbar */
+.editor-toolbar {
+    position:           absolute;
+    top:                25px;
+    left:               0;
+    right:              0;
+    height:             35px;   /* must be equal to .editor-area top */
 }
 /* Container for codemirror */
 .editor-area {
     position:           absolute;
-    top:                40px;   /* must be equal to .editor-toolbar height */
+    top:                60px;   /* must be equal to .editor-tabs + .editor-toolbar height */
     bottom:             45px;   /* must be equal to .editor-buttons height */
     left:               0;
     right:              0;
@@ -171,7 +190,7 @@ body {
 /* Buttons below codemirror */
 .editor-buttons {
     position:           absolute;
-    height:             45px;   /* must be equal to .editor-area bottom */
+    height:             43px;   /* must be equal to .editor-area bottom - 2px (for blue border) */
     bottom:             0;
     left:               0;
     right:              0;
@@ -283,8 +302,11 @@ body {
     Internal elements of .main-view-right
  */
 .cme-toolbar {
-    padding:            4px 5px;
+    padding:            2px 5px;
     margin-top:         0;
+}
+.cme-toolbar .btn-group {
+    margin-top:         1px;
 }
 .cme-toolbar-tooltip {
     padding-bottom:     6px;
@@ -297,7 +319,7 @@ body {
 
 .cme-buttonbar {
     margin-top:         0;
-    padding:            12px 5px 5px 5px;
+    padding:            11px 5px 5px 5px;
 }
 #btn_save {
     width:              120px;
