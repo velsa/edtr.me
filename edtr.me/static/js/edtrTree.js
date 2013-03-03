@@ -18,6 +18,7 @@ var edtrTree = {
         'png':          'image',
         'bmp':          'image'
     },
+    editor:             null,
     dom_db_tree:        null,
     ztree:              null,
     ztree_settings:     null,
@@ -319,12 +320,12 @@ var edtrTree = {
         node.pub_status     = server_data.pub_status;
 
         // Set correct icon
-        edtrTree._update_node_icon(node);
+        edtrTree.update_node_icon(node);
     },
 
     // Change node icon to state
     // should be one of the values from node.icons
-    _update_node_icon:      function(node, state) {
+    update_node_icon:      function(node, state) {
         // If state is not provided - set icon according to pub_state
         if (state === undefined)
             state = edtrSettings.pub_status[node.pub_status];
@@ -586,34 +587,7 @@ var edtrTree = {
         if (node.isParent)
             return;
 
-        // If codemirror is opened and text in it was not saved
-        // ask confirmation from user to close it
-        if (edtrTree.editor && !edtrTree.editor.is_saved &&
-            edtrTree.get_node_type(node) !== "image") {
-            // Confirmation dialog
-            modalDialog.params = {
-                action:         "save_continue_lose",
-                template_vars: {
-                    filename:      edtrTree.editor.node.id
-                }
-            };
-            modalDialog.params.callback = function(args) {
-                if (args.button === "save") {
-                    edtrTree.editor.save_codemirror(function(is_saved) {
-                        if (is_saved)
-                            edtrTree.open_editor(node);
-                    });
-                } else if (args.button === "lose") {
-                    edtrTree.open_editor(node);
-                } else {
-                    // Cancel open operation
-                    edtrTree.editor.focus();
-                }
-            };
-            modalDialog.show_confirm_modal();
-        } else {
-            edtrTree.open_editor(node);
-        }
+        edtrTree.open_editor(node);
     },
 
     //
@@ -1612,53 +1586,57 @@ var edtrTree = {
             return false;
         }
 
-        // Retrieve file from dropbox
-        // Server provides us with file data for editable files and unique media url for media files
-        edtrTree.show_loading_node(node, true);
-        serverComm.action("dropbox", "get_file",
-            { path: node.id },
-            function(data) {
-                // debugger;
-                edtrTree.show_loading_node(node, false);
-                if (data.status > serverComm.max_success_status) {
-                    // Error should already be displayed
-                    return;
-                }
-
-                // For images we get dropbox url in data.url and use it in fancybox preview
-                if (content_type === "image") {
-                    edtrTree.show_img_gallery(node, data.url);
-                    return;
-                }
-
-                // Update node data
-                edtrTree._update_tree_node(node, data.meta);
-
-                // Insert editor HTML code (toolbar, textarea, buttons) into content div
-                // TODO: remove previous codemirror and all bindings (?)
-                if (edtrTree.editor) {
-                    if (edtrTree.editor.content_type !== content_type) {
-                        // TODO: close previous editor
-                        // console.log(edtrTree.editor.content_type);
-                        messagesBar.show_notification_warning("Content type <b>"+content_type+
-                            "</b> is not yet supported");
+        var _open_node_in_editor = function(node) {
+            // Retrieve file from dropbox
+            // Server provides us with file data for editable files and unique media url for media files
+            edtrTree.show_loading_node(node, true);
+            serverComm.action("dropbox", "get_file",
+                { path: node.id },
+                function(data) {
+                    // debugger;
+                    edtrTree.show_loading_node(node, false);
+                    if (data.status > serverComm.max_success_status) {
+                        // Error should already be displayed
                         return;
                     }
-                } else {
-                    // Set correct dom structure (editor and toolbar)
-                    edtrTree.dom_editor.html($("#"+content_type+"_editor_html").html());
-                    // Create new editor and save node with it
-                    edtrTree.editor = new edtrCodemirror();
-                    edtrTree.editor.init(
-                        edtrTree.dom_editor,
-                        $('body').find(".preview-container"));
-                }
 
-                // Change tree icon to reflect that file was opened for editing
-                edtrTree._update_node_icon(node, "editing");
-                edtrTree.editor.add_tab(node, content_type, data.content);
-                // messagesBar.show_notification("File <b>"+node.id+"</b> was loaded into the editor");
-        });
+                    // For images we get dropbox url in data.url and use it in fancybox preview
+                    if (content_type === "image") {
+                        edtrTree.show_img_gallery(node, data.url);
+                        return;
+                    }
+
+                    // Update node data
+                    edtrTree._update_tree_node(node, data.meta);
+
+                    // Insert editor HTML code (toolbar, textarea, buttons) into content div
+                    // TODO: remove previous codemirror and all bindings (?)
+                    if (!edtrTree.editor) {
+                        // Set correct dom structure (editor and toolbar)
+                        // TODO: do we need a different editor HTML for different filetypes ?
+                        // Probably just the toolbar should be different
+                        // edtrTree.dom_editor.html($("#"+content_type+"_editor_html").html());
+                        edtrTree.dom_editor.html($("#markdown_editor_html").html());
+                        // Create new editor and save node with it
+                        edtrTree.editor = new edtrCodemirror();
+                        edtrTree.editor.init(
+                            edtrTree.dom_editor,
+                            $('body').find(".preview-container"));
+                    }
+
+                    // Open file in new tab
+                    edtrTree.editor.add_tab(node, content_type, data.content);
+                    // messagesBar.show_notification("File <b>"+node.id+"</b> was loaded into the editor");
+            });
+        };
+        if (edtrTree.editor && edtrTree.editor.find_tab(node.id) !== -1) {
+            edtrTree.editor.confirm_replace_tab(node, function(is_confirmed) {
+                if (is_confirmed)
+                    _open_node_in_editor(node);
+            });
+        } else {
+            _open_node_in_editor(node);
+        }
     },
 
     //

@@ -88,7 +88,7 @@ body {
     bottom:             10px;
     right:              10px;
     left:               10px;
-    min-height:         550px;  /* must be equal to top + bottom + .main-container-view min-height + .sticky-footer min-height */
+    min-height:         550px;  /* == top + bottom + .main-container-view min-height + .sticky-footer min-height */
 }
 
 /*
@@ -97,7 +97,7 @@ body {
 .main-view-container {
     position:           absolute;
     min-height:         250px;  /* must be less then .main-container min-height */
-    bottom:             300px;  /* must be equal to .sticky-footer height */
+    bottom:             300px;  /* == .sticky-footer height */
     top:                0;
     right:              0;
     left:               0;
@@ -122,7 +122,7 @@ body {
     top:                0;
     left:               0;
     bottom:             0;
-    right:              12px;        /* must be equal to .left-splitter (width + right*2) */
+    right:              12px;        /* == .left-splitter (width + right*2) */
     margin:             0;
     padding:            0;
 }
@@ -131,8 +131,8 @@ body {
     position:           absolute;
     width:              6px;
     top:                0;
-    bottom:             -3px;       /* must be equal to .bottom-splitter top with minus (glues splitters together) */
-    right:              3px;        /* must be equal to .left-splitter width/2 */
+    bottom:             -3px;       /* == .bottom-splitter top with minus (glues splitters together) */
+    right:              3px;        /* == .left-splitter width/2 */
     background-color:   #B0C4DE;
     cursor:             col-resize;
     border-width:       1px;
@@ -145,7 +145,7 @@ body {
 */
 .main-view-right {
     position:           absolute;
-    left:               320px;  /* must be equal to .main-view-left width */
+    left:               320px;  /* == .main-view-left width */
     top:                0;
     right:              0;
     bottom:             0;
@@ -159,30 +159,53 @@ body {
     top:                0;
     left:               0;
     right:              0;
-    height:             25px;   /* must be equal to .editor-area top */
+    height:             25px;   /* == .editor-toolbar top */
+}
+.editor-tabs .nav-tabs {
+    margin:             0;
 }
 .active .editor-tab {
     padding:            2px 10px 2px;
     font-size:          12px;
     font-weight:        bold;
 }
+.edtior-tab, .not-saved {
+    color:              darkorange !important;
+}
+.edtior-tab, .published {
+    color:              blue !important;
+}
 .editor-tab {
     padding:            3px 10px 2px !important;
     font-size:          12px;
+    color:              #999;
 }
+.editor-tab img {
+    margin:             0 4px 4px -6px;
+}
+.editor-tab-close {
+    float:              right;
+    margin:             -4px -2px 0 10px;
+    color:              darkred;
+}
+.editor-tab-close:hover {
+    cursor:             pointer;
+    color:              red;
+}
+
 /* Toolbar */
 .editor-toolbar {
     position:           absolute;
-    top:                25px;
+    top:                25px;   /* == .editor-tabs height */
     left:               0;
     right:              0;
-    height:             35px;   /* must be equal to .editor-area top */
+    height:             35px;   /* == .editor-area top - .editor-tabs height */
 }
 /* Container for codemirror */
 .editor-area {
     position:           absolute;
-    top:                60px;   /* must be equal to .editor-tabs + .editor-toolbar height */
-    bottom:             45px;   /* must be equal to .editor-buttons height */
+    top:                60px;   /* == .editor-tabs height + .editor-toolbar height */
+    bottom:             45px;   /* == .editor-buttons height + 2px (for blue border) */
     left:               0;
     right:              0;
     font-weight:        normal;
@@ -190,7 +213,7 @@ body {
 /* Buttons below codemirror */
 .editor-buttons {
     position:           absolute;
-    height:             43px;   /* must be equal to .editor-area bottom - 2px (for blue border) */
+    height:             43px;   /* == .editor-area bottom - 2px (for blue border) */
     bottom:             0;
     left:               0;
     right:              0;
@@ -203,7 +226,7 @@ body {
 .sticky-footer {
     position:           absolute;
     min-height:         250px;
-    height:             300px;  /* must be equal to .main-view-container bottom */
+    height:             300px;  /* == .main-view-container bottom */
     bottom:             0;
     right:              0;
     left:               0;
@@ -226,7 +249,7 @@ body {
 /* Preview area - ! IFRAME ! */
 .preview-container {
     position:           absolute;
-    top:                12px;    /* must be equal to .bottom-splitter (height + top*2) */
+    top:                12px;    /* == .bottom-splitter (height + top*2) */
     left:               0;
     right:              0;
     bottom:             0;
@@ -506,6 +529,9 @@ span.CodeMirror-matchhighlight {
 .modal-header {
     padding:            15px 15px 5px;;
     cursor:             move;
+}
+.modal-header .close {
+    margin-top:         -4px;
 }
 .modal-body {
     padding:            5px 15px;

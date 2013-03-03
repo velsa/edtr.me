@@ -20,6 +20,8 @@ UI:
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
+- Add support for dt/dd (definition lists):
+    http://kramdown.rubyforge.org/syntax.html#definition-lists
 
 JS:
 - marked: add code highlighting (see example on their github page)

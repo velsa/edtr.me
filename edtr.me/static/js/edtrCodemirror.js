@@ -15,13 +15,13 @@ function edtrCodemirror(content_type, content) {
         self.cm_editor.focus();
     },
 
-    this.hide_codemirror = function() {
-        self.is_hidden = true;
-        self.set_saved_state("SAVED");
-        //$('#cme_wide_toggle').html("&nbsp;");
-        edtrSplitters.hide_editor();
-        self.dom_elem.show().attr("disabled", "true");
-    };
+    // this.hide_codemirror = function() {
+    //     self.is_hidden = true;
+    //     self.set_tab_state("SAVED");
+    //     //$('#cme_wide_toggle').html("&nbsp;");
+    //     edtrSplitters.hide_editor();
+    //     self.dom_elem.show().attr("disabled", "true");
+    // };
 
     this.toggle_width = function() {
         edtrSplitters.toggle_sidebar();
@@ -41,6 +41,10 @@ function edtrCodemirror(content_type, content) {
         self.cm_editor.refresh();
     };
 
+    //
+    // Insert tree node as link into the document
+    // Depending on node type, we insert it as url or image
+    //
     this.insert_node = function(node, node_type) {
         // TODO: Calculate node's relative path
         // we must know the root dir for current file (defined in folder settings)
@@ -427,12 +431,12 @@ function edtrCodemirror(content_type, content) {
                 edtrSettings.file_meta[key]("");
         }
         // Copy parsed meta into view model
-        for (key in self.metadata.data) {
+        for (key in self.tabs[self.current_tab].metadata.data) {
             ko_meta = edtrSettings.file_meta[prefix+key.toLowerCase()];
             if (ko_meta)
-                ko_meta(self.metadata.data[key]);
+                ko_meta(self.tabs[self.current_tab].metadata.data[key]);
         }
-        edtrSettings.file_meta_modal(self.node.id, function(args) {
+        edtrSettings.file_meta_modal(self.tabs[self.current_tab].node.id, function(args) {
             if (args.button === "ok") {
                 // TODO: Save metadata into codemirror's text
                 var metadata_text = "", max_key_length=0, key;
@@ -451,14 +455,14 @@ function edtrCodemirror(content_type, content) {
                     if (ko_meta().length) {
                         // Align value with spaces
                         metadata_text += key.replace(prefix, "").capitalize() + ":" +
-                            Array(max_key_length-key.length+2).join(" ") +
+                            Array(max_key_length-key.length+2+4).join(" ") +
                             ko_meta() + "\n";
                     }
                 }
                 // Always end metadata with new line
                 if (metadata_text.length)
                     metadata_text += "\n";
-                self.cm_editor.setValue(metadata_text + self.metadata.content);
+                self.cm_editor.setValue(metadata_text + self.tabs[self.current_tab].metadata.content);
             } else if (args.button === "cancel") {
                 // Modal canceled
                 // Should we do anything here ?
@@ -481,8 +485,8 @@ function edtrCodemirror(content_type, content) {
     // Scroll preview-container to corresponding anchor
     //
     this.scroll_to_anchor = function() {
-        var line_num = self.cm_editor.getCursor(true).line+1;
-        if (self.cur_line !== line_num) {
+        var line_num = self.cm_editor.getCursor(true).line-self.tabs[self.current_tab].metadata.lines;
+        if (line_num > 0&& line_num !== self.cur_line) {
             self.cur_line = line_num;
             var i,
                 anchor_num=0,
@@ -528,52 +532,62 @@ function edtrCodemirror(content_type, content) {
         }
     };
 
-    //
-    // Text in CodeMirror changed
-    //
-    // This function will be called VERY OFTEN !
-    this.on_change = function(inst, change_obj) {
-        // console.log(self.saved_state);
-        if (self.saved_state === 2) {
-            self.set_saved_state("NOT SAVED");
-        }
+    this.update_live_preview = function() {
         // Update preview on timer (no need for preview when in fullscreen)
         if (!self.is_codemirror_fullscreen && !self.is_preview_timer) {
             self.is_preview_timer = true;
             this.preview_timer_id = setTimeout(function() {
                 self.is_preview_timer = false;
                 // Parse metadata
-                self.metadata = self.parse_metadata(self.cm_editor.getValue());
+                self.tabs[self.current_tab].metadata = self.parse_metadata(self.cm_editor.getValue());
                 // Generate preview
-                self.dom_preview_body.html(marked(self.metadata.content));
+                self.dom_preview_body.html(marked(self.tabs[self.current_tab].metadata.content));
                 // Get anchors from generated preview
                 self.aTags = self.dom_preview_body.find("a.marked-anchor");
                 self.scroll_to_anchor();
             }, 100);
         }
+    },
+
+    //
+    // Text in CodeMirror changed
+    //
+    // This function will be called VERY OFTEN !
+    this.on_change = function(inst, change_obj) {
+        // console.log(self.saved_state);
+        if (self.tabs[self.current_tab].state === self.TAB_STATE.SAVED) {
+            self.set_tab_state(self.TAB_STATE.NOT_SAVED);
+        }
+        self.update_live_preview();
     };
 
-    // SAVE state helpers: changes state while saving
-    this.set_saved_state = function(saved) {
-        if (!this.node)
-            return;
-        if (saved === "SAVED") {
-            this.saved_state = 2;
-            this.is_saved = true;
-            // debugger;
-            // edtrSettings.pub_state[this.node.pub_state]
-            this.dom_save_btn_text.text("SAVED ("+"draft"+")");
-            this.dom_save_btn.removeClass("btn-success").tooltip("hide").attr('disabled', 'disabled');
-        } else if (saved === "SAVING") {
-            this.saved_state = 1;
-            this.is_saved = false;
-            this.dom_save_btn_text.text("saving draft...");
-            this.dom_save_btn.removeClass("btn-success").attr('disabled', 'disabled');
-        } else { // "NOT SAVED"
-            this.saved_state = 0;
-            this.is_saved = false;
-            this.dom_save_btn_text.text("Save Draft");
-            this.dom_save_btn.addClass("btn-success").removeAttr('disabled');
+    // Tab state helper: changes tab state to saved, saving, published, etc...
+    this.set_tab_state = function(state) {
+        // If no state passed - update buttons to reflect current state
+        if (state === undefined)
+            state = self.tabs[self.current_tab].state;
+        switch (state) {
+            case self.TAB_STATE.SAVED:
+                self.tabs[self.current_tab].state = state;
+                // TODO: add draft/published/unpublished text to button
+                self.tabs[self.current_tab].dom_elem.find("a").removeClass("not-saved");
+                self.dom_save_btn_text.text("SAVED ("+"draft"+")");
+                self.dom_save_btn.removeClass("btn-success").tooltip("hide").attr('disabled', 'disabled');
+                break;
+            case self.TAB_STATE.SAVING:
+                self.tabs[self.current_tab].state = state;
+                self.dom_save_btn_text.text("saving draft...");
+                self.dom_save_btn.removeClass("btn-success").attr('disabled', 'disabled');
+                break;
+            case self.TAB_STATE.NOT_SAVED:
+                self.tabs[self.current_tab].state = state;
+                self.tabs[self.current_tab].dom_elem.find("a").addClass("not-saved");
+                self.dom_save_btn_text.text("Save Draft");
+                self.dom_save_btn.addClass("btn-success").removeAttr('disabled');
+                break;
+            default:
+                messagesBar.show_internal_error("edtrCodemirror.set_tab_state", "unknown state "+state);
+                break;
         }
     };
 
@@ -652,22 +666,24 @@ function edtrCodemirror(content_type, content) {
     // Save codemirror's contents and launch callback when done
     // callback parameter will be true if saved ok and false if not
     this.save_codemirror = function() {
-        if (self.saved_state !== 0)
+        // File is already saved or in the process of being saved
+        if (self.tabs[self.current_tab].state !== self.TAB_STATE.NOT_SAVED)
             return;
-        self.set_saved_state("SAVING");
-        // TODO: show spinning wheel in tab
+        // Update state, show backdrop and rotating wheel in tree
+        self.set_tab_state(self.TAB_STATE.SAVING);
         self.dom_elem.find(".file-saving").show();
-        edtrTree.show_loading_node(self.node, true);
+        edtrTree.show_loading_node(self.tabs[self.current_tab].node, true);
         serverComm.action("dropbox", "save_file",
             {
-                path: self.node.id,
+                path: self.tabs[self.current_tab].node.id,
                 content: self.cm_editor.getValue()
             }, function(data) {
+                // Clear backdrop and rotating wheel in tree
                 self.dom_elem.find(".file-saving").hide();
-                edtrTree.show_loading_node(self.node, false);
+                edtrTree.show_loading_node(self.tabs[self.current_tab].node, false);
                 if (data.status > serverComm.max_success_status) {
                     // Serious error
-                    self.set_saved_state("NOT SAVED");
+                    self.set_tab_state(self.TAB_STATE.NOT_SAVED);
                     if (data.status === 6)
                         messagesBar.show_notification_warning(serverComm.human_status[data.status]);
                     else
@@ -675,56 +691,280 @@ function edtrCodemirror(content_type, content) {
                     if (self.on_saved)
                         self.on_saved.call(this, false);
                 } else {
-                    self.set_saved_state("SAVED");
-                    messagesBar.show_notification("Saved "+self.node.id);
+                    self.set_tab_state(self.TAB_STATE.SAVED);
+                    messagesBar.show_notification("Saved "+self.tabs[self.current_tab].node.id);
                     if (self.on_saved)
                         self.on_saved.call(this, true);
                 }
             });
     };
 
+    // Show confirmation dialog to replace existing tab with new content
+    // and call callback with true to confirm replacement and false to cancel
+    this.confirm_replace_tab = function(node, callback) {
+        var index = self.find_tab(node.id, true);
+        if (index === -1) return;
+
+        // Tab is in saving mode - cancel request
+        if (self.tabs[index].state === self.TAB_STATE.SAVING) {
+            callback.call(null, false);
+            return;
+        }
+
+        // If unsaved tab is not current - first show it to user
+        if (self.tabs[self.current_tab].node.id !== node.id)
+            self.switch_tab(node.id);
+
+        // User is trying to open the already opened file
+        // we don't care if the tab is saved or not and always ask for confirmation (???)
+        modalDialog.params = {
+            action:         "replace_cancel",
+            template_vars: {
+                filename:       node.id,
+                is_saved:       self.tabs[index].state === self.TAB_STATE.SAVED
+            }
+        };
+        modalDialog.params.callback = function(args) {
+            if (args.button === "replace") {
+                // Confirm replace
+                callback.call(null, true);
+            } else {
+                // Cancel replace
+                callback.call(null, false);
+            }
+        };
+        modalDialog.show_confirm_modal();
+    };
+
     // Add new tab with given content
     // We expect content_type to be one of the supported types
     this.add_tab                = function(tree_node, content_type, content) {
-        // If content_type changed it means that home-tree has replaced
-        // editor's HTML and preview-container
-        // TODO: do we need to remove previous codemirror's bindings ?
-        //if (self.content_type !== content_type) {
+        if (!tree_node) {
+            messagesBar.show_internal_error("edtrCodemirror.add_tab", "no node ?! ");
+            return;
+        }
+        if (!content) {
+            messagesBar.show_internal_error("edtrCodemirror.add_tab", "no content ?! ");
+            return;
+        }
+        // See if we have this tab already opened
+        var index = self.find_tab(tree_node.id);
+        if (index !== -1) {
+            // Tab is in saving mode - ignore request
+            if (self.tabs[index].state === self.TAB_STATE.SAVING)
+                return;
 
-        // TODO: node and type should be part of the tabs array
-        // var new_dom_ico = edtrTree.dom_db_tree.find("#" + tree_node.tId + "_ico");
-        // if (this.node) {
-        //     var old_dom_ico = edtrTree.dom_db_tree.find("#" + this.node.tId + "_ico");
-        //     old_dom_ico.attr("class", this.node_saved_class);
-        // }
-        // this.node_saved_class = new_dom_ico.attr("class");
-        // new_dom_ico.attr("class", "button edit");
+            // Tab exists, but we expect confirm_replace_tab() to be already called
+            // so we replace the document
 
-        // Clear current active tab
-        this.dom_tabs_ul.find("li").removeClass("active");
-        // Create new active tab
-        var li = $("<li>").addClass("active"),
-            elem = $("<a>").addClass("editor-tab")
-            .attr("href", "#")
-            .attr("data-toggle", "tab")
-            .attr("data-filename", tree_node.id)
-            .text(tree_node.name)
-            .appendTo(li);
-        this.dom_tabs_ul.append(li);
+            // Switch active tab
+            self.switch_tab(tree_node.id);
 
-        this.node               = tree_node;
-        this.content_type       = content_type;
+            self.tabs[index].doc.setValue(content);
+            self.tabs[index].metadata = self.parse_metadata(content);
+            self.tabs[index].node = tree_node;
+        } else {
+            // Clear current active tab
+            self.dom_tabs_ul.find("li").removeClass("active");
+            // Create new active tab
+            // debugger;
+            icon_url = tree_node.icon;
+            var li = $("<li>")
+                    .addClass("tab")
+                    .addClass("active")
+                    .attr("data-node-id", tree_node.id),
+                icon = $("<img>")
+                    .attr("src", icon_url),
+                a = $("<a>")
+                    .addClass("editor-tab")
+                    .attr("href", "#")
+                    .attr("title", tree_node.id)
+                    .attr("display", "inline")
+                    // .attr("data-toggle", "tab")
+                    .text(tree_node.name),
+                close_button = $("<span>")
+                    .addClass("editor-tab-close")
+                    .html("&#215;") // multiplication sign
+                    ;
+            icon.prependTo(a);
+            close_button.appendTo(a);
+            a.appendTo(li);
+            self.dom_tabs_ul.append(li);
 
-        this.cm_editor.setValue(content);
+            // TODO: set mode according to content_type
+            var cm_doc = CodeMirror.Doc(content, "gfm");
+            self.tabs.push( {
+                dom_elem:       li,
+                doc:            cm_doc,
+                node:           tree_node,
+                content_type:   content_type,
+                metadata:       self.parse_metadata(content)
+            });
+            cm_doc.setValue(content);
+            var old_doc = self.cm_editor.swapDoc(cm_doc);
+            // if (self.tabs.length > 1)
+            //     self.tabs[self.current_tab].doc = old_doc;
+            self.current_tab = self.tabs.length-1;
+
+            // Change tree icon to reflect that file was opened for editing
+            edtrTree.update_node_icon(self.tabs[self.current_tab].node, "editing");
+        }
 
         // Clear undo history, thus disallowing to undo setValue()
-        this.cm_editor.clearHistory();
-        this.cm_editor.focus();
+        self.cm_editor.clearHistory();
+        self.cm_editor.focus();
 
-        this.set_saved_state("SAVED");
-        if (this.preview_timer_id)
-            clearTimeout(this.preview_timer_id);
+        self.set_tab_state(self.TAB_STATE.SAVED);
+        // Cancel previous preview timer
+        if (self.is_preview_timer) {
+            self.is_preview_timer = false;
+            clearTimeout(self.preview_timer_id);
+        }
+        self.update_live_preview();
     };
+
+    // Find tab in tabs array by node id
+    // Returns tab index in array if found, -1 if not found
+    this.find_tab              = function(node_id, show_error) {
+        // Find the tab
+        for (var i=0; i < self.tabs.length; i++) {
+            if (self.tabs[i].node.id === node_id)
+                break;
+        }
+        // Sanity check
+        if (i === self.tabs.length) {
+            if (show_error)
+                messagesBar.show_internal_error("edtrCodemirror.find_tab", "can't find tab for "+node_id);
+            return -1;
+        }
+        return i;
+    };
+
+    // Switch tab to specfied filename
+    // If is_force is provided - we perform switch, even if node_id is the same
+    // Needed for close_tab()
+    this.switch_tab             = function(node_id, is_force) {
+        // Should we do anything when active tab is clicked ?
+        if (self.tabs[self.current_tab].node.id === node_id && !is_force)
+            return;
+        var index = self.find_tab(node_id, true);
+        if (index === -1) return;
+
+        // Cancel previous preview timer
+        if (this.is_preview_timer) {
+            self.is_preview_timer = false;
+            clearTimeout(this.preview_timer_id);
+        }
+
+        // Clear current active tab
+        self.dom_tabs_ul.find("li").removeClass("active");
+        // Set new active tab and change Doc in CodeMirror
+        self.dom_tabs_ul.find("li[data-node-id='"+node_id+"']").addClass("active");
+        self.current_tab = index;
+        self.cm_editor.swapDoc(self.tabs[self.current_tab].doc);
+
+        // Update dom to reflect state of the new tab
+        self.set_tab_state();
+
+        // Update preview for new tab
+        this.update_live_preview();
+    },
+
+    // Close tab by node id
+    // We expect the user confirmation to be already processed
+    this.close_tab              = function(node_id) {
+        if (self.tabs.length === 1) {
+            messagesBar.show_notification_warning("Removal of last tab is not implemented yet.");
+            return;
+        }
+        // debugger;
+        var index = self.find_tab(node_id, true), change_active = false;
+        if (index === -1) return;
+        var dom_li = self.dom_tabs_ul.find("li[data-node-id='"+node_id+"']");
+
+        // When closing active tab - change active to previous tab or next tab
+        // if closing the first tab
+        if (dom_li.hasClass("active"))
+            change_active = true;
+
+        // Change icon in tree
+        edtrTree.update_node_icon(self.tabs[index].node);
+
+        // Remove tab node, item from tabs array and adjust current tab index
+        dom_li.remove();
+        self.tabs.splice(index, 1);
+        if (self.current_tab > 0) self.current_tab--;
+
+        if (change_active) {
+            self.switch_tab(self.tabs[self.current_tab].node.id, true);
+        }
+
+    };
+
+    // Switch tab on click
+    // $(this) referes to clicked <li>
+    this.on_tab_click           = function(event) {
+        self.switch_tab($(this).data("node-id"));
+    },
+
+    // Switch tab on click
+    // $(this) referes to clicked <li>
+    this.on_tab_mousedown        = function(event) {
+        // Right click - simulate edtrTree context menu
+        if (event.which === 3) {
+            var index = self.find_tab($(this).data("node-id"), true);
+            if (index === -1) return;
+            edtrTree.on_right_click(event, null, self.tabs[index].node);
+        }
+
+        return false;
+    },
+
+    // Close tab on close button click
+    // $(this) referes to clicked <span>
+    this.on_tab_close_click      = function(event) {
+        // Prevents jQuery from calling on_tab_click()
+        event.stopPropagation();
+
+        var node_id = $(this).parent().parent().data("node-id"),
+            index = self.find_tab(node_id, true);
+        if (index === -1) return;
+
+        // Ignore close while saving
+        if (self.tabs[index].state === self.TAB_STATE.SAVING)
+            return;
+
+        // If text was not saved, ask confirmation from user to close it
+        if (self.tabs[index].state === self.TAB_STATE.SAVED) {
+            self.close_tab(node_id);
+        } else {
+            // Closing tab, that is not current - first show it to user
+            if (self.tabs[self.current_tab].node.id !== node_id)
+                self.switch_tab(node_id);
+            // Confirmation dialog
+            modalDialog.params = {
+                action:         "save_continue_lose",
+                template_vars: {
+                    filename:      node_id
+                }
+            };
+            modalDialog.params.callback = function(args) {
+                if (args.button === "save") {
+                    // Prepare callback
+                    self.on_saved = function(is_saved) {
+                        if (is_saved)
+                            self.close_tab(node_id);
+                    };
+                    self.save_codemirror();
+                } else if (args.button === "lose") {
+                    self.close_tab(node_id);
+                } else {
+                    // Cancel close
+                }
+            };
+            modalDialog.show_confirm_modal();
+        }
+    },
 
     this.update_preview_theme   = function() {
         var prev_css = self.dom_preview_head.find("link[rel=stylesheet]");
@@ -744,11 +984,22 @@ function edtrCodemirror(content_type, content) {
         this.is_hidden                  = false;
         this.is_preview_timer           = false;
         this.preview_timer_id           = null;
-        this.bookmarks                  = [];
         // TODO: Get those from folder/general settings
         this.tab_character              = "\t";
         this.tab_spaces                 = Array(4).join(" "); // should equal to tab_character
         this.list_character             = "-";
+
+        // Document Tabs
+        this.tabs                       = [];
+        this.current_tab                = 0;
+
+        // Tab states
+        this.TAB_STATE = {
+            PUBLISHED:          3,
+            SAVED:              2,
+            SAVING:             1,
+            NOT_SAVED:          0
+        };
 
         // Cache dom elements
         this.dom_elem           = dom_container;
@@ -830,6 +1081,14 @@ function edtrCodemirror(content_type, content) {
         this.cm_editor.on("cursorActivity", this.on_cursor_activity);
         this.cm_editor.on("gutterClick", this.on_gutter_clicked);
 
+        // Handle document tabs
+        // delegate() monitors dom changes
+        // we also disable text selection to avoid weird UI look
+        this.dom_tabs_ul.delegate("li", "click", this.on_tab_click).disableSelection();
+        this.dom_tabs_ul.delegate("li", "mousedown", this.on_tab_mousedown)
+            .delegate("li", 'contextmenu', function(e){ e.preventDefault(); });
+        this.dom_tabs_ul.delegate(".editor-tab-close", "click", this.on_tab_close_click);
+
         //
         // Subscribe to various settings
         //
@@ -898,8 +1157,6 @@ function edtrCodemirror(content_type, content) {
         this.dom_elem.find(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
         // And buttons
         this.dom_elem.find(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
-
-        this.set_saved_state("SAVED");
 
         return this;
     };
