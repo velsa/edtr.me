@@ -380,7 +380,7 @@ function edtrCodemirror(content_type, content) {
     //
     // Parse metadata at the beginning of markdown file (and others as well ?)
     // returns:
-    //      status:     0 - success, 1 - metadata not found, 2 - error in metadata
+    //      status:     true - success, false - error in metadata
     //      lines:      # of lines in metadata
     //      content:    content without metadata AND without the new line after metadata
     //      data:       { key: value, ... } array of metadata
@@ -391,28 +391,30 @@ function edtrCodemirror(content_type, content) {
     this.parse_metadata = function(text) {
         var i = 0, eol,
             line, j, key, val,
-            status = 0, lines = 0, content = text, data = {};
-        debugger;
+            status = true, lines = 0, content = text, data = {};
         while (i < text.length) {
             // Get next line
             eol = text.indexOf("\n", i);
             if (eol === -1) eol = text.length;
             line = text.substr(i, eol-i);
-            // debugger;
+            // Last line of metadata - new line
             if (!line.length) {
                 content = text.substr(i+1);
                 break;
             }
-            // if(line[0] === " " || line[0] === "\t") {
-            //     content = text.substr(i);
-            //     break;
-            // }
-            j = line.indexOf(":");
-            if (j === -1) {
-                status = 2;
+            // First character should be alphanumberical
+            if(!line[0].match('[a-zA-Z0-9]')) {
                 content = text.substr(i);
                 break;
             }
+            // Find key:value
+            j = line.indexOf(":");
+            if (j === -1) {
+                status = false;
+                content = text.substr(i);
+                break;
+            }
+            // Add key/value pair to data
             data[text.substr(i, j).trim()] = text.substr(i+j+1, eol-i-j-1).trim();
             // console.log(JSON.stringify(data));
             i = eol+1;
