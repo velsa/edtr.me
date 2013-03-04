@@ -330,9 +330,11 @@ body {
 #db_tree_1_a {
     font-weight:        bold;
 }
+/*
 #edtr_tree::-webkit-scrollbar {
     display:            none;
 }
+*/
 /*zTree Icons*/
 .ztree li span.button.parent_ico_open {
     margin-right: 2px;

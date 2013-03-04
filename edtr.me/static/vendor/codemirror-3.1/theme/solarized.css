@@ -93,7 +93,7 @@ http://ethanschoonover.com/solarized/img/solarized-palette.png
   text-decoration: underline;
   text-decoration-style: dotted;
 }
-.cm-s-solarized .cm-strong { color: #eee; }
+.cm-s-solarized .cm-strong { color: ##93a1a1; }
 .cm-s-solarized .cm-tab:before {
   content: "➤";   /*visualize tab character*/
   color: #586e75;
@@ -142,7 +142,7 @@ http://ethanschoonover.com/solarized/img/solarized-palette.png
 
 /* Gutter border and some shadow from it  */
 .cm-s-solarized .CodeMirror-gutters {
-  padding: 0 15px 0 10px;
+  padding: 0 5px 0 1px;
   box-shadow: 0 10px 20px black;
   border-right: 1px solid;
 }
