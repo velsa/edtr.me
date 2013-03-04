@@ -292,6 +292,19 @@ var edtrSplitters = {
     }
 };
 
+function requestFullScreen(element) {
+    // Supports most browsers and their versions.
+    var requestMethod = element.requestFullScreen || element.webkitRequestFullScreen || element.mozRequestFullScreen || element.msRequestFullScreen;
+
+    if (requestMethod) { // Native full screen.
+        requestMethod.call(element);
+    } else if (typeof window.ActiveXObject !== "undefined") { // Older IE.
+        var wscript = new ActiveXObject("WScript.Shell");
+        if (wscript !== null) {
+            wscript.SendKeys("{F11}");
+        }
+    }
+}
 
 //
 // Handles all AJAX and Socket IO requests / responses
@@ -350,6 +363,8 @@ var serverComm = {
                     return;
                 }
 
+                debugger;
+                var obj, updates_arr = [];
                 // Process updates
                 // We do it recursively to allow step by step processing in edtrTree
                 function recursive_update(index, updates) {
@@ -357,14 +372,18 @@ var serverComm = {
                     if (index === updates.length)
                         return;
                     edtrTree.process_server_update("dropbox",
-                        updates[index][0], updates[index][1], function(status) {
+                        updates[index], function(status) {
                         if (!status) {
                             // TODO: do we need to handle any errors here ?
                         }
                         recursive_update(index+1, updates);
                     });
                 }
-                recursive_update(0, response.updates);
+                // Create an array from object to iterate over it in recursion
+
+                for (obj in response.updates)
+                    updates_arr.push(response.updates[obj]);
+                recursive_update(0, updates_arr);
             });
         }, 1000);
 

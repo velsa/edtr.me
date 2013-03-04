@@ -12,61 +12,39 @@
 
     <!-- CodeMirror CSS
     -->
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/lib/codemirror.css') }}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/lib/codemirror.css')}}">
     <!-- By default include all themes -->
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/neat.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/elegant.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/erlang-dark.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/night.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/monokai.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/cobalt.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/eclipse.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/rubyblue.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/lesser-dark.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/xq-dark.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/ambiance.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/blackboard.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/vibrant-ink.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/solarized.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror-3.1/theme/twilight.css') }}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/neat.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/elegant.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/erlang-dark.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/night.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/monokai.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/cobalt.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/eclipse.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/rubyblue.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/lesser-dark.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/xq-dark.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/ambiance.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/blackboard.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/vibrant-ink.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/solarized.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/twilight.css')}}">
 
     <!-- Datetime picker for file settings dialog
     -->
-    <link rel="stylesheet" href="{{ static_url('bootstrap-datetimepicker-0.0.8/css/bootstrap-datetimepicker.min.css') }}">
-
-    <!-- Bootstrap select - modifies select/option to look like button
-    -->
-    <link rel="stylesheet" href="{{ static_url('bootstrap-select/bootstrap-select.css') }}">
+    <link rel="stylesheet" href="{{static_url('vendor/bootstrap-datetimepicker-0.0.8/css/bootstrap-datetimepicker.min.css')}}">
 
     <!-- JQuery FancyBox CSS
     -->
-    <link rel="stylesheet" href="{{ static_url('fancybox-2.1.4/source/jquery.fancybox.css') }}">
+    <link rel="stylesheet" href="{{static_url('vendor/fancybox-2.1.4/source/jquery.fancybox.css')}}">
 
     <!-- zTree styles
     -->
-    <link rel="stylesheet" href="{{ static_url('ztree/css/zTreeStyle/zTreeStyle.css') }}">
-    <!-- zTree Icons -->
-    <style type="text/css">
-        .ztree li span.button.parent_ico_open {
-            margin-right: 2px;
-            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/1_open.png') }}")
-            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
-        }
-        .ztree li span.button.parent_ico_close {
-            margin-right: 2px;
-            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/1_close.png') }}")
-            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
-        }
-        .ztree li span.button.icon_edit_ico_docu {
-            margin-right: 2px;
-            background: url("{{ static_url('ztree/css/zTreeStyle/img/diy/2.png') }}")
-            no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
-        }
-    </style>
+    <link rel="stylesheet" href="{{static_url('vendor/ztree/css/zTreeStyle/zTreeStyle.css')}}">
 
     <!-- Custom CSS
     -->
-    <link rel="stylesheet" href="{{ static_url('css/style.css') }}">
+    <link rel="stylesheet" href="{{static_url('css/style.css')}}">
 
     <!--
 
@@ -76,77 +54,74 @@
 
     <!-- JQuery UI custom (mostly for dragging and dropping objects)
     -->
-    <script src="{{ static_url('jquery-ui-1.10.1.custom/js/jquery-ui-1.10.1.custom.js') }}">
+    <script src="{{static_url('vendor/jquery-ui-1.10.1.custom/js/jquery-ui-1.10.1.custom.js')}}">
     </script>
 
     <!-- Datetime picker for file settings dialog
     -->
-    <script src="{{ static_url('bootstrap-datetimepicker-0.0.8/js/bootstrap-datetimepicker.min.js') }}"></script>
-
-    <!-- Bootstrap select - modifies select/option to look like button
-    -->
-    <script src="{{ static_url('bootstrap-select/bootstrap-select.js') }}"></script>
+    <script src="{{static_url('vendor/bootstrap-datetimepicker-0.0.8/js/bootstrap-datetimepicker.min.js')}}"></script>
 
     <!-- JQuery FancyBox
     -->
-    <script src="{{ static_url('fancybox-2.1.4/source/jquery.fancybox.js') }}"></script>
+    <script src="{{static_url('vendor/fancybox-2.1.4/source/jquery.fancybox.js')}}"></script>
 
     <!-- JQuery zTree
     -->
-    <script src="{{ static_url('ztree/js/jquery.ztree.core-3.5.js') }}"></script>
-    <script src="{{ static_url('ztree/js/jquery.ztree.excheck-3.5.js') }}"></script>
-    <script src="{{ static_url('ztree/js/jquery.ztree.exedit-3.5.js') }}"></script>
+    <script src="{{static_url('vendor/ztree/js/jquery.ztree.core-3.5.js')}}"></script>
+    <script src="{{static_url('vendor/ztree/js/jquery.ztree.excheck-3.5.js')}}"></script>
+    <script src="{{static_url('vendor/ztree/js/jquery.ztree.exedit-3.5.js')}}"></script>
 
     <!-- CodeMirror
     -->
-    <script src="{{ static_url('codemirror-3.1/lib/codemirror.js') }}"></script>
-    <script src="{{ static_url('codemirror-3.1/addon/mode/overlay.js') }}"></script>
-    <script src="{{ static_url('codemirror-3.1/mode/xml/xml.js') }}"></script>
-    <script src="{{ static_url('codemirror-3.1/mode/markdown/markdown.js') }}"></script>
-    <script src="{{ static_url('codemirror-3.1/mode/gfm/gfm.js') }}"></script>
-    <script src="{{ static_url('codemirror-3.1/addon/edit/closetag.js') }}"></script>
-    <script src="{{ static_url('codemirror-3.1/addon/edit/closebrackets.js') }}"></script>
-    <script src="{{ static_url('codemirror-3.1/addon/search/searchcursor.js') }}"></script>
-    <script src="{{ static_url('codemirror-3.1/addon/search/match-highlighter.js') }}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/lib/codemirror.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/mode/overlay.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/mode/xml/xml.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/mode/markdown/markdown.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/mode/gfm/gfm.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/edit/closetag.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/edit/closebrackets.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/search/searchcursor.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/search/match-highlighter.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/selection/active-line.js')}}"></script>
 
     <!-- Handlebars - preview template handling
-    <script src="{{ static_url('handlebars-1.0.0/handlebars.js') }}"></script>
+    <script src="{{static_url('vendor/handlebars-1.0.0/handlebars.js')}}"></script>
     -->
 
     <!-- Underscore - lots of helpers and local template handling
     -->
-    <script src="{{ static_url('underscore-1.4.4/underscore.js') }}"></script>
+    <script src="{{static_url('vendor/underscore-1.4.4/underscore.js')}}"></script>
 
     <!-- Amplify - store knockout models in browser storage
          (used to process Cancel in modals)
     -->
-    <script src="{{ static_url('amplify-1.1.0/amplify.js') }}"></script>
+    <script src="{{static_url('vendor/amplify-1.1.0/amplify.js')}}"></script>
 
     <!-- Knockout (with mapping plugin)
     -->
-    <script src="{{ static_url('knockout-2.2.1/knockout.debug.js') }}"></script>
-    <script src="{{ static_url('knockout-2.2.1/knockout.mapping.debug.js') }}"></script>
-    <script src="{{ static_url('knockout-validation/Dist/knockout.validation.js') }}"></script>
+    <script src="{{static_url('vendor/knockout-2.2.1/knockout.debug.js')}}"></script>
+    <script src="{{static_url('vendor/knockout-2.2.1/knockout.mapping.debug.js')}}"></script>
+    <script src="{{static_url('vendor/knockout-validation/Dist/knockout.validation.js')}}"></script>
 
     <!-- Marked (hacked for live preview)
     -->
-    <script src="{{ static_url('js/marked-vels.js') }}"></script>
+    <script src="{{static_url('js/marked-vels.js')}}"></script>
 
     <!-- Socket IO - used for auto updates from server
     -->
-    <script src="{{ static_url('js/socket.io.js') }}"></script>
+    <script src="{{static_url('vendor/socket.io.js')}}"></script>
 
     <!-- Our own code (order is important !)
     -->
-    <script src="{{ static_url('js/edtr-utils.js') }}"></script>
-    <script src="{{ static_url('js/edtrSettings.js') }}"></script>
-    <script src="{{ static_url('js/modalDialog.js') }}"></script>
-    <script src="{{ static_url('js/edtrCodemirror.js') }}"></script>
-    <script src="{{ static_url('js/edtrTree.js') }}"></script>
+    <script src="{{static_url('js/edtr-utils.js')}}"></script>
+    <script src="{{static_url('js/edtrSettings.js')}}"></script>
+    <script src="{{static_url('js/modalDialog.js')}}"></script>
+    <script src="{{static_url('js/edtrCodemirror.js')}}"></script>
+    <script src="{{static_url('js/edtrTree.js')}}"></script>
 
     <!-- This one actually runs
     -->
-    <script src="{{ static_url('js/main.js') }}"></script>
+    <script src="{{static_url('js/main.js')}}"></script>
 {% endblock %} <!-- extra_head -->
 
 {% block body_before_container %}

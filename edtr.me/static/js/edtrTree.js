@@ -4,6 +4,7 @@
 //
 var edtrTree = {
     // TODO: edit/extend those via user settings
+    base_icon_url:      "/static/images/",
     editor_type:      {
         'md':           'markdown',
         'txt':          'markdown',
@@ -99,7 +100,8 @@ var edtrTree = {
                 name:       "(Dropbox) Apps/edtr.me/",
                 open:       true,
                 isParent:   true,
-                iconSkin:   "parent",
+                icon:       edtrTree.base_icon_url+"dropbox.png",
+                // iconSkin:   "parent",
                 children:   []
         }];
 
@@ -380,12 +382,11 @@ var edtrTree = {
         //      unpublished:    def icon
         //      editing:        large edit icon over the def icon
         if (!tree_node.isParent) {
-            var base_url = "/static/images/";
             tree_node.icons = {
-                def:        base_url+"dropbox-api-icons/16x16/"+server_data.icon+".gif",
-                large:      base_url+"dropbox-api-icons/48x48/"+server_data.icon+"48.gif",
-                published:  base_url+"famfamfam_silk_icons_v013/icons/world.png",
-                editing:    base_url+"famfamfam_silk_icons_v013/icons/page_edit.png"
+                def:        edtrTree.base_icon_url+"dropbox-api-icons/16x16/"+server_data.icon+".gif",
+                large:      edtrTree.base_icon_url+"dropbox-api-icons/48x48/"+server_data.icon+"48.gif",
+                published:  edtrTree.base_icon_url+"famfamfam_silk_icons_v013/icons/world.png",
+                editing:    edtrTree.base_icon_url+"famfamfam_silk_icons_v013/icons/page_edit.png"
             };
             tree_node.icons.draft = tree_node.icons.def;
             tree_node.icons.unpublished = tree_node.icons.def;
@@ -979,7 +980,7 @@ var edtrTree = {
             // Same name, but different path - it's an overwrite
             if (node.name === nodes[i].name &&
                 node.id !== nodes[i].id) {
-                // TODO: present confirmation dialog for overwriting existing node
+                // Present confirmation dialog for overwriting existing node
                 modalDialog.params = {
                     action:         "overwrite_confirm",
                     callback:       confirm_callback,
@@ -1330,7 +1331,9 @@ var edtrTree = {
                                     switch(action) {
                                         case "delete":
                                             edtrTree.ztree.removeNode(nodes[index]);
-                                            // TODO: if file is opened in editor - remove tab
+                                            // If file is opened in editor - remove tab
+                                            // We simply ask for removal of tab and ignore errors
+                                            edtrTree.editor.close_tab(nodes[index].id, false);
                                             break;
                                         case "publish":
                                             // TODO: update node with new data and change tree icon
@@ -1470,7 +1473,9 @@ var edtrTree = {
                             case "delete":
                                 edtrTree.ztree.removeNode(node, false);
                                 edtrTree.ztree.selectNode(parent_node, false);
-                                // TODO: if file is opened in editor - remove tab
+                                // If file is opened in editor - remove tab
+                                // We simply ask for removal of tab and ignore errors
+                                edtrTree.editor.close_tab(nodes.id, false);
                                 break;
                             case "publish":
                                 // TODO: update node with new data and change tree icon
@@ -1508,9 +1513,9 @@ var edtrTree = {
     // callback:        we call this when update is done or failed, passing the
     //                  success status (true or false)
     //
-    process_server_update:  function(source, file_path, update, callback) {
+    process_server_update:  function(source, server_data, callback) {
         // Sanity check
-        if (file_path === "/") {
+        if (server_data._id === "/") {
             messagesBar.show_internal_error("edtrTree.process_server_update", "Update on root ?! Ignoring...");
             callback.call(null, false);
             return;
@@ -1518,18 +1523,18 @@ var edtrTree = {
 
         // Find corresponding node
         node = edtrTree.ztree.getNodesByFilter(function(node) {
-            return node.id.toLowerCase() === file_path;
+            return node.id.toLowerCase() === server_data._id;
         }, true);
         // if (!node && !update) {
         //     messagesBar.show_internal_error("edtrTree.process_server_update",
-        //          "Can't find node for "+file_path);
+        //          "Can't find node for "+server_data._id);
         //     console.log(update);
         //     callback.call(null, false);
         //     return;
         // }
 
-        // update is null when file was removed
-        if (!update) {
+        // _action is 0 when file was removed
+        if (server_data._action === 0) {
             var node_type = "";
             if (node) {
                 // parent_node = node.getParentNode();
@@ -1539,7 +1544,7 @@ var edtrTree = {
             }
             // Notify user
             messagesBar.show_notification_warning("UPDATE: " +
-                node_type + " <strong>" + file_path +
+                node_type + " <strong>" + server_data._id +
                 "</strong> was removed from dropbox" +
                 (node ? "": " (wasn't shown)") );
             // TODO: if file is opened in editor - ask user if he wants to close the tab
@@ -1549,42 +1554,39 @@ var edtrTree = {
 
         // We have corresponding node in tree
         if (node) {
-            // What should we do in this case ?
-            messagesBar.show_internal_error("edtrTree.process_server_update",
-                "File <strong>"+node.id+
-                "</strong> was in the tree ? Ignoring udate.");
-            //edtrTree.ztree.removeNode(node, false);
-            callback.call(null, false);
+            edtrTree._update_tree_node(node, server_data);
+            // TODO: blink tree node to show that it has been updated
+            // TODO: if file is opened in editor ask if user wants to reload it
+            callback.call(null, true);
             return;
         }
 
         // Add new node to the tree, based on update data
-        var parent_path = edtrHelper.get_filename_path(file_path);
+        var parent_path = edtrHelper.get_filename_path(server_data._id);
         parent_node = edtrTree.ztree.getNodesByFilter(function(node) {
             return node.id.toLowerCase() === parent_path;
         }, true);
         if (!parent_node) {
             messagesBar.show_internal_error("edtrTree.process_server_update",
-                "Can't find parent node for "+file_path);
+                "Can't find parent node for "+server_data._id);
             callback.call(null, false);
             return;
         }
-        // Only add new node if it's parent is open
+        // Only add new node to the tree if it's parent is open
         // Otherwise skip adding and it will be automatically added when
         // parent is opened by ajax
-        node = edtrTree._create_tree_node(update);
-        var shown = "";
+        node = edtrTree._create_tree_node(server_data);
         if (parent_node.open) {
             var new_node = edtrTree.ztree.addNodes(parent_node, [node], true)[0];
             edtrTree.sort_node_in_parent(new_node, parent_node);
         } else {
-            shown = " (not shown)";
+            // TODO: blink tree node to show that it has new children
         }
         // Notify user
         messagesBar.show_notification_warning("UPDATE: New " +
             (node.isParent ? "directory" : "file") +
             " <strong>" + node.name + "</strong> was added to" +
-            " <strong>" + parent_path + "</strong>"+shown);
+            " <strong>" + parent_path + "</strong>");
         callback.call(null, true);
         return;
     },

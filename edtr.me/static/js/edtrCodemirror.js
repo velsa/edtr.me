@@ -30,7 +30,16 @@ function edtrCodemirror(content_type, content) {
         setTimeout(self.cm_editor.refresh, 500);
     };
 
+    this.toggle_height = function() {
+        edtrSplitters.toggle_preview();
+        // HACK: have to call refresh twice, because codemirror throws error
+        self.cm_editor.refresh();
+        setTimeout(self.cm_editor.refresh, 500);
+    };
+
     this.toggle_fullscreen = function() {
+        requestFullScreen(document.body);
+        return;
         if (!self.is_codemirror_fullscreen) {
             self.is_codemirror_fullscreen = true;
             edtrSplitters.hide_sidebar();
@@ -832,6 +841,7 @@ function edtrCodemirror(content_type, content) {
 
     // Find tab in tabs array by node id
     // Returns tab index in array if found, -1 if not found
+    // If show_error is provided and true - we show message when tab is not found
     this.find_tab              = function(node_id, show_error) {
         // Find the tab
         for (var i=0; i < self.tabs.length; i++) {
@@ -878,14 +888,17 @@ function edtrCodemirror(content_type, content) {
     },
 
     // Close tab by node id
-    // We expect the user confirmation to be already processed
-    this.close_tab              = function(node_id) {
+    // IMPORTANT: We expect the user confirmation to be already processed
+    // If show_error is provided and false - we DON'T show message when tab is not found
+    // Default is to show the error message
+    this.close_tab              = function(node_id, show_error) {
         if (self.tabs.length === 1) {
             messagesBar.show_notification_warning("Removal of last tab is not implemented yet.");
             return;
         }
-        // debugger;
-        var index = self.find_tab(node_id, true), change_active = false;
+        // Default is to show error when tab is not found
+        if (show_error === undefined) show_error = true;
+        var index = self.find_tab(node_id, show_error), change_active = false;
         if (index === -1) return;
         var dom_li = self.dom_tabs_ul.find("li[data-node-id='"+node_id+"']");
 
@@ -1052,12 +1065,14 @@ function edtrCodemirror(content_type, content) {
             // TODO: find Mac equivalents
             extraKeys: {
                 // General
-                "Ctrl-W":       this.toggle_width,
-                "Shift-Ctrl-W": this.toggle_fullscreen,
+                "Shift-Ctrl-W": this.toggle_width,
+                "Shift-Ctrl-H": this.toggle_height,
+                "Shift-Ctrl-Alt-W": this.toggle_fullscreen,
                 // "Esc":          this.out_of_fullscreen,
 
                 // File
                 "Ctrl-S":       this.save_codemirror,
+                "Cmd-S":        this.save_codemirror,
                 "Ctrl-M":       this.edit_metadata,
 
                 // Edit
@@ -1128,7 +1143,8 @@ function edtrCodemirror(content_type, content) {
         var options = {
             theme:                  "theme",
             line_numbers:           "lineNumbers",
-            auto_close_brackets:    "autoCloseBrackets"
+            auto_close_brackets:    "autoCloseBrackets",
+            hl_current_line:        "styleActiveLine"
         };
         var _update_option = function(val) {
             self.cm_editor.setOption(options[this], edtrSettings.general.editor[this]());
@@ -1153,34 +1169,26 @@ function edtrCodemirror(content_type, content) {
           sanitize:         false
         });
 
-        //
-        // Toolbar handlers
-        //
-        this.dom_elem.find('#tbb_header').on("click", this.rotate_header);
-        this.dom_elem.find('#tbb_bold').on("click", this.toggle_bold);
-        this.dom_elem.find('#tbb_italic').on("click", this.toggle_italic);
-        this.dom_elem.find('#tbb_code').on("click", this.toggle_code);
-        // --
-        this.dom_elem.find('#tbb_ulist').on("click", this.unordered_list);
-        this.dom_elem.find('#tbb_olist').on("click", this.ordered_list);
-        this.dom_elem.find('#tbb_quote').on("click", this.blockquote);
-        // --
-        this.dom_elem.find('#tbb_divider').on("click", this.divider_hr);
-        // --
-        this.dom_elem.find('#tbb_image_url').on("click", this.insert_image_url);
-        this.dom_elem.find('#tbb_url').on("click", this.insert_url);
-        // ----
-        this.dom_elem.find('#tbb_width').on("click", this.toggle_width);
-        this.dom_elem.find('#tbb_fullscreen').on("click", this.toggle_fullscreen);
+        // Actions for toolbar buttons
+        this.dom_elem.find(".cme-toolbar-tooltip, .cme-toolbar-tooltip-left").on("click", function(event) {
+            self[$(this).data("action")]();
+        });
 
-        // Buttons
+        // Buttons below editor
         this.dom_elem.find('#btn_preview').on("click", this.preview_codemirror);
         this.dom_elem.find('#btn_save').on("click", this.save_codemirror);
 
         // TOOLTIPS for toolbar
-        this.dom_elem.find(".cme-toolbar-tooltip").tooltip({ placement: "top", html: true, delay: { show: 1000, hide: 300 } });
-        // And buttons
-        this.dom_elem.find(".cme-button-tooltip").tooltip({ placement: "bottom", delay: { show: 800, hide: 300 } });
+        this.dom_elem.find(".cme-toolbar-tooltip").tooltip({
+            placement: "top", html: true, delay: { show: 1000, hide: 300 }
+        });
+        this.dom_elem.find(".cme-toolbar-tooltip-left").tooltip({
+            placement: "left", html: true, delay: { show: 2000, hide: 300 }
+        });
+        // TOOLTIPS for buttons
+        this.dom_elem.find(".cme-button-tooltip").tooltip({
+            placement: "bottom", delay: { show: 800, hide: 300 }
+        });
 
         return this;
     };

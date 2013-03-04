@@ -1,23 +1,17 @@
 
 UI:
-- codemirror themes
-- replace home icon in tree with dropbox icon
-- general settings dialog:  codemirror theme, preview follows cursor
-- folder settings: bind to existing domain name,
-- tabs in editor
-- dropbox tree with icons according to filetype and also special icons for each type: 'editing', 'published'
+- general settings dialog:  preview follows cursor (?)
+- folder settings: edit as text file (python style, like in pelican ?)
+- special icons for each type: 'editing', 'published'. ask outsource designer to make those
 - add sort by name, ext (default), date, sort order (ascending/descending)
-- show file info (get from server)
 - recent files submenu in File menu
 - tree and editor keyboard shortcuts. decide where to use alt and ctrl (avoid clashing with mac and windows browser shortcuts) and make tree actions accessible from within editor
-- add search field on toolbar with autocomplete
+- add search/replace with autocomplete and regexp, a search dialog should popup in top right corner of the editor (or bottom, like i sublime ?)
 - enable Ctrl - cursor movement (currently only Option works)
-- Override Meta-S ?
 - Save button should show the Draft/Published status in all states:
     Save Draft
     SAVED (draft/published)
     SAVING DRAFT...
-- Add auto bracket closing http://codemirror.net/demo/closebrackets.html
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
@@ -25,10 +19,8 @@ Marked:
     http://kramdown.rubyforge.org/syntax.html#definition-lists
 
 JS:
-- marked: add code highlighting (see example on their github page)
 - publish functionality:
     - *from editor* with Publish button. If file is already published and unmodified, Publish button is greyed out.
-    - *from tree*: Web->Publish. If on directory, a confirmation dialog pops up, asking wether to publish all subdirs and files in this dir.
 
 BUGS:
 - ztree: it would be really nice to be able to drag node visually (as icon or as a text line) and to visually see which node it will become a child of (e.g. highlight the whole parent node structure during drag)

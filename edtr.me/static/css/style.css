@@ -6,6 +6,7 @@ body {
     background: #fff;
     */
    height:              100%;
+   width:               100%;
 }
 
 .tooltip {
@@ -332,6 +333,22 @@ body {
 #edtr_tree::-webkit-scrollbar {
     display:            none;
 }
+/*zTree Icons*/
+.ztree li span.button.parent_ico_open {
+    margin-right: 2px;
+    background: url("/static/vendor/ztree/css/zTreeStyle/img/diy/1_open.png")
+    no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+}
+.ztree li span.button.parent_ico_close {
+    margin-right: 2px;
+    background: url("/static/vendor/ztree/css/zTreeStyle/img/diy/1_close.png")
+    no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+}
+.ztree li span.button.icon_edit_ico_docu {
+    margin-right: 2px;
+    background: url("/static/vendor/ztree/css/zTreeStyle/img/diy/2.png")
+    no-repeat scroll 0 0 transparent; vertical-align: top; *vertical-align: middle
+}
 
 
 /*
@@ -344,7 +361,7 @@ body {
 .cme-toolbar .btn-group {
     margin-top:         1px;
 }
-.cme-toolbar-tooltip {
+.cme-toolbar-tooltip, .cme-toolbar-tooltip-left {
     padding-bottom:     6px;
     padding-top:        6px;
     margin-bottom:      4px;
@@ -412,6 +429,9 @@ body {
 }
 span.cm-matchhighlight {
     background:         #e7e4ff;
+}
+.CodeMirror-activeline-background {
+    background:         #e8f2ff !important;
 }
 .CodeMirror-fullscreen {
     content:            "Press Esc to Exit Full Screen Mode";
@@ -601,8 +621,15 @@ span.cm-matchhighlight {
 .edtr-settings .nav-tabs {
     margin-bottom:      5px;
 }
+.edtr-settings table {
+    width:              100%;
+}
 .edtr-settings td {
     padding:            5px 10px;
+    white-space:        nowrap;
+}
+.edtr-settings hr {
+    margin:             5px 0;
 }
 .edtr-settings label {
      font-weight:       bold;

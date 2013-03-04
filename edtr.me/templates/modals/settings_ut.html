@@ -37,15 +37,18 @@
                                 </select>
                             </td>
                         </tr>
+                    </tbody></table>
+                    <hr>
+                    <table class="table-condensed"><tbody>
                         <tr>
-                            <td colspan="3">
+                            <td colspan="2">
                                 <label class="checkbox">
                                     <input type="checkbox"
                                         data-bind="checked: editor.line_numbers">
                                         Show line numbers
                                 </label>
                             </td>
-                            <td colspan="1">
+                            <td colspan="2">
                                 <label class="checkbox">
                                     <input type="checkbox"
                                         data-bind="checked: editor.show_toolbar">
@@ -57,6 +60,15 @@
                                     <input type="checkbox"
                                         data-bind="checked: editor.auto_close_brackets">
                                         Auto close brackets
+                                </label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <label class="checkbox">
+                                    <input type="checkbox"
+                                        data-bind="checked: editor.hl_current_line">
+                                        Highlight current line
                                 </label>
                             </td>
                         </tr>
