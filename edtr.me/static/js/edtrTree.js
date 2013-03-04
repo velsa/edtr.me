@@ -26,6 +26,7 @@ var edtrTree = {
 
 
     init:                   function (settings) {
+        // Cache dom elements
         edtrTree.dom_db_tree    = settings.dom_tree;
         edtrTree.dom_editor     = settings.dom_editor;
         edtrTree.dom_rc_menu    = settings.dom_rc_menu;
@@ -160,7 +161,6 @@ var edtrTree = {
     }, // init()
 
     process_key:    function(e, key_char) {
-        debugger;
         //
         // Process key event and do appropriate action
         //
@@ -1439,6 +1439,9 @@ var edtrTree = {
                         // Error should be already displayed
                         if (data.status > serverComm.max_success_status)
                             return;
+                        // TODO: server_data should contain new node info
+                        // right now it contains from_path, to_path
+                        // edtrTree._update_tree_node(node, server_data);
                         node.id     = full_path,
                         node.name   = filename_new;
                         edtrTree.ztree.updateNode(node);
@@ -1472,10 +1475,13 @@ var edtrTree = {
                             case "publish":
                                 // TODO: update node with new data and change tree icon
                                 // if file is opened in editor - also change tab icon
+                                debugger;
+                                edtrTree._update_tree_node(node, server_data);
                                 break;
                             case "unpublish":
                                 // TODO: update node with new data and change tree icon
                                 // if file is opened in editor - also change tab icon
+                                edtrTree._update_tree_node(node, server_data);
                                 break;
                         }
                         // Notify user
