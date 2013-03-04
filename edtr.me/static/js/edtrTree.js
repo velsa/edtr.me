@@ -160,6 +160,7 @@ var edtrTree = {
     }, // init()
 
     process_key:    function(e, key_char) {
+        debugger;
         //
         // Process key event and do appropriate action
         //
@@ -173,9 +174,17 @@ var edtrTree = {
                 action:     edtrTree.on_double_click,
                 args:       [ null, null, true ]
             }, {
-                keys:       [ "Alt-T" ],
-                action:     edtrTree.toggle_checkboxes,
-                args:       []
+                keys:       [ "Ctrl-N" ],
+                action:     edtrTree.node_action,
+                args:       ["add_file"]
+            }, {
+                keys:       [ "Ctrl-Alt-N" ],
+                action:     edtrTree.node_action,
+                args:       ["add_subdir"]
+            }, {
+                keys:       [ "Ctrl-Shift-N" ],
+                action:     edtrTree.node_action,
+                args:       ["rename"]
             }, {
                 keys:       [ "Ctrl-E" ],
                 action:     edtrTree.node_action,
@@ -184,6 +193,14 @@ var edtrTree = {
                 keys:       [ "Ctrl-R" ],
                 action:     edtrTree.node_action,
                 args:       ["refresh"]
+            }, {
+                keys:       [ "Ctrl-Shift-P" ],
+                action:     edtrTree.node_action,
+                args:       ["publish"]
+            }, {
+                keys:       [ "Ctrl-Shift-U" ],
+                action:     edtrTree.node_action,
+                args:       ["unpublish"]
             }, {
                 keys:       [ "Ctrl-X", "Meta-X" ],
                 action:     edtrTree.node_action,
@@ -1317,9 +1334,11 @@ var edtrTree = {
                                             break;
                                         case "publish":
                                             // TODO: update node with new data and change tree icon
+                                            // if file is opened in editor - also change tab icon
                                             break;
                                         case "unpublish":
                                             // TODO: update node with new data and change tree icon
+                                            // if file is opened in editor - also change tab icon
                                             break;
                                     }
                                 }
@@ -1452,9 +1471,11 @@ var edtrTree = {
                                 break;
                             case "publish":
                                 // TODO: update node with new data and change tree icon
+                                // if file is opened in editor - also change tab icon
                                 break;
                             case "unpublish":
                                 // TODO: update node with new data and change tree icon
+                                // if file is opened in editor - also change tab icon
                                 break;
                         }
                         // Notify user

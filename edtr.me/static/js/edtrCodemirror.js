@@ -25,7 +25,9 @@ function edtrCodemirror(content_type, content) {
 
     this.toggle_width = function() {
         edtrSplitters.toggle_sidebar();
+        // HACK: have to call refresh twice, because codemirror throws error
         self.cm_editor.refresh();
+        setTimeout(self.cm_editor.refresh, 500);
     };
 
     this.toggle_fullscreen = function() {
@@ -38,7 +40,9 @@ function edtrCodemirror(content_type, content) {
             edtrSplitters.show_sidebar();
             edtrSplitters.show_preview();
         }
+        // HACK: have to call refresh twice, because codemirror throws error
         self.cm_editor.refresh();
+        setTimeout(self.cm_editor.refresh, 500);
     };
 
     //
@@ -388,6 +392,7 @@ function edtrCodemirror(content_type, content) {
         var i = 0, eol,
             line, j, key, val,
             status = 0, lines = 0, content = text, data = {};
+        debugger;
         while (i < text.length) {
             // Get next line
             eol = text.indexOf("\n", i);
@@ -594,7 +599,7 @@ function edtrCodemirror(content_type, content) {
     // TODO: Use this to open clicked urls (Ctrl-Click)
     this.on_cursor_activity = function(inst) {
         // console.log("cursor");
-        self.cm_editor.matchHighlight("CodeMirror-matchhighlight");
+        // self.cm_editor.highlightMatches("CodeMirror-matchhighlight");
         self.scroll_to_anchor();
     };
 
@@ -1033,10 +1038,14 @@ function edtrCodemirror(content_type, content) {
             tabSize:            this.tab_spaces.length, // should be the same !
             indentWithTabs:     true,
             electricChars:      false,
-            autoCloseTags:      true,   // TODO: apparently works only in text/html mode
-                                        // make it work in gfm mode as well
             lineNumbers:        true,
             gutters:            [ "CodeMirror-linenumbers" ], //"bookmarks"],
+
+            // Addons
+            highlightSelectionMatches: {minChars: 3, style: "matchhighlight"},
+            autoCloseTags:      true,   // TODO: apparently works only in text/html mode
+                                        // make it work in gfm mode as well
+            autoCloseBrackets:  edtrSettings.general.editor.auto_close_brackets(),
 
             // TODO: find Mac equivalents
             extraKeys: {
@@ -1092,23 +1101,17 @@ function edtrCodemirror(content_type, content) {
         //
         // Subscribe to various settings
         //
-        // Change editor theme
-        edtrSettings.general.editor.theme.subscribe(function(new_theme) {
-            self.cm_editor.setOption("theme", new_theme);
-        });
+        var i = 0;
+        this.ko_sub = [];
         // Change preview stylesheet
-        edtrSettings.general.preview.theme.subscribe(this.update_preview_theme);
+        this.ko_sub[i++] = edtrSettings.general.preview.theme.subscribe(this.update_preview_theme);
         // Change editor font size
-        edtrSettings.general.editor.font_size.subscribe(function(new_size) {
-            $(".CodeMirror-scroll").css("font-size", new_size+"px");
-        });
-        // Show/hide line numbers
-        edtrSettings.general.editor.line_numbers.subscribe(function(state) {
-            self.cm_editor.setOption("lineNumbers", state);
+        this.ko_sub[i++] = edtrSettings.general.editor.font_size.subscribe(function(new_size) {
+            $(".CodeMirror-scroll").css("font-size", edtrSettings.general.editor.font_size()+"px");
         });
         // Show/hide toolbar
-        edtrSettings.general.editor.show_toolbar.subscribe(function(state) {
-            if (state) {
+        this.ko_sub[i++] = edtrSettings.general.editor.show_toolbar.subscribe(function(state) {
+            if (edtrSettings.general.editor.show_toolbar()) {
                 self.dom_editor.css("top", self.dom_tabs.height()+self.dom_toolbar.height()+"px");
                 self.dom_toolbar.show();
             } else {
@@ -1116,6 +1119,25 @@ function edtrCodemirror(content_type, content) {
                 self.dom_toolbar.hide();
             }
         });
+
+        // Subscription to all options follows the same pattern
+        // key is edtrSettings.general.editor observable
+        // value is codemirror option
+        var options = {
+            theme:                  "theme",
+            line_numbers:           "lineNumbers",
+            auto_close_brackets:    "autoCloseBrackets"
+        };
+        var _update_option = function(val) {
+            self.cm_editor.setOption(options[this], edtrSettings.general.editor[this]());
+        };
+        for (var o in options) {
+            this.ko_sub[i++] = edtrSettings.general.editor[o].subscribe(_update_option, o);
+        }
+
+        // Fire all callbacks to update editor with correct settings
+        for (i = 0; i < this.ko_sub.length; i++)
+            this.ko_sub[i].callback();
 
         // Hides original text area, just in case
         // this.dom_elem.hide();

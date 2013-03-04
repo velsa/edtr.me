@@ -39,10 +39,11 @@ var edtrSettings = {
                                 "blackboard", "elegant", "monokai", "rubyblue",
                                 "vibrant-ink"
                             ],
-            // theme_tpl:      "codemirror-3.0-git/theme/{0}.css"
+            // theme_tpl:      "codemirror-3.1/theme/{0}.css"
             font_size:      ko.observable("14"),
             font_size_list: [ "14", "15", "16", "17" ],
             line_numbers:   ko.observable(true),
+            auto_close_brackets:   ko.observable(true),
             show_toolbar:   ko.observable(true)
         },
 

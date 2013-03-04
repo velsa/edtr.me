@@ -17,6 +17,7 @@ UI:
     Save Draft
     SAVED (draft/published)
     SAVING DRAFT...
+- Add auto bracket closing http://codemirror.net/demo/closebrackets.html
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
