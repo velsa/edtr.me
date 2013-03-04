@@ -79,13 +79,27 @@ def _check_bad_response(response, callback=None):
     return None
 
 
-@gen.engine
-def _update_meta(db, meta_data, colln, update=True, callback=None):
+def _adopt_meta(meta_data, update_date=True, separate_id=True):
     meta = dict(meta_data)
     _id = meta.pop('path')
     meta['root_path'] = os.path.dirname(_id)
-    if update:
+    if update_date:
         meta['last_updated'] = datetime.now()
+    if not separate_id:
+        meta['_id'] = _id
+    return meta, _id
+
+
+@gen.engine
+def _save_meta(db, meta_data, colln, callback=None):
+    meta, _ = _adopt_meta(meta_data, separate_id=False)
+    yield motor.Op(db[colln].save, meta)
+    callback(meta)
+
+
+@gen.engine
+def _update_meta(db, meta_data, colln, update=True, callback=None):
+    meta, _id = _adopt_meta(meta_data, update)
     r = yield motor.Op(db[colln].update, {"_id": _id}, {"$set": meta})
     meta['_id'] = _id
     if not r['updatedExisting']:
@@ -535,8 +549,8 @@ class DropboxWorkerMixin(DropboxMixin):
         path = _unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
-            callback(data)
-            return
+            # file meta not found
+            data = None
         if text_content:
             try:
                 text_content = text_content.encode(DEFAULT_ENCODING)
@@ -557,16 +571,24 @@ class DropboxWorkerMixin(DropboxMixin):
         dbox_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders, but maybe let it be
         # just not allow user in UI to create /a/b/f.txt, if /a not exists
-        yield gen.Task(_update_meta, self.db, dbox_meta, user.name)
-        file_meta = data
-        for f in dbox_meta:
-            setattr(file_meta, f, dbox_meta[f])
-        if file_meta.pub_status not in (PS.dbox, ):
+        if data:
+            yield gen.Task(_update_meta, self.db, dbox_meta, user.name)
+        else:
+            new_data = yield gen.Task(_save_meta, self.db, dbox_meta, user.name)
+        if data:
+            file_meta = data
+            for f in dbox_meta:
+                setattr(file_meta, f, dbox_meta[f])
+        else:
+            file_meta = DropboxFile(**new_data)
+        if file_meta.pub_status in (PS.draft, PS.published):
             result = yield gen.Task(_publish_object,
                 file_meta, user, self.db, self, preview=True)
             callback(result)
         else:
-            callback({'status': ErrCode.ok, 'meta': file_meta})
+            callback({
+                'status': ErrCode.ok,
+                'meta': make_safe_python(DropboxFile, file_meta, 'public')})
 
     @gen.engine
     def wk_dbox_create_dir(self, user, path, callback=None):
