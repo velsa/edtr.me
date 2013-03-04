@@ -323,7 +323,7 @@ def _is_md(file_meta):
 @gen.engine
 def _dbox_process_publish(updates, user, db, async_dbox, callback):
     errors = []
-    for meta in updates.values():
+    for path, meta in updates.items():
         if meta:
             # process updated file
             if _is_md(meta):
@@ -337,11 +337,11 @@ def _dbox_process_publish(updates, user, db, async_dbox, callback):
                     if not headers:
                         errors.append(
                             {"description": u"headers not found for {0}".format(
-                                meta.path)})
+                                path)})
                     elif missed_headers:
                         errors.append(
                             {"description": u"missed headers for {0}".format(
-                                meta.path)})
+                                path)})
                     else:
                         preview = None
                         if MdState.draft in headers['state']:
@@ -364,7 +364,7 @@ def _dbox_process_publish(updates, user, db, async_dbox, callback):
                             # remove it from publish and preview
                             errors.append({"description":
                                 u"Removing from pub state not implemented ({0})"\
-                                .foramt(meta.path)})
+                                .foramt(path)})
                 else:
                     errors.append(md_obj)
             else:
@@ -376,7 +376,7 @@ def _dbox_process_publish(updates, user, db, async_dbox, callback):
                         errors.append(result)
         else:
             # process deleted file
-            print "Processing DELETED file", meta.path
+            print "Processing DELETED file", path
             pass
     if errors:
         logger.error(u"_dbox_process_publish errors: {0}".format(
@@ -425,7 +425,7 @@ def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                 dfile = yield motor.Op(DropboxFile.find_one,
                     db, {"_id": e_path}, user.name)
                 if entry is None:
-                    if not dfile:
+                    if dfile:
                         # TODO
                         # maybe there is a way to delete files in one db call
                         updates[e_path] = None
@@ -492,8 +492,9 @@ def _dbox_sync_user(user, error):
                     "User: {0}, updates: {1}".format(
                         user.name, rst['updates']))
                 for p in rst['updates']:
-                    rst['updates'][p] = make_safe_python(
-                        DropboxFile, rst['updates'][p], 'public')
+                    if rst['updates'][p]:
+                        rst['updates'][p] = make_safe_python(
+                            DropboxFile, rst['updates'][p], 'public')
                 SocketPool.notify_dbox_update(user.name, rst)
             else:
                 logger.debug(u"Updates found, but socket is closed. "
