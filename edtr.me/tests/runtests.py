@@ -8,6 +8,7 @@ import settings  # only options.define to be runned
 
 TEST_MODULES = [
     'tests.auth_test',
+    'tests.dbox_ajax_test',
 ]
 
 

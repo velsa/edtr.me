@@ -66,8 +66,7 @@ class LoginTest(BaseTest):
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')  # all requests are mocked
-    def test_login_account_info_set(self,
-        m_fetch, m_get_current_user):
+    def test_login_account_info_set(self, m_fetch, m_get_current_user):
         ### test init
         oauth_request_token = "q7mu9foyzr6j47z"
         oauth_request_token_secret = "8ypm9lz45qt9hlp"
@@ -163,18 +162,7 @@ class LoginTest(BaseTest):
     @patch.object(BaseHandler, 'get_current_user')
     def test_logged_in_user_page(self, m_get_current_user):
         ### test init
-        username = 'testuser'
-        first_name = 'first'
-        last_name = 'last'
-        email = 'test@test.com'
-        m_get_current_user.return_value = username
-        self.db_save({
-            '_id': username,
-            'first_name': first_name,
-            'last_name': last_name,
-            'email': email,
-            'dbox_access_token': {"key": "some_key", "secret": "some_secret"},
-        })
+        _, email, _, _ = self.create_test_user(m_get_current_user)
 
         ### test sequence
         resp = self.get(self.reverse_url('home'))

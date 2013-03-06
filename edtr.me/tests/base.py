@@ -55,9 +55,30 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
     def get_http_port(self):
         return options.port
 
+    def create_test_user(self, mocked_get_current_user):
+        username = 'testuser'
+        first_name = 'first'
+        last_name = 'last'
+        email = 'test@test.com'
+        key = "some_key"
+        secret = "some_secret"
+        self.db_save({
+            '_id': username,
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email,
+            'dbox_access_token': {"key": "some_key", "secret": "some_secret"},
+        })
+        mocked_get_current_user.return_value = username
+        return username, email, key, secret
+
     def db_clear(self):
         @gen.engine
         def async_op():
+            cursor = db.accounts.find()
+            users = yield motor.Op(cursor.to_list)
+            for user in users:
+                yield motor.Op(db[user['_id']].remove)
             yield motor.Op(db.accounts.remove)
             self.stop()
         async_op()
