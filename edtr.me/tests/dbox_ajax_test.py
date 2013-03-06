@@ -82,6 +82,7 @@ class GetTreeTest(BaseTest):
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')  # all requests are mocked
     def test_simple_root_call(self, m_fetch, m_get_current_user):
+        self.create_test_user(m_get_current_user)
 
         def fetch_mock(request, callback, **kwargs):
             if not isinstance(request, HTTPRequest):
@@ -97,7 +98,6 @@ class GetTreeTest(BaseTest):
             callback(resp)
         m_fetch.side_effect = fetch_mock
 
-        uname, _, _, _ = self.create_test_user(m_get_current_user)
         _xsrf = 'some_hash_key'
         post_data = {'path': '/', "_xsrf": _xsrf}
         response = self.post(self.reverse_url('dropbox_get_path'),
@@ -105,7 +105,7 @@ class GetTreeTest(BaseTest):
             headers={'Cookie': '_xsrf={0}'.format(_xsrf)})
         self.assertEqual(response.code, 200)
         json_resp = json.loads(response.body)
-        self.assertEqual(json_resp['status'], 0)
+        self.assertEqual(json_resp['errcode'], 0)
         self.assertEqual(set(['/dir_1', '/1.txt']), set(json_resp['tree'].keys()))
         dir_meta_params = set(["revision", "rev", "thumb_exists", "bytes",
             "modified", "_id", "root_path", "is_dir", "icon", "root", "size"])
