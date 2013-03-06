@@ -1,3 +1,5 @@
+import os.path
+import shutil
 import Cookie
 from datetime import timedelta
 from tornado.testing import AsyncHTTPTestCase, LogTrapTestCase
@@ -24,12 +26,20 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
 
     def setUp(self):
         super(BaseTest, self).setUp()
+        self.test_user_name = 'testuser'
         self.reverse_url = reverse_url
         ### clear data base before each test
         self.db_clear()
         # raw fix for TestClient. Currently don't understand, how to use it
         # without source modification
         self.cookies = Cookie.SimpleCookie()
+
+    def tearDown(self):
+        super(BaseTest, self).tearDown()
+        user_publish_folder = os.path.join(
+            options.site_root, self.test_user_name)
+        if os.path.exists(user_publish_folder):
+            shutil.rmtree(user_publish_folder)
 
     def get_app(self):
         return app
@@ -56,7 +66,7 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         return options.port
 
     def create_test_user(self, mocked_get_current_user):
-        username = 'testuser'
+        username = self.test_user_name
         first_name = 'first'
         last_name = 'last'
         email = 'test@test.com'
