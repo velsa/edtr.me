@@ -140,7 +140,10 @@ def _get_tree_from_db(path, user, db, recurse=False, callback=None):
         cursor = db[user.name].find({"root_path": path},
             fields=DropboxFile.public_exclude_fields())
         files = yield motor.Op(cursor.to_list, DropboxFile.FIND_LIST_LEN)
-        result = {'status': ErrCode.ok, 'tree': files}
+        files_tree = {}
+        for f in files:
+            files_tree[f['_id']] = f
+        result = {'status': ErrCode.ok, 'tree': files_tree}
         if len(files) == DropboxFile.FIND_LIST_LEN:
             result['has_more'] = True
             logger.debug(u"FIND_LIST_LEN reached for user '{0}',"
