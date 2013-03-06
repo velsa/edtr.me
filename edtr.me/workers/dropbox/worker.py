@@ -2,6 +2,8 @@ import urllib
 import os.path
 from datetime import datetime
 import logging
+from hashlib import sha1
+
 from tornado import gen
 from django.utils import simplejson as json
 import motor
@@ -13,7 +15,7 @@ from models.dropbox import DropboxFile, PS
 from models.accounts import UserModel
 from utils.gl import DB, SocketPool
 from utils.error import ErrCode
-from utils.main import get_publish_root, get_preview_root, parse_md_headers
+from utils.main import get_user_root, parse_md_headers, FolderType
 logger = logging.getLogger('edtr_logger')
 
 
@@ -32,6 +34,7 @@ TEXT_MIMES = (
     'text/html',
     MIME_MD,
 )
+
 MAND_MD_HEADERS = ['state', ]
 
 
@@ -316,9 +319,9 @@ def _publish_object(file_meta, user, db, async_dbox, preview=False,
         obj = yield gen.Task(_get_obj_content,
             file_meta, user, db, async_dbox, for_publish=True)
     if obj['errcode'] == ErrCode.ok:
-        pub_paths = [get_preview_root(user.name)]
+        pub_paths = [get_user_root(user.name, FolderType.preview)]
         if not preview:
-            pub_paths.append(get_publish_root(user.name))
+            pub_paths.append(get_user_root(user.name, FolderType.publish))
         if 'content' in obj:
             # Text content
             r = yield gen.Task(_publish_text, DropboxFile(**obj['meta']),
@@ -335,6 +338,10 @@ def _publish_object(file_meta, user, db, async_dbox, preview=False,
 
 def _is_md(file_meta):
     return file_meta.mime_type == MIME_MD and file_meta.path.endswith('.md')
+
+
+def _is_image(mime_type):
+    return bool(mime_type) and 'image' in mime_type
 
 
 @gen.engine
@@ -403,6 +410,58 @@ def _dbox_process_publish(updates, user, db, async_dbox, callback):
         callback({"errcode": ErrCode.ok})
 
 
+def _get_thumbnail_serv_path(user, thumb_file_name):
+    return os.path.join(
+        get_user_root(user.name, FolderType.thumbnail), thumb_file_name)
+
+
+@gen.engine
+def _create_thumbnail(file_meta, user, async_dbox, callback):
+    if isinstance(file_meta, DropboxFile):
+        path = file_meta.path
+    else:
+        path = file_meta['path']
+    logger.debug(u"Creating thumbnail for user {0}, path {1}".format(user.name, path))
+    api_url = _get_file_url(path, 'thumbnails')
+    access_token = user.get_dropbox_token()
+    response = yield gen.Task(async_dbox.dropbox_request,
+        "api-content", api_url,
+        access_token=access_token,
+        size='m')
+    if _check_bad_response(response, callback):
+        return
+    ext = os.path.splitext(path)[-1]
+    thumb_file_name = '{0}{1}'.format(sha1(path.encode('utf8')).hexdigest(),
+        ext if ext else '')
+    thumb_serv_path = _get_thumbnail_serv_path(user, thumb_file_name)
+    _create_path_if_not_exist(thumb_serv_path)
+    with open(thumb_serv_path, 'wb') as f:
+        f.write(response.body)
+    thumb_url = "http://thumbnails.{uname}.edtr.me/{fname}".format(
+        uname=user.name,
+        fname=thumb_file_name)
+    callback({'errcode': ErrCode.ok, 'thumb_url': thumb_url})
+
+
+def _remove_thumbnail(file_meta, user):
+    if isinstance(file_meta, DropboxFile):
+        thumb_url = file_meta.thumbnail_url
+    else:
+        thumb_url = file_meta.get('thumbnail_url', None)
+    if not thumb_url:
+        return False
+    thumb_file_name = os.path.split(thumb_url)[-1]
+    thumb_path = _get_thumbnail_serv_path(user, thumb_file_name)
+    logger.debug(u"Deleting thumbnail for user {0}, path {1}".format(user.name, thumb_path))
+    try:
+        os.remove(thumb_path)
+    except:
+        # TODO process exact exception
+        logger.error("Deleting thumbnail exception for user {0}, path {1}".format(user.name, thumb_path))
+        return False
+    return True
+
+
 @gen.engine
 def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                                            force_update=False, callback=None):
@@ -449,9 +508,21 @@ def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                         yield motor.Op(
                             DropboxFile.remove_entries, db,
                             {"_id": e_path}, collection=user.name)
+                        if _is_image(dfile.mime_type):
+                            _remove_thumbnail(dfile, user)
                 else:
                     # TODO
                     # maybe there is a way to save files in one db call
+                    if _is_image(entry.get('mime_type', None)):
+                        if not dfile or dfile['modified'] != entry['modified']:
+                            thumb_rst = yield gen.Task(_create_thumbnail,
+                                entry, user, async_dbox)
+                            if thumb_rst['errcode'] == ErrCode.ok:
+                                entry['thumbnail_url'] = thumb_rst['thumb_url']
+                            else:
+                                # TODO process fail of creating thumbnail
+                                pass
+
                     meta = yield gen.Task(_update_meta,
                         db, entry, user.name, False)
                     if not dfile:

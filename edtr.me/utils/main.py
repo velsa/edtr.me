@@ -4,21 +4,27 @@ import logging
 from tornado.options import options
 logger = logging.getLogger('edtr_logger')
 
-DIR_PUBLISH = "www"
-DIR_PREVIEW = "preview"
+
+class FolderType:
+    publish = "www"
+    preview = "preview"
+    thumbnail = "thumbnail"
+
+    @classmethod
+    def _all(cls):
+        return [getattr(cls, a) for a in dir(cls) if not a.startswith("_")]
+
+
 MAX_HEADER_LINE = 10
 
 
-def get_publish_root(user_name):
-    return os.path.join(options.site_root, user_name, DIR_PUBLISH)
-
-
-def get_preview_root(user_name):
-    return os.path.join(options.site_root, user_name, DIR_PREVIEW)
+def get_user_root(user_name, folder_type):
+    return os.path.join(options.site_root, user_name, folder_type)
 
 
 def create_site_folder(user_name):
-    for root in (get_publish_root(user_name), get_preview_root(user_name)):
+    for f_type in FolderType._all():
+        root = get_user_root(user_name, f_type)
         logger.debug("creating folder {0}".format(root))
         if not os.path.exists(root):
             os.makedirs(root)
