@@ -1,10 +1,13 @@
 
 UI:
 - general settings dialog:  preview follows cursor (?)
+- color icons in toolbar (from famfam silk set)
 - folder settings: edit as text file (python style, like in pelican ?)
 - special icons for each type: 'editing', 'published'. ask outsource designer to make those
 - add sort by name, ext (default), date, sort order (ascending/descending)
 - recent files submenu in File menu
+- Allow viewing/choosing dropbox revisions of the edited file
+- Add Shortcut/button to remove all trailng whitespace
 - tree and editor keyboard shortcuts. decide where to use alt and ctrl (avoid clashing with mac and windows browser shortcuts) and make tree actions accessible from within editor
 - add search/replace with autocomplete and regexp, a search dialog should popup in top right corner of the editor (or bottom, like i sublime ?)
 - enable Ctrl - cursor movement (currently only Option works)

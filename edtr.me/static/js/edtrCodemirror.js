@@ -38,8 +38,8 @@ function edtrCodemirror(content_type, content) {
     };
 
     this.toggle_fullscreen = function() {
-        requestFullScreen(document.body);
-        return;
+        // requestFullScreen is really nice but it blocks too many keys (shortcuts, Esc, etc..)
+        // requestFullScreen(document.body);
         if (!self.is_codemirror_fullscreen) {
             self.is_codemirror_fullscreen = true;
             edtrSplitters.hide_sidebar();
@@ -311,9 +311,9 @@ function edtrCodemirror(content_type, content) {
             alt_text = self.cm_editor.getSelection();
         } else {
             if (typeof alt_text === "undefined")
-                alt_text = is_img ? 'image': 'link';
+                alt_text = is_img === 1 ? 'image': 'link';
         }
-        var img_char = is_img ? '!': '';
+        var img_char = is_img === 1 ? '!': '';
         self.cm_editor.replaceSelection(img_char+'['+alt_text+']('+url+')');
         var pos = self.cm_editor.getCursor(true);
         self.cm_editor.setCursor( pos.line, pos.ch+alt_text.length+step);
@@ -385,6 +385,163 @@ function edtrCodemirror(content_type, content) {
         }
     };
 
+    //  function edtr_search_mode (query) {
+    //     if (typeof query == "string") {
+    //         return { token: function (stream) {
+    //             if (stream.match(query)) return "cme-search-selection";
+    //             stream.next();
+    //             if (!stream.skipTo(query.charAt(0)))
+    //                 stream.skipToEnd();
+    //             }};
+    //     } else {
+    //         return { token: function (stream) {
+    //             if (stream.match(query)) return "cme-search-selection";
+    //             while (!stream.eol()) {
+    //                 stream.next();
+    //                 if (stream.match(query, false)) break;
+    //             }
+    //         }};
+    //     }
+    // }
+
+    // Show find dialog (over the save/preview/publish buttons)
+    this.show_find = function(cm) {
+        // Hide all buttons and show search input field
+        self.dom_buttonbar.find(".cme-buttons").hide();
+        self.dom_buttonbar.find(".cme-search").show();
+        // Focus and select text in input fields
+        self.bb_state = self.BB_STATES.SEARCH;
+        // if (self.search_state)
+        //     self.cm_editor.removeOverlay(self.search_state.overlay);
+        // If text is selected - use it for search
+        if (self.cm_editor.somethingSelected())
+            self.dom_search_input.val(self.cm_editor.getSelection());
+        self.dom_search_input.focus().select();
+        self.search_state = {
+            query:              self.dom_search_input.val(),
+            posFrom:            self.cm_editor.getCursor(),
+            posTo:              self.cm_editor.getCursor(),
+            kc_posFrom:         self.cm_editor.getCursor(),
+            kc_posTo:           self.cm_editor.getCursor(),
+            keeping_cursor:     true,   // true when searching without moving cursor
+            first_time:         true   // HACK: used to ignore first search_update_query()
+                                        // which is called when search input is shown
+        };
+        // debugger;
+        // self.search_state.overlay = edtr_search_mode(self.search_state.query);
+        // self.cm_editor.addOverlay(self.search_state.overlay);//, {opaque: "cme-search-selection"});
+    };
+
+    // Show replace dialog (over the save/preview/publish buttons)
+    this.show_replace = function(cm) {
+        // Show find dialog
+        self.show_find();
+        // And replace dialog near it
+        self.dom_buttonbar.find(".cme-replace").show();
+        self.bb_state = self.BB_STATES.REPLACE;
+        // if (self.search_state)
+        //     self.cm_editor.removeOverlay(self.search_state.overlay);
+        self.search_state = {
+            // If text is selected - use it for search
+            query:              self.cm_editor.somethingSelected() ?
+                                    self.cm_editor.getSelection() :
+                                    self.dom_search_input.val(),
+            posFrom:            self.cm_editor.getCursor(),
+            posTo:              self.cm_editor.getCursor(),
+            kc_posFrom:         self.cm_editor.getCursor(),
+            kc_posTo:           self.cm_editor.getCursor(),
+            keeping_cursor:     true,   // true when searching without moving cursor
+            first_time:         true   // HACK: used to ignore first search_update_query()
+                                        // which is called when search input is shown
+        };
+        // debugger;
+        // self.search_state.overlay = edtr_search_mode(self.search_state.query);
+        // self.cm_editor.addOverlay(self.search_state.overlay);//, {opaque: "cme-search-selection"});
+    };
+
+    // Leave various modes (search, replace)
+    this.process_esc = function() {
+        if (self.bb_state === self.BB_STATES.SEARCH ||
+            self.bb_state === self.BB_STATES.REPLACE) {
+            // Hide search input field and show buttons
+            self.dom_buttonbar.find(".cme-search").hide();
+            if (self.bb_state === self.BB_STATES.REPLACE)
+                self.dom_buttonbar.find(".cme-replace").hide();
+            self.dom_buttonbar.find(".cme-buttons").show();
+            self.bb_state = self.BB_STATES.BUTTONS;
+            // if (self.search_state) {
+            //     self.cm_editor.removeOverlay(self.search_state.overlay);
+            //     self.search_state = null;
+            // }
+        }
+        self.focus();
+    };
+
+    // Find text in codemirror
+    // Called from search input on.keyup
+    this.search_update_query = function() {
+        // First time here (search dialog was just shown)
+        if (self.search_state.first_time) {
+            self.search_state.first_time = false;
+        } else {
+            self.search_state.query = self.dom_search_input.val();
+            self.search_state.keeping_cursor = true;
+            self.search_find(false, true);
+        }
+    };
+
+    // Find next or previous occurrence of query
+    // Called from search input on.keydown:
+    //      Up:         reverse = true
+    //      Enter/Down: reverse = false
+    //  If search_state.keep_cursor is true - search_state.pos is NOT updated
+    this.search_find = function(reverse, keep_cursor) {
+        // console.log(self.search_state.query);
+        function getSearchCursor(cm, query, pos) {
+            // Heuristic: if the query string is all lowercase, do a case insensitive search.
+            return self.cm_editor.getSearchCursor(query, pos, typeof query == "string" && query == query.toLowerCase());
+        }
+        function parseQuery(query) {
+            var isRE = query.match(/^\/(.*)\/([a-z]*)$/);
+            return isRE ? new RegExp(isRE[1], isRE[2].indexOf("i") == -1 ? "" : "i") : query;
+        }
+        var query = parseQuery(self.search_state.query);
+        self.cm_editor.operation(function() {
+            // Stop keeping cursor, we start from beginning or end of match, depending on direction
+            if (!keep_cursor && self.search_state.keeping_cursor === true) {
+                self.search_state.keeping_cursor = false;
+                if (reverse)
+                    self.search_state.posTo = self.search_state.posFrom = self.search_state.kc_posFrom;
+                else
+                    self.search_state.posTo = self.search_state.posFrom = self.search_state.kc_posTo;
+            }
+            var cursor = getSearchCursor(self.cm_editor, query,
+                    reverse ? self.search_state.posFrom : self.search_state.posTo);
+            // If not found - wrap around
+            if (!cursor.find(reverse)) {
+                cursor = getSearchCursor(self.cm_editor, query,
+                    reverse ?   CodeMirror.Pos(self.cm_editor.lastLine()) :
+                                CodeMirror.Pos(self.cm_editor.firstLine(), 0));
+                if (!cursor.find(reverse)) {
+                    // Nothing found and keeping cursor - clear selection
+                    if (keep_cursor) {
+                        self.cm_editor.setCursor(self.search_state.kc_posFrom);
+                    }
+                    return;
+                }
+            }
+            // Highlight match
+            self.cm_editor.setSelection(cursor.from(), cursor.to());
+            // Update search state
+            if (!keep_cursor) {
+                self.search_state.posFrom   = cursor.from();
+                self.search_state.posTo     = cursor.to();
+            } else {
+                self.search_state.kc_posFrom   = cursor.from();
+                self.search_state.kc_posTo     = cursor.to();
+            }
+        });
+    };
 
     //
     // Parse metadata at the beginning of markdown file (and others as well ?)
@@ -571,8 +728,8 @@ function edtrCodemirror(content_type, content) {
     // This function will be called VERY OFTEN !
     this.on_change = function(inst, change_obj) {
         // console.log(self.saved_state);
-        if (self.tabs[self.current_tab].state === self.TAB_STATE.SAVED) {
-            self.set_tab_state(self.TAB_STATE.NOT_SAVED);
+        if (self.tabs[self.current_tab].state === self.TAB_STATES.SAVED) {
+            self.set_tab_state(self.TAB_STATES.NOT_SAVED);
         }
         self.update_live_preview();
     };
@@ -583,19 +740,19 @@ function edtrCodemirror(content_type, content) {
         if (state === undefined)
             state = self.tabs[self.current_tab].state;
         switch (state) {
-            case self.TAB_STATE.SAVED:
+            case self.TAB_STATES.SAVED:
                 self.tabs[self.current_tab].state = state;
                 // TODO: add draft/published/unpublished text to button
                 self.tabs[self.current_tab].dom_elem.find("a").removeClass("not-saved");
                 self.dom_save_btn_text.text("SAVED ("+"draft"+")");
                 self.dom_save_btn.removeClass("btn-success").tooltip("hide").attr('disabled', 'disabled');
                 break;
-            case self.TAB_STATE.SAVING:
+            case self.TAB_STATES.SAVING:
                 self.tabs[self.current_tab].state = state;
                 self.dom_save_btn_text.text("saving draft...");
                 self.dom_save_btn.removeClass("btn-success").attr('disabled', 'disabled');
                 break;
-            case self.TAB_STATE.NOT_SAVED:
+            case self.TAB_STATES.NOT_SAVED:
                 self.tabs[self.current_tab].state = state;
                 self.tabs[self.current_tab].dom_elem.find("a").addClass("not-saved");
                 self.dom_save_btn_text.text("Save Draft");
@@ -683,10 +840,10 @@ function edtrCodemirror(content_type, content) {
     // callback parameter will be true if saved ok and false if not
     this.save_codemirror = function() {
         // File is already saved or in the process of being saved
-        if (self.tabs[self.current_tab].state !== self.TAB_STATE.NOT_SAVED)
+        if (self.tabs[self.current_tab].state !== self.TAB_STATES.NOT_SAVED)
             return;
         // Update state, show backdrop and rotating wheel in tree
-        self.set_tab_state(self.TAB_STATE.SAVING);
+        self.set_tab_state(self.TAB_STATES.SAVING);
         self.dom_elem.find(".file-saving").show();
         edtrTree.show_loading_node(self.tabs[self.current_tab].node, true);
         serverComm.action("dropbox", "save_file",
@@ -699,7 +856,7 @@ function edtrCodemirror(content_type, content) {
                 edtrTree.show_loading_node(self.tabs[self.current_tab].node, false);
                 if (data.status > serverComm.max_success_status) {
                     // Serious error
-                    self.set_tab_state(self.TAB_STATE.NOT_SAVED);
+                    self.set_tab_state(self.TAB_STATES.NOT_SAVED);
                     if (data.status === 6)
                         messagesBar.show_notification_warning(serverComm.human_status[data.status]);
                     else
@@ -707,7 +864,7 @@ function edtrCodemirror(content_type, content) {
                     if (self.on_saved)
                         self.on_saved.call(this, false);
                 } else {
-                    self.set_tab_state(self.TAB_STATE.SAVED);
+                    self.set_tab_state(self.TAB_STATES.SAVED);
                     messagesBar.show_notification("Saved "+self.tabs[self.current_tab].node.id);
                     if (self.on_saved)
                         self.on_saved.call(this, true);
@@ -722,7 +879,7 @@ function edtrCodemirror(content_type, content) {
         if (index === -1) return;
 
         // Tab is in saving mode - cancel request
-        if (self.tabs[index].state === self.TAB_STATE.SAVING) {
+        if (self.tabs[index].state === self.TAB_STATES.SAVING) {
             callback.call(null, false);
             return;
         }
@@ -737,7 +894,7 @@ function edtrCodemirror(content_type, content) {
             action:         "replace_cancel",
             template_vars: {
                 filename:       node.id,
-                is_saved:       self.tabs[index].state === self.TAB_STATE.SAVED
+                is_saved:       self.tabs[index].state === self.TAB_STATES.SAVED
             }
         };
         modalDialog.params.callback = function(args) {
@@ -767,7 +924,7 @@ function edtrCodemirror(content_type, content) {
         var index = self.find_tab(tree_node.id);
         if (index !== -1) {
             // Tab is in saving mode - ignore request
-            if (self.tabs[index].state === self.TAB_STATE.SAVING)
+            if (self.tabs[index].state === self.TAB_STATES.SAVING)
                 return;
 
             // Tab exists, but we expect confirm_replace_tab() to be already called
@@ -830,7 +987,7 @@ function edtrCodemirror(content_type, content) {
         self.cm_editor.clearHistory();
         self.cm_editor.focus();
 
-        self.set_tab_state(self.TAB_STATE.SAVED);
+        self.set_tab_state(self.TAB_STATES.SAVED);
         // Cancel previous preview timer
         if (self.is_preview_timer) {
             self.is_preview_timer = false;
@@ -951,11 +1108,11 @@ function edtrCodemirror(content_type, content) {
         if (index === -1) return;
 
         // Ignore close while saving
-        if (self.tabs[index].state === self.TAB_STATE.SAVING)
+        if (self.tabs[index].state === self.TAB_STATES.SAVING)
             return;
 
         // If text was not saved, ask confirmation from user to close it
-        if (self.tabs[index].state === self.TAB_STATE.SAVED) {
+        if (self.tabs[index].state === self.TAB_STATES.SAVED) {
             self.close_tab(node_id);
         } else {
             // Closing tab, that is not current - first show it to user
@@ -1014,12 +1171,21 @@ function edtrCodemirror(content_type, content) {
         this.current_tab                = 0;
 
         // Tab states
-        this.TAB_STATE = {
-            PUBLISHED:          3,
-            SAVED:              2,
+        this.TAB_STATES = {
+            NOT_SAVED:          0,
             SAVING:             1,
-            NOT_SAVED:          0
+            SAVED:              2,
+            PUBLISHED:          3
         };
+
+        // Buttons bar state
+        this.BB_STATES = {
+            BUTTONS:            0,
+            SEARCH:             1,
+            REPLACE:            2
+        };
+        // Default is buttons
+        this.bb_state = this.BB_STATES.BUTTONS,
 
         // Cache dom elements
         this.dom_elem           = dom_container;
@@ -1027,6 +1193,8 @@ function edtrCodemirror(content_type, content) {
         this.dom_toolbar        = dom_container.find(".editor-toolbar");
         this.dom_editor         = dom_container.find(".editor-area");
         this.dom_textarea       = dom_container.find(".cme-textarea");
+        this.dom_buttonbar      = dom_container.find(".cme-buttonbar");
+        this.dom_search_input   = dom_container.find(".cme-search input");
         this.dom_tabs_ul        = this.dom_tabs.find("ul");
         this.dom_save_btn       = this.dom_elem.find('#btn_save');
         this.dom_save_btn_text  = this.dom_elem.find('#btn_save_text');
@@ -1057,7 +1225,7 @@ function edtrCodemirror(content_type, content) {
             gutters:            [ "CodeMirror-linenumbers" ], //"bookmarks"],
 
             // Addons
-            highlightSelectionMatches: {minChars: 3, style: "matchhighlight"},
+            // highlightSelectionMatches: {minChars: 3, style: "matchhighlight"},
             autoCloseTags:      true,   // TODO: apparently works only in text/html mode
                                         // make it work in gfm mode as well
             autoCloseBrackets:  edtrSettings.general.editor.auto_close_brackets(),
@@ -1081,7 +1249,14 @@ function edtrCodemirror(content_type, content) {
                 "Enter":        this.custom_new_line,
 
                 // Search / Navigation
+                "Ctrl-F":       this.show_find,
+                "Cmd-F":        this.show_find,
+                "Shift-Ctrl-F": this.show_replace,
+                "Shift-Cmd-F":  this.show_replace,
                 "Shift-Ctrl-B": this.toggle_bookmark,
+
+                // Leaves various modes
+                "Esc":          this.process_esc,
 
                 // Markdown
                 "Ctrl-H":       this.rotate_header,
@@ -1177,6 +1352,40 @@ function edtrCodemirror(content_type, content) {
         // Buttons below editor
         this.dom_elem.find('#btn_preview').on("click", this.preview_codemirror);
         this.dom_elem.find('#btn_save').on("click", this.save_codemirror);
+
+        // Search on any text (keyup)
+        // Special search navigation (keydown):
+        //      next on Enter/Down, previous on Up and leave search mode on Esc
+        self.dom_search_input
+        .on("keyup", function(event) {
+            switch (event.which) {
+                case 27: // Esc
+                    self.process_esc();
+                    break;
+                case 13:
+                case 40:
+                case 38:
+                    // Ignore events processed in keydown
+                    break;
+                default:
+                    self.search_update_query();
+                    break;
+            }
+        })
+        .on("keydown", function(event) {
+            // Those events need to be processed on keydown to allow prevention of default action
+            switch (event.which) {
+                case 13: // Enter
+                case 40: // Down
+                    event.preventDefault();
+                    self.search_find(false, false);
+                    break;
+                case 38: // Up
+                    event.preventDefault();
+                    self.search_find(true, false);
+                    break;
+            }
+        });
 
         // TOOLTIPS for toolbar
         this.dom_elem.find(".cme-toolbar-tooltip").tooltip({

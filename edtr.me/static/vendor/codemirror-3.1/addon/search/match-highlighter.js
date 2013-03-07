@@ -14,10 +14,12 @@
 (function() {
   var DEFAULT_MIN_CHARS = 2;
   var DEFAULT_TOKEN_STYLE = "matchhighlight";
-  
+  var DEFAULT_CASE_FOLD = true;
+
   function State(options) {
     this.minChars = typeof options == "object" && options.minChars || DEFAULT_MIN_CHARS;
     this.style = typeof options == "object" && options.style || DEFAULT_TOKEN_STYLE;
+    this.caseFold = typeof options == "object" && options.caseFold || DEFAULT_CASE_FOLD;
     this.overlay = null;
   }
 
@@ -46,13 +48,13 @@
       var selection = cm.getSelection().replace(/^\s+|\s+$/g, "");
       if (selection.length < state.minChars) return;
 
-      cm.addOverlay(state.overlay = makeOverlay(selection, state.style));
+      cm.addOverlay(state.overlay = makeOverlay(selection, state.style, state.caseFold));
     });
   }
 
-  function makeOverlay(query, style) {
+  function makeOverlay(query, style, caseFold) {
     return {token: function(stream) {
-      if (stream.match(query)) return style;
+      if (stream.match(query, true, caseFold)) return style;
       stream.next();
       stream.skipTo(query.charAt(0)) || stream.skipToEnd();
     }};

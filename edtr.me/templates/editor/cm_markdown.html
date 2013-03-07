@@ -18,27 +18,38 @@
 
 <!--
     Buttons below
+    (.cme-buttons div can be replaced with .cme-search and .cme-replace)
 -->
 <div class="editor-buttons">
     <div class="cme-buttonbar well">
-        <button id="btn_save"
-                title="Save to Dropbox"
-                class="btn btn-success btn-small cme-button-tooltip" href="#">
-            <i class="icon-ok-sign icon-white"></i>
-            <span id="btn_save_text">Save Draft</span>
-        </button>
-        <button id="btn_preview"
-                title="Open page preview in new window"
-                class="btn btn-info btn-small cme-button-tooltip" href="#">
-            <i class="icon-eye-open icon-white"></i>
-            Preview...
-        </button>
-        <button id="btn_publish"
-                title="Publish HTML to your website (also saves file to Dropbox)"
-                class="btn btn-primary btn-small cme-button-tooltip pull-right" href="#">
-            <i class="icon-globe icon-white"></i>
-            Publish
-        </button>
+        <div class="cme-buttons">
+            <button id="btn_save"
+                    title="Save to Dropbox"
+                    class="btn btn-success btn-small cme-button-tooltip" href="#">
+                <i class="icon-ok-sign icon-white"></i>
+                <span id="btn_save_text">Save Draft</span>
+            </button>
+            <button id="btn_preview"
+                    title="Open page preview in new window"
+                    class="btn btn-info btn-small cme-button-tooltip" href="#">
+                <i class="icon-eye-open icon-white"></i>
+                Preview...
+            </button>
+            <button id="btn_publish"
+                    title="Publish HTML to your website (also saves file to Dropbox)"
+                    class="btn btn-primary btn-small cme-button-tooltip pull-right" href="#">
+                <i class="icon-globe icon-white"></i>
+                Publish
+            </button>
+        </div><!-- .cme-buttons -->
+        <div class="cme-search" style="display:none">
+            <span>Search:</span>
+            <input type="text" class="search-query" placeholder="text or regexp (use /re/ syntax)">
+        </div><!-- .cme-search -->
+        <div class="cme-replace" style="display:none">
+            <span>Replace:</span>
+            <input type="text" placeholder="">
+        </div><!-- .cme-replace -->
     </div><!-- .cme-buttonbar -->
 </div>
 

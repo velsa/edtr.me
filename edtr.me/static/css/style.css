@@ -383,7 +383,24 @@ body {
 #btn_preview, #btn_publish {
     width:              180px;
 }
-
+.cme-search, .cme-replace {
+    width:              50%;
+    display:            table;
+}
+.cme-search input, .cme-replace input {
+    padding:            4px 14px;
+    margin-top:         -4px;
+    margin-left:        4px;
+    display:            table-cell;
+    width:              100%;
+}
+.cme-search span, .cme-replace span {
+    display:            table-cell;
+    width:              1px;
+}
+.cme-search-selection {
+    background:         yellow !important;
+}
 /* Editor Stub */
 .stub-editor > pre {
     position:           absolute;
