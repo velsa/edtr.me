@@ -327,6 +327,11 @@ body {
     background-color:   white;
     min-height:         100%;
 }
+/* Adjust drag node visibility and size */
+.zTreeDragUL {
+    z-index:            999;
+    min-height:         auto;
+}
 #db_tree_1_a {
     font-weight:        bold;
 }

@@ -79,6 +79,7 @@ var edtrTree = {
                 onDblClick:         edtrTree.on_double_click,
                 onRightClick:       edtrTree.on_right_click,
                 onExpand:           edtrTree.on_node_expand,
+                beforeDrag:         edtrTree.before_drag,
                 beforeDrop:         edtrTree.before_drop,
                 onDrop:             edtrTree.on_drop,
                 onAsyncSuccess:     edtrTree.on_async_success,
@@ -682,6 +683,13 @@ var edtrTree = {
         if (edtrTree.hover_timer)
             clearTimeout(edtrTree.hover_timer);
         edtrTree._hide_popover();
+    },
+
+    //
+    // Called by zTree before user drags node
+    //
+    before_drag:             function(tree_id, nodes) {
+        debugger;
     },
 
     //
