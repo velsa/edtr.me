@@ -8,7 +8,7 @@ import settings  # only options.define to be runned
 
 TEST_MODULES = [
     'tests.auth_test',
-    'tests.dbox_ajax_test',
+    'tests.dbox_api_ajax_test',
 ]
 
 
@@ -49,7 +49,8 @@ if __name__ == '__main__':
 
     if options.socketio:
         TEST_MODULES += [
-            'tests.dbox_socketio_test',
+            'tests.auth_socketio_test',
+            'tests.dbox_api_socketio_test',
         ]
 
     tornado.testing.main(**kwargs)

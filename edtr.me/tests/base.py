@@ -118,3 +118,10 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
             self.stop(timeout)
         async_op()
         self.wait()
+
+    def post_with_xsrf(self, url, data):
+        _xsrf = 'some_hash_key'
+        post_data = data or {}
+        post_data["_xsrf"] = _xsrf
+        return self.post(url, data=post_data,
+            headers={'Cookie': '_xsrf={0}'.format(_xsrf)})
