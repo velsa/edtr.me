@@ -327,7 +327,8 @@ function edtrCodemirror(content_type, content) {
         } else {
             var cur = self.cm_editor.getCursor();
             var line = self.cm_editor.getLine(cur.line);
-            var pad_str = self.tab_character;
+            var pad_str = edtrSettings.general.editor.indent_with_tabs() ?
+                self.tab_character : self.tab_spaces;
             if (cur.ch) {
                 // Calculate pos in line with respect to tab characters
                 var ins_pos = 0;
@@ -419,10 +420,10 @@ function edtrCodemirror(content_type, content) {
         self.dom_search_input.focus().select();
         self.search_state = {
             query:              self.dom_search_input.val(),
-            posFrom:            self.cm_editor.getCursor(),
-            posTo:              self.cm_editor.getCursor(),
-            kc_posFrom:         self.cm_editor.getCursor(),
-            kc_posTo:           self.cm_editor.getCursor(),
+            posFrom:            self.cm_editor.getCursor("end"),
+            posTo:              self.cm_editor.getCursor("end"),
+            kc_posFrom:         self.cm_editor.getCursor("end"),
+            kc_posTo:           self.cm_editor.getCursor("end"),
             keeping_cursor:     true,   // true when searching without moving cursor
             first_time:         true   // HACK: used to ignore first search_update_query()
                                         // which is called when search input is shown
@@ -1163,7 +1164,7 @@ function edtrCodemirror(content_type, content) {
         this.preview_timer_id           = null;
         // TODO: Get those from folder/general settings
         this.tab_character              = "\t";
-        this.tab_spaces                 = Array(4).join(" "); // should equal to tab_character
+        this.tab_spaces                 = Array(4+1).join(" "); // should equal to tab_character + 1
         this.list_character             = "-";
 
         // Document Tabs
@@ -1212,14 +1213,14 @@ function edtrCodemirror(content_type, content) {
         var cm_settings = {
             // TODO: all settings should accord to content_type
             mode:               "gfm",
-            lineWrapping:       true,
+            lineWrapping:       edtrSettings.general.editor.line_wrapping(),
             matchBrackets:      true,
             pollInterval:       300,
             undoDepth:          500,
             theme:              edtrSettings.general.editor.theme(),
             indentUnit:         this.tab_spaces.length,
             tabSize:            this.tab_spaces.length, // should be the same !
-            indentWithTabs:     true,
+            indentWithTabs:     edtrSettings.general.editor.indent_with_tabs(),
             electricChars:      false,
             lineNumbers:        true,
             gutters:            [ "CodeMirror-linenumbers" ], //"bookmarks"],
@@ -1319,7 +1320,9 @@ function edtrCodemirror(content_type, content) {
             theme:                  "theme",
             line_numbers:           "lineNumbers",
             auto_close_brackets:    "autoCloseBrackets",
-            hl_current_line:        "styleActiveLine"
+            hl_current_line:        "styleActiveLine",
+            indent_with_tabs:       "indentWithTabs",
+            line_wrapping:          "lineWrapping"
         };
         var _update_option = function(val) {
             self.cm_editor.setOption(options[this], edtrSettings.general.editor[this]());

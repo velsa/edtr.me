@@ -449,6 +449,17 @@ body {
 span.cm-matchhighlight {
     background:         #e7e4ff;
 }
+.CodeMirror-matchingbracket {
+    background:         yellow;
+}
+.CodeMirror-matchingbracket {
+    background:         red;
+}
+
+/*.CodeMirror-selected {
+    background:         yellow !important;
+}
+*/
 .CodeMirror-activeline-background {
     background:         #e8f2ff !important;
 }

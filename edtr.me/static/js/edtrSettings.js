@@ -31,21 +31,23 @@ var edtrSettings = {
     // General Settings
     general: ko.mapping.fromJS({
         editor: {
-            theme:          ko.observable(""),
-            theme_list:     [
-                                "ambiance", "ambiance-mobile", "blackboard", "cobalt",
-                                "eclipse", "elegant", "erlang-dark",
-                                "lesser-dark", "monokai", "neat", "night",
-                                "rubyblue", "solarized", "solarized light", "solarized dark",
-                                "twilight", "vibrant-ink", "xq-dark"
-                            ],
-            // theme_tpl:      "codemirror-3.1/theme/{0}.css"
-            font_size:      ko.observable("14"),
-            font_size_list: [ "14", "15", "16", "17" ],
-            line_numbers:   ko.observable(true),
-            auto_close_brackets:   ko.observable(true),
-            hl_current_line:   ko.observable(false),
-            show_toolbar:   ko.observable(true)
+            theme:                  ko.observable(""),
+            theme_list:             [
+                                        "ambiance", "ambiance-mobile", "blackboard", "cobalt",
+                                        "eclipse", "elegant", "erlang-dark",
+                                        "lesser-dark", "monokai", "neat", "night",
+                                        "rubyblue", "solarized", "solarized light", "solarized dark",
+                                        "twilight", "vibrant-ink", "xq-dark"
+                                    ],
+            // theme_tpl:              "codemirror-3.1/theme/{0}.css"
+            font_size:              ko.observable("14"),
+            font_size_list:         [ "14", "15", "16", "17" ],
+            line_numbers:           ko.observable(true),
+            auto_close_brackets:    ko.observable(true),
+            hl_current_line:        ko.observable(false),
+            indent_with_tabs:       ko.observable(false),
+            line_wrapping:          ko.observable(false),
+            show_toolbar:           ko.observable(true)
         },
 
         // Settings for Preview pane
