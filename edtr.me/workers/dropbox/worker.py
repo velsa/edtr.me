@@ -1,8 +1,6 @@
-import urllib
 import os.path
 from datetime import datetime
 import logging
-from hashlib import sha1
 
 from tornado import gen
 from django.utils import simplejson as json
@@ -15,7 +13,10 @@ from models.dropbox import DropboxFile, PS
 from models.accounts import UserModel
 from utils.gl import DB, SocketPool
 from utils.error import ErrCode
-from utils.main import get_user_root, parse_md_headers, FolderType
+from utils.main import (get_user_root, parse_md_headers, FolderType,
+    create_path_if_not_exist)
+from .dbox_utils import unify_path, get_file_url, check_bad_response
+from .thumb import remove_thumbnail, create_thumbnail, copy_thumb
 logger = logging.getLogger('edtr_logger')
 
 
@@ -61,27 +62,6 @@ def _delta_called_recently(user):
     return False
 
 
-def _check_bad_response(response, callback=None):
-    if response.code != 200:
-        error, descr = 'undefined', 'undefined'
-        if hasattr(response, 'error'):
-            error = response.error
-        if response.body:
-            descr = response.body
-        result = {
-            "errcode": ErrCode.bad_request,
-            'http_code': response.code,
-            'error': error,
-            'description': descr,
-
-        }
-        logger.error(result)
-        if callback:
-            callback(result)
-        return result
-    return None
-
-
 def _adopt_meta(meta_data, update_date=True, separate_id=True):
     meta = dict(meta_data)
     _id = meta.pop('path')
@@ -119,27 +99,12 @@ def transform_updates(entries):
     return entries
 
 
-def _unify_path(path):
-    while len(path) > 1 and path.endswith('/'):
-        path = path[:-1]
-    if len(path) > 1 and not path.startswith('/'):
-        path = '/' + path
-    return path
-
-
-def _get_file_url(path, api_url):
-    path = _unify_path(path)
-    return "/1/{api_url}/{{root}}{path}".format(
-        api_url=api_url,
-        path=urllib.quote(path.encode('utf8')))
-
-
 @gen.engine
 def _get_tree_from_db(path, user, db, recurse=False, callback=None):
     if recurse:
         callback({'errcode': ErrCode.not_implemented})
     else:
-        path = _unify_path(path)
+        path = unify_path(path)
         cursor = db[user.name].find({"root_path": path},
             fields=DropboxFile.public_exclude_fields())
         files = yield motor.Op(cursor.to_list, DropboxFile.FIND_LIST_LEN)
@@ -175,7 +140,7 @@ def _get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
         callback(r)
     elif file_meta.mime_type in TEXT_MIMES or for_publish:
         # make dropbox request
-        api_url = _get_file_url(path, 'files')
+        api_url = get_file_url(path, 'files')
         access_token = user.get_dropbox_token()
         if rev:
             response = yield gen.Task(async_dbox.dropbox_request,
@@ -186,7 +151,7 @@ def _get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
             response = yield gen.Task(async_dbox.dropbox_request,
                 "api-content", api_url,
                 access_token=access_token)
-        if _check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         if for_publish:
             meta_ser = to_python(file_meta)
@@ -236,13 +201,13 @@ def _get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
         else:
             # make dropbox request
             access_token = user.get_dropbox_token()
-            api_url = _get_file_url(path, 'media')
+            api_url = get_file_url(path, 'media')
             post_args = {}
             response = yield gen.Task(async_dbox.dropbox_request,
                 "api", api_url,
                 access_token=access_token,
                 post_args=post_args)
-            if _check_bad_response(response, callback):
+            if check_bad_response(response, callback):
                 return
             dbox_media_url = json.loads(response.body)
             url_trans = dbox_media_url['url']
@@ -256,12 +221,6 @@ def _get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
             'expires': url_expires})
 
 
-def _create_path_if_not_exist(path_file):
-    f_dir = os.path.dirname(path_file)
-    if not os.path.exists(f_dir):
-        os.makedirs(f_dir)
-
-
 @gen.engine
 def _publish_text(fm, user, preview, pub_paths, file_content, db, callback):
     if not preview and fm.pub_status == PS.published:
@@ -270,7 +229,7 @@ def _publish_text(fm, user, preview, pub_paths, file_content, db, callback):
         return
     for pp in pub_paths:
         path_file = os.path.join(pp, fm._id.lstrip('/'))
-        _create_path_if_not_exist(path_file)
+        create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(file_content.encode(DEFAULT_ENCODING))
     if preview:
@@ -294,7 +253,7 @@ def _publish_binary(fm, user, preview, pub_paths, body, db, callback):
         return
     for pp in pub_paths:
         path_file = os.path.join(pp, fm._id.lstrip('/'))
-        _create_path_if_not_exist(path_file)
+        create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(body)
     if preview:
@@ -410,65 +369,6 @@ def _dbox_process_publish(updates, user, db, async_dbox, callback):
         callback({"errcode": ErrCode.ok})
 
 
-def _get_thumbnail_serv_path(user, path_meta):
-    ext = os.path.splitext(path_meta)[-1]
-    thumb_name = '{0}{1}'.format(
-        sha1(path_meta.encode('utf8')).hexdigest(),
-        ext if ext else ''
-    )
-    thumb_path = os.path.join(
-        get_user_root(user.name, FolderType.thumbnail), thumb_name)
-    return thumb_path, thumb_name
-
-
-def _get_meta_prop(file_meta, prop):
-    if isinstance(file_meta, DropboxFile):
-        return getattr(file_meta, prop, None)
-    else:
-        return file_meta.get(prop, None)
-
-
-@gen.engine
-def _create_thumbnail(file_meta, user, async_dbox, callback):
-    path = _get_meta_prop(file_meta, 'path')
-    logger.debug(u"Creating thumbnail for user {0}, path {1}".format(user.name, path))
-    api_url = _get_file_url(path, 'thumbnails')
-    access_token = user.get_dropbox_token()
-    response = yield gen.Task(async_dbox.dropbox_request,
-        "api-content", api_url,
-        access_token=access_token,
-        size='m')
-    if _check_bad_response(response, callback):
-        return
-    thumb_serv_path, thumb_file_name = _get_thumbnail_serv_path(user, path)
-    _create_path_if_not_exist(thumb_serv_path)
-    with open(thumb_serv_path, 'wb') as f:
-        f.write(response.body)
-    thumb_url = "http://thumbnails.{uname}.edtr.me/{fname}".format(
-        uname=user.name,
-        fname=thumb_file_name)
-    callback({'errcode': ErrCode.ok, 'thumb_url': thumb_url})
-
-
-def _remove_thumbnail(file_meta, user):
-    thumb_url = _get_meta_prop(file_meta, 'thumbnail_url')
-    if not thumb_url:
-        return False
-    path = _get_meta_prop(file_meta, 'path')
-    thumb_serv_path, _ = _get_thumbnail_serv_path(user, path)
-    logger.debug(u"Deleting thumbnail for user {0}, path {1}".format(
-        user.name, thumb_serv_path))
-    try:
-        os.remove(thumb_serv_path)
-    except:
-        # TODO process exact exception
-        logger.error(
-            "Deleting thumbnail exception for user {0}, path {1}".format(
-                user.name, thumb_serv_path))
-        return False
-    return True
-
-
 @gen.engine
 def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                                            force_update=False, callback=None):
@@ -494,7 +394,7 @@ def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                 "api", "/1/delta",
                 access_token=access_token,
                 post_args=post_args)
-            if _check_bad_response(response, callback):
+            if check_bad_response(response, callback):
                 return
             dbox_delta = json.loads(response.body)
             has_more = dbox_delta['has_more']
@@ -516,13 +416,13 @@ def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                             DropboxFile.remove_entries, db,
                             {"_id": e_path}, collection=user.name)
                         if _is_image(dfile.mime_type):
-                            _remove_thumbnail(dfile, user)
+                            remove_thumbnail(dfile.path, user.name)
                 else:
                     # TODO
                     # maybe there is a way to save files in one db call
                     if _is_image(entry.get('mime_type', None)):
                         if not dfile or dfile['modified'] != entry['modified']:
-                            thumb_rst = yield gen.Task(_create_thumbnail,
+                            thumb_rst = yield gen.Task(create_thumbnail,
                                 entry, user, async_dbox)
                             if thumb_rst['errcode'] == ErrCode.ok:
                                 entry['thumbnail_url'] = thumb_rst['thumb_url']
@@ -611,7 +511,7 @@ class DropboxWorkerMixin(DropboxMixin):
     @gen.engine
     def wk_dbox_get_file(self, user, path, callback=None):
         # TODO: not allow call this api very often
-        path = _unify_path(path)
+        path = unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
             callback(data)
@@ -624,7 +524,7 @@ class DropboxWorkerMixin(DropboxMixin):
     @gen.engine
     def wk_dbox_save_file(self, user, path, text_content, callback=None):
         # TODO: not allow call this api very often
-        path = _unify_path(path)
+        path = unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
             # file meta not found
@@ -637,14 +537,14 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             text_content = ''
         # make dropbox request
-        api_url = _get_file_url(path, 'files_put')
+        api_url = get_file_url(path, 'files_put')
         access_token = user.get_dropbox_token()
         response = yield gen.Task(self.dropbox_request,
             "api-content", api_url,
             access_token=access_token,
             put_body=text_content,
             overwrite='true')
-        if _check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         dbox_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders, but maybe let it be
@@ -670,7 +570,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_create_dir(self, user, path, callback=None):
-        path = _unify_path(path)
+        path = unify_path(path)
         # make dropbox request
         access_token = user.get_dropbox_token()
         post_args = {
@@ -681,7 +581,7 @@ class DropboxWorkerMixin(DropboxMixin):
             "api", "/1/fileops/create_folder",
             access_token=access_token,
             post_args=post_args)
-        if _check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders, but maybe let it be
@@ -691,7 +591,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_delete(self, user, path, callback=None):
-        path = _unify_path(path)
+        path = unify_path(path)
         # make dropbox request
         access_token = user.get_dropbox_token()
         post_args = {
@@ -702,7 +602,7 @@ class DropboxWorkerMixin(DropboxMixin):
             "api", "/1/fileops/delete",
             access_token=access_token,
             post_args=post_args)
-        if _check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
         is_dir, f_path = file_meta['is_dir'], file_meta['path']
@@ -717,18 +617,14 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             yield motor.Op(DropboxFile.remove_entries, self.db,
                 {"_id": f_path}, collection=user.name)
+            if _is_image(file_meta['mime_type']):
+                remove_thumbnail(f_path, user.name)
         callback({'errcode': ErrCode.ok})
 
     @gen.engine
-    def create_img_thumb_and_attach_to_meta(self, file_meta, user, callback):
-        thumb_rst = yield gen.Task(_create_thumbnail, file_meta, user, self)
-        if thumb_rst['errcode'] == ErrCode.ok:
-            file_meta['thumbnail_url'] = thumb_rst['thumb_url']
-
-    @gen.engine
     def wk_dbox_move(self, user, from_path, to_path, callback=None):
-        from_path = _unify_path(from_path)
-        to_path = _unify_path(to_path)
+        from_path = unify_path(from_path)
+        to_path = unify_path(to_path)
         # make dropbox request
         access_token = user.get_dropbox_token()
         post_args = {
@@ -740,12 +636,12 @@ class DropboxWorkerMixin(DropboxMixin):
             "api", "/1/fileops/move",
             access_token=access_token,
             post_args=post_args)
-        if _check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
         if _is_image(file_meta.get('mime_type', None)):
-            yield gen.Task(self.create_img_thumb_and_attach_to_meta,
-                file_meta, user)
+            yield gen.Task(copy_thumb, from_path, file_meta, user, self)
+            remove_thumbnail(from_path, user.name)
         yield gen.Task(_update_meta, self.db, file_meta, user.name)
         # TODO: is it save to leave now, not to wait for delta result ?
         _update_dbox_delta(self.db, self, user, force_update=True)
@@ -753,8 +649,8 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_copy(self, user, from_path, to_path, callback=None):
-        from_path = _unify_path(from_path)
-        to_path = _unify_path(to_path)
+        from_path = unify_path(from_path)
+        to_path = unify_path(to_path)
         # make dropbox request
         access_token = user.get_dropbox_token()
         post_args = {
@@ -766,10 +662,11 @@ class DropboxWorkerMixin(DropboxMixin):
             "api", "/1/fileops/copy",
             access_token=access_token,
             post_args=post_args)
-        if _check_bad_response(response, callback):
+        if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        self.create_img_thumb_and_attach_to_meta(file_meta, user)
+        if _is_image(file_meta.get('mime_type', None)):
+            yield gen.Task(copy_thumb, from_path, file_meta, user, self)
         yield gen.Task(_update_meta, self.db, file_meta, user.name)
         # TODO: is it save to leave now, not to wait for delta result ?
         _update_dbox_delta(self.db, self, user, force_update=True)
@@ -777,7 +674,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_publish(self, user, path, recurse=False, callback=None):
-        path = _unify_path(path)
+        path = unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
             callback(data)
@@ -794,7 +691,7 @@ class DropboxWorkerMixin(DropboxMixin):
 
     @gen.engine
     def wk_dbox_preview(self, user, path, recurse=False, callback=None):
-        path = _unify_path(path)
+        path = unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
             callback(data)

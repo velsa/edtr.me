@@ -54,3 +54,9 @@ def parse_md_headers(content):
             if h and isinstance(h, (str, unicode)):
                 headers[h.lower()] = v
     return headers
+
+
+def create_path_if_not_exist(path_file):
+    f_dir = os.path.dirname(path_file)
+    if not os.path.exists(f_dir):
+        os.makedirs(f_dir)
