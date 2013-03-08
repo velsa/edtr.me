@@ -410,17 +410,27 @@ def _dbox_process_publish(updates, user, db, async_dbox, callback):
         callback({"errcode": ErrCode.ok})
 
 
-def _get_thumbnail_serv_path(user, thumb_file_name):
-    return os.path.join(
-        get_user_root(user.name, FolderType.thumbnail), thumb_file_name)
+def _get_thumbnail_serv_path(user, path_meta):
+    ext = os.path.splitext(path_meta)[-1]
+    thumb_name = '{0}{1}'.format(
+        sha1(path_meta.encode('utf8')).hexdigest(),
+        ext if ext else ''
+    )
+    thumb_path = os.path.join(
+        get_user_root(user.name, FolderType.thumbnail), thumb_name)
+    return thumb_path, thumb_name
+
+
+def _get_meta_prop(file_meta, prop):
+    if isinstance(file_meta, DropboxFile):
+        return getattr(file_meta, prop, None)
+    else:
+        return file_meta.get(prop, None)
 
 
 @gen.engine
 def _create_thumbnail(file_meta, user, async_dbox, callback):
-    if isinstance(file_meta, DropboxFile):
-        path = file_meta.path
-    else:
-        path = file_meta['path']
+    path = _get_meta_prop(file_meta, 'path')
     logger.debug(u"Creating thumbnail for user {0}, path {1}".format(user.name, path))
     api_url = _get_file_url(path, 'thumbnails')
     access_token = user.get_dropbox_token()
@@ -430,10 +440,7 @@ def _create_thumbnail(file_meta, user, async_dbox, callback):
         size='m')
     if _check_bad_response(response, callback):
         return
-    ext = os.path.splitext(path)[-1]
-    thumb_file_name = '{0}{1}'.format(sha1(path.encode('utf8')).hexdigest(),
-        ext if ext else '')
-    thumb_serv_path = _get_thumbnail_serv_path(user, thumb_file_name)
+    thumb_serv_path, thumb_file_name = _get_thumbnail_serv_path(user, path)
     _create_path_if_not_exist(thumb_serv_path)
     with open(thumb_serv_path, 'wb') as f:
         f.write(response.body)
@@ -444,20 +451,20 @@ def _create_thumbnail(file_meta, user, async_dbox, callback):
 
 
 def _remove_thumbnail(file_meta, user):
-    if isinstance(file_meta, DropboxFile):
-        thumb_url = file_meta.thumbnail_url
-    else:
-        thumb_url = file_meta.get('thumbnail_url', None)
+    thumb_url = _get_meta_prop(file_meta, 'thumbnail_url')
     if not thumb_url:
         return False
-    thumb_file_name = os.path.split(thumb_url)[-1]
-    thumb_path = _get_thumbnail_serv_path(user, thumb_file_name)
-    logger.debug(u"Deleting thumbnail for user {0}, path {1}".format(user.name, thumb_path))
+    path = _get_meta_prop(file_meta, 'path')
+    thumb_serv_path, _ = _get_thumbnail_serv_path(user, path)
+    logger.debug(u"Deleting thumbnail for user {0}, path {1}".format(
+        user.name, thumb_serv_path))
     try:
-        os.remove(thumb_path)
+        os.remove(thumb_serv_path)
     except:
         # TODO process exact exception
-        logger.error("Deleting thumbnail exception for user {0}, path {1}".format(user.name, thumb_path))
+        logger.error(
+            "Deleting thumbnail exception for user {0}, path {1}".format(
+                user.name, thumb_serv_path))
         return False
     return True
 
@@ -519,9 +526,6 @@ def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                                 entry, user, async_dbox)
                             if thumb_rst['errcode'] == ErrCode.ok:
                                 entry['thumbnail_url'] = thumb_rst['thumb_url']
-                            else:
-                                # TODO process fail of creating thumbnail
-                                pass
 
                     meta = yield gen.Task(_update_meta,
                         db, entry, user.name, False)
@@ -716,6 +720,12 @@ class DropboxWorkerMixin(DropboxMixin):
         callback({'errcode': ErrCode.ok})
 
     @gen.engine
+    def create_img_thumb_and_attach_to_meta(self, file_meta, user, callback):
+        thumb_rst = yield gen.Task(_create_thumbnail, file_meta, user, self)
+        if thumb_rst['errcode'] == ErrCode.ok:
+            file_meta['thumbnail_url'] = thumb_rst['thumb_url']
+
+    @gen.engine
     def wk_dbox_move(self, user, from_path, to_path, callback=None):
         from_path = _unify_path(from_path)
         to_path = _unify_path(to_path)
@@ -733,6 +743,9 @@ class DropboxWorkerMixin(DropboxMixin):
         if _check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
+        if _is_image(file_meta.get('mime_type', None)):
+            yield gen.Task(self.create_img_thumb_and_attach_to_meta,
+                file_meta, user)
         yield gen.Task(_update_meta, self.db, file_meta, user.name)
         # TODO: is it save to leave now, not to wait for delta result ?
         _update_dbox_delta(self.db, self, user, force_update=True)
@@ -756,6 +769,7 @@ class DropboxWorkerMixin(DropboxMixin):
         if _check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
+        self.create_img_thumb_and_attach_to_meta(file_meta, user)
         yield gen.Task(_update_meta, self.db, file_meta, user.name)
         # TODO: is it save to leave now, not to wait for delta result ?
         _update_dbox_delta(self.db, self, user, force_update=True)
