@@ -306,14 +306,16 @@ var edtrTree = {
     // Sort dirs and files alphabetically and place dirs first
     sort_nodes:             function(nodes) {
         // Separate dirs and files
-        dirs = nodes.filter(function(elem, index, array) {return elem.isParent;});
-        files = nodes.filter(function(elem, index, array) {return !elem.isParent;});
+        // We use _ filter method
+        var dirs = _.filter(nodes, function(elem, index, array) {return elem.isParent;}),
+            files = _.filter(nodes, function(elem, index, array) {return !elem.isParent;});
 
         dirs.sort(edtrTree._name_ext_sort);
         files.sort(edtrTree._name_ext_sort);
 
         // Place dirs first
-        return dirs.concat(files);
+        dirs.push.apply(dirs, files);
+        return dirs;
     },
 
     // Update existing ztree node with new server data
@@ -689,7 +691,7 @@ var edtrTree = {
     // Called by zTree before user drags node
     //
     before_drag:             function(tree_id, nodes) {
-        debugger;
+        // debugger;
     },
 
     //

@@ -1,4 +1,15 @@
 //
+// For lame IE
+//
+if (!window.console) console = {log: function() {}};
+
+if(typeof String.prototype.trim !== 'function') {
+  String.prototype.trim = function() {
+    return this.replace(/^\s+|\s+$/g, '');
+  };
+}
+
+//
 // Javascript extensions
 //
 // adds .startsWith(text) to any string

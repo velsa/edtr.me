@@ -134,7 +134,7 @@ var syncIcon = {
 
 
 var edtrSplitters = {
-    $this_es:       null,
+    self:       null,
 
     //
     // Setup splitter drag events
@@ -160,28 +160,28 @@ var edtrSplitters = {
             parseInt(this.container_elem.css('bottom'), 10);
         this.is_dragging = false;
 
-        $this_es = this;
+        var self = this;
 
         this.vl_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
-            if (!$this_es.lsb_is_visible)
+            if (!self.lsb_is_visible)
                 return;
             $(window).on("mousemove", function(e) {
-                $this_es.is_dragging = true;
+                self.is_dragging = true;
                 var new_width = e.clientX-5;
-                if (new_width > $this_es.left_max_width)
-                    new_width = $this_es.left_max_width;
-                else if (new_width < $this_es.left_min_width)
-                    new_width = $this_es.left_min_width;
-                if (new_width == $this_es.left_elem.width())
+                if (new_width > self.left_max_width)
+                    new_width = self.left_max_width;
+                else if (new_width < self.left_min_width)
+                    new_width = self.left_min_width;
+                if (new_width == self.left_elem.width())
                     return;
-                $this_es.left_elem.width(new_width);
-                $this_es.right_elem.css({left: new_width});
+                self.left_elem.width(new_width);
+                self.right_elem.css({left: new_width});
             });
             $(window).on("mouseup", function(e) {
-                var was_dragging = $this_es.is_dragging;
-                $this_es.is_dragging = false;
+                var was_dragging = self.is_dragging;
+                self.is_dragging = false;
                 $(window).off("mousemove");
                 $(window).off("mouseup");
                 if (!was_dragging) { // was clicking
@@ -192,38 +192,38 @@ var edtrSplitters = {
             });
         })
         .on("dblclick", function(e) {
-            $this_es.toggle_sidebar();
+            self.toggle_sidebar();
         });
 
         this.h_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
-            if (!$this_es.preview_is_visible)
+            if (!self.preview_is_visible)
                 return;
-            // $this_es.preview_container.contents().find('body').on("mousemove", function(e) {
+            // self.preview_container.contents().find('body').on("mousemove", function(e) {
             //     //e.preventDefault(); // disable text selection during drag
             //     console.log(e.pageY);
             // });
             $(window).on("mousemove", function(e) {
-                if (!$this_es.is_dragging) {
+                if (!self.is_dragging) {
                     // Apply hack div over iframe, we don't want it to capture our mouse events
-                    $this_es.bottom_elem.append('<div id="tarpaulin"></div>');
+                    self.bottom_elem.append('<div id="tarpaulin"></div>');
                 }
-                $this_es.is_dragging = true;
-                var top_height = e.clientY - $this_es.container_shift,
-                    new_height = $this_es.container_elem.height() - top_height - 5;
-                if (new_height < $this_es.bottom_min_height)
-                    new_height = $this_es.bottom_min_height;
-                else if (top_height <= $this_es.top_min_height)
-                    new_height = $this_es.container_elem.height() - $this_es.top_min_height - 5;
-                if (new_height == $this_es.bottom_elem.height())
+                self.is_dragging = true;
+                var top_height = e.clientY - self.container_shift,
+                    new_height = self.container_elem.height() - top_height - 5;
+                if (new_height < self.bottom_min_height)
+                    new_height = self.bottom_min_height;
+                else if (top_height <= self.top_min_height)
+                    new_height = self.container_elem.height() - self.top_min_height - 5;
+                if (new_height == self.bottom_elem.height())
                     return;
-                $this_es.bottom_elem.height(new_height);
-                $this_es.top_elem.css({bottom: new_height});
+                self.bottom_elem.css({height: new_height, top: "auto"});
+                self.top_elem.css({bottom: new_height});
             });
             $(window).on("mouseup", function(e) {
-                var was_dragging = $this_es.is_dragging;
-                $this_es.is_dragging = false;
+                var was_dragging = self.is_dragging;
+                self.is_dragging = false;
                 $(window).off("mousemove");
                 $(window).off("mouseup");
                 if (!was_dragging) { // was clicking
@@ -236,58 +236,65 @@ var edtrSplitters = {
             });
         })
         .on("dblclick", function(e) {
-            $this_es.toggle_preview();
+            self.toggle_preview();
+        });
+
+        $(window).resize(function () {
+            self.bottom_elem.css({
+                top:    self.top_elem.height()+"px",
+                height: "100%"
+            });
         });
     },
 
     toggle_sidebar: function() {
-        if ($this_es.lsb_is_visible)
-            $this_es.hide_sidebar();
+        if (self.lsb_is_visible)
+            self.hide_sidebar();
         else
-            $this_es.show_sidebar();
+            self.show_sidebar();
     },
     hide_sidebar: function() {
-        if ($this_es.lsb_is_visible) {
-            $this_es.lsb_is_visible = false;
-            $this_es.left_sidebar.hide();
-            $this_es.vl_splitter.css({left: 0});
-            $this_es.right_elem_left = $this_es.right_elem.css("left");
-            $this_es.right_elem.css({left: $this_es.vl_splitter.width() +
-                parseInt($this_es.vl_splitter.css('right'), 10)});
+        if (self.lsb_is_visible) {
+            self.lsb_is_visible = false;
+            self.left_sidebar.hide();
+            self.vl_splitter.css({left: 0});
+            self.right_elem_left = self.right_elem.css("left");
+            self.right_elem.css({left: self.vl_splitter.width() +
+                parseInt(self.vl_splitter.css('right'), 10)});
         }
     },
     show_sidebar: function() {
-        if (!$this_es.lsb_is_visible) {
-            $this_es.lsb_is_visible = true;
-            $this_es.left_sidebar.show();
-            $this_es.vl_splitter.removeAttr('style');
-            $this_es.right_elem.css({left: $this_es.right_elem_left});
+        if (!self.lsb_is_visible) {
+            self.lsb_is_visible = true;
+            self.left_sidebar.show();
+            self.vl_splitter.removeAttr('style');
+            self.right_elem.css({left: self.right_elem_left});
         }
     },
-    hide_editor: function() { $this_es.right_elem.hide(); },
-    show_editor: function() { $this_es.right_elem.show(); },
+    hide_editor: function() { self.right_elem.hide(); },
+    show_editor: function() { self.right_elem.show(); },
     toggle_preview: function() {
-        if ($this_es.preview_is_visible)
-            $this_es.hide_preview();
+        if (self.preview_is_visible)
+            self.hide_preview();
         else
-            $this_es.show_preview();
+            self.show_preview();
     },
     hide_preview: function() {
-        if ($this_es.preview_is_visible) {
-            $this_es.preview_is_visible = false;
-            $this_es.preview_container.hide();
-            $this_es.h_splitter.css({top: $this_es.bottom_elem.height() -
-                parseInt($this_es.h_splitter.css('top'), 10)});
-            $this_es.top_elem_bottom = $this_es.top_elem.css("bottom");
-            $this_es.top_elem.css({'bottom': $this_es.h_splitter.height()});
+        if (self.preview_is_visible) {
+            self.preview_is_visible = false;
+            self.preview_container.hide();
+            self.h_splitter.css({top: self.bottom_elem.height() -
+                parseInt(self.h_splitter.css('top'), 10)});
+            self.top_elem_bottom = self.top_elem.css("bottom");
+            self.top_elem.css({'bottom': self.h_splitter.height()});
         }
     },
     show_preview: function() {
-        if (!$this_es.preview_is_visible) {
-            $this_es.preview_is_visible = true;
-            $this_es.preview_container.show();
-            $this_es.h_splitter.removeAttr('style');
-            $this_es.top_elem.css({'bottom': $this_es.top_elem_bottom});
+        if (!self.preview_is_visible) {
+            self.preview_is_visible = true;
+            self.preview_container.show();
+            self.h_splitter.removeAttr('style');
+            self.top_elem.css({'bottom': self.top_elem_bottom});
         }
     }
 };
