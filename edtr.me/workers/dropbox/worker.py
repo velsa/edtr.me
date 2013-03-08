@@ -643,8 +643,10 @@ class DropboxWorkerMixin(DropboxMixin):
             yield gen.Task(copy_thumb, from_path, file_meta, user, self)
             remove_thumbnail(from_path, user.name)
         yield gen.Task(_update_meta, self.db, file_meta, user.name)
-        # TODO: is it save to leave now, not to wait for delta result ?
-        _update_dbox_delta(self.db, self, user, force_update=True)
+        # TODO: update some changes locally. For example, thumbnail.
+        # Currently, if dir was moved, all thumbnails are created again
+        # via dropbox
+        yield gen.Task(_update_dbox_delta, self.db, self, user, force_update=True)
         callback({'errcode': ErrCode.ok})
 
     @gen.engine
@@ -668,8 +670,10 @@ class DropboxWorkerMixin(DropboxMixin):
         if _is_image(file_meta.get('mime_type', None)):
             yield gen.Task(copy_thumb, from_path, file_meta, user, self)
         yield gen.Task(_update_meta, self.db, file_meta, user.name)
-        # TODO: is it save to leave now, not to wait for delta result ?
-        _update_dbox_delta(self.db, self, user, force_update=True)
+        # TODO: update some changes locally. For example, thumbnail.
+        # Currently, if dir was copied, all thumbnails are created again
+        # via dropbox
+        yield gen.Task(_update_dbox_delta, self.db, self, user, force_update=True)
         callback({'errcode': ErrCode.ok})
 
     @gen.engine
