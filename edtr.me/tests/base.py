@@ -72,7 +72,7 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         email = 'test@test.com'
         key = "some_key"
         secret = "some_secret"
-        self.db_save({
+        self.db_save('accounts', {
             '_id': username,
             'first_name': first_name,
             'last_name': last_name,
@@ -102,10 +102,10 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         async_op()
         return self.wait()
 
-    def db_save(self, user_data):
+    def db_save(self, collection, data):
         @gen.engine
         def async_op():
-            result = yield motor.Op(db.accounts.save, user_data)
+            result = yield motor.Op(db[collection].save, data)
             self.stop(result)
         async_op()
         return self.wait()

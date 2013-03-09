@@ -22,3 +22,10 @@ MAND_MD_HEADERS = ['state', ]
 class MdState:
     draft = 'draft'
     published = 'published'
+
+
+class ContentType:
+    directory = 0
+    text_file = 1
+    image = 2
+    binary = 3

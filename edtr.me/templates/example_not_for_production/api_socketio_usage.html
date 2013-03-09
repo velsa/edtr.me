@@ -156,14 +156,14 @@
         $("#file_url").html('')
     }
     function setFileContents(response){
-        if (response['status'] == 0){
+        if (response['errcode'] == 0){
             if (response['content']){
                 $("#file_content").val(response['content'])
             } else if (response['url']){
                 $("#file_url").html(response['url'])
             }
         } else {
-            alert("Bad status: " + response['status']);
+            alert("Bad errcode: " + response['errcode']);
         }
     }
     function getCreateDirName(){
@@ -194,8 +194,8 @@
         return $('#publish_recurse').prop("checked");
     }
     function checkStatus(response){
-        if (!response['status'] == 0){
-            alert("Bad status: " + response['status']);
+        if (!response['errcode'] == 0){
+            alert("Bad errcode: " + response['errcode']);
         }
     }
     </script>

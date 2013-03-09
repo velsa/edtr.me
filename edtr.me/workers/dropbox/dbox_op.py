@@ -11,8 +11,8 @@ from django.utils import simplejson as json
 from utils.error import ErrCode
 from models.dropbox import DropboxFile
 from .dbox_utils import (unify_path, get_file_url, check_bad_response,
-    update_meta)
-from .dbox_settings import DROPBOX_ENCODE_MAP, TEXT_MIMES
+    update_meta, is_image)
+from .dbox_settings import DROPBOX_ENCODE_MAP, TEXT_MIMES, ContentType
 logger = logging.getLogger('edtr_logger')
 
 
@@ -48,14 +48,26 @@ def _get_response_encoding(response):
     return encoding
 
 
+def _get_content_type(file_meta):
+    if file_meta.is_dir:
+        return ContentType.directory
+    elif file_meta.mime_type in TEXT_MIMES:
+        return ContentType.text_file
+    elif is_image(file_meta.mime_type):
+        return ContentType.image
+    else:
+        return ContentType.binary
+
+
 @gen.engine
 def get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
                                                      rev=None, callback=None):
-    path = file_meta._id
-    if file_meta.is_dir:
-        r = yield gen.Task(get_tree_from_db, path, user, db)
-        callback(r)
-    elif file_meta.mime_type in TEXT_MIMES or for_publish:
+    path = file_meta.path
+    content_type = _get_content_type(file_meta)
+    content = None
+    if content_type == ContentType.directory:
+        callback({'errcode': ErrCode.bad_request})
+    elif content_type == ContentType.text_file or for_publish:
         # make dropbox request
         api_url = get_file_url(path, 'files')
         access_token = user.get_dropbox_token()
@@ -81,32 +93,18 @@ def get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
             meta_dict = yield gen.Task(update_meta, db, meta_dbox, user.name)
             # update fields, that will be return to client
             if for_publish:
-                # meta_ser = to_python(file_meta)
                 meta_ser.update(meta_dict)
             else:
                 # Skip black list fields
-                # meta_ser = make_safe_python(DropboxFile, file_meta, 'public')
                 for f in meta_dict:
                     if f in meta_ser:
                         meta_ser[f] = meta_dict[f]
-        if file_meta.mime_type in TEXT_MIMES:
+        if content_type == ContentType.text_file:
             encoding = _get_response_encoding(response)
-            callback({
-                'errcode': ErrCode.ok,
-                # TODO check file magic number to find encoding
-                'encoding': encoding,
-                'content': response.body.decode(encoding, 'replace'),
-                'meta': meta_ser,
-            })
+            content = response.body.decode(encoding, 'replace')
+            content_type = ContentType.text_file
         else:
-            # TODO: check file size and reject, if it big.
-            # TODO: maybe use chunk download like this:
-            # http://codingrelic.geekhold.com/2011/10/tornado-httpclient-chunked-downloads.html
-            callback({
-                'errcode': ErrCode.ok,
-                'body': response.body,
-                'meta': meta_ser,
-            })
+            content = response.body
     else:
         url_trans, url_expires = None, None
         # check, if saved media url is already saved and not expired
@@ -132,7 +130,13 @@ def get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
             file_meta.url_trans = url_trans
             file_meta.set_url_expires(url_expires)
             yield motor.Op(file_meta.update, db, collection=user.name)
-        callback({
-            'errcode': ErrCode.ok,
-            'url': url_trans,
-            'expires': url_expires})
+        content = url_trans
+    # TODO: check file size and reject, if it big.
+    # TODO: maybe use chunk download like this:
+    # http://codingrelic.geekhold.com/2011/10/tornado-httpclient-chunked-downloads.html
+    callback({
+        'errcode': ErrCode.ok,
+        'type': content_type,
+        'content': content,
+        'meta': meta_ser,
+    })

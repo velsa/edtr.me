@@ -60,7 +60,7 @@ class LoginTest(BaseTest):
     def test_login_user_dropbox_redirect(self,
         m_get_current_user, m_authorize_redirect):
         m_get_current_user.return_value = 'testuser'
-        self.db_save({'_id': 'testuser'})
+        self.db_save('account', {'_id': 'testuser'})
         self.get(self.reverse_url('home'))
         self.assertEqual(m_authorize_redirect.called, True)
 
@@ -127,7 +127,7 @@ class LoginTest(BaseTest):
         m_get_current_user.return_value = username
 
         # prepare database
-        self.db_save({'_id': username})
+        self.db_save('accounts', {'_id': username})
 
         ### test sequence
         # fetch user page

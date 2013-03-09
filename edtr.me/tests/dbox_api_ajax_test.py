@@ -11,6 +11,8 @@ from base import BaseTest
 from handlers.base import BaseHandler
 from workers.dropbox.thumb import _get_thumbnail_serv_path, _get_thumb_url
 from utils.main import get_user_root, FolderType
+from workers.dropbox.dbox_utils import _adopt_meta
+from workers.dropbox.dbox_settings import ContentType
 
 
 class TF:
@@ -24,10 +26,9 @@ class TF:
     image_png = "image/png"
 
 
-def get_dbox_meta(path, o_type):
+def get_dbox_meta(path, o_type, with_path=True):
     if o_type == TF.folder:
-        return """[
-          "{path}",
+        meta_data = """
           {{
             "revision": 3,
             "rev": "30c3bcb59",
@@ -40,10 +41,9 @@ def get_dbox_meta(path, o_type):
             "root": "app_folder",
             "size": "0 bytes"
           }}
-        ]""".format(path=path)
+          """.format(path=path)
     elif o_type == TF.text:
-        return """[
-          "{path}",
+        meta_data = """
           {{
             "revision": 10,
             "rev": "a0c3bcb59",
@@ -57,11 +57,9 @@ def get_dbox_meta(path, o_type):
             "root": "app_folder",
             "mime_type": "{f_type}",
             "size": "7 bytes"
-          }}
-        ]""".format(path=path, f_type=o_type)
+          }}""".format(path=path, f_type=o_type)
     elif o_type == TF.image_png:
-        return """[
-          "{path}",
+        meta_data = """
           {{
             "revision": 1,
             "rev": "10c3bcb59",
@@ -75,8 +73,13 @@ def get_dbox_meta(path, o_type):
             "root": "app_folder",
             "mime_type": "{f_type}",
             "size": "423 KB"
-          }}
-        ]""".format(path=path, f_type=o_type)
+          }}""".format(path=path, f_type=o_type)
+    if with_path:
+        meta_data = """[
+          "{path}",
+          {meta}
+        ]""".format(path=path, meta=meta_data)
+    return meta_data
 
 
 def dbox_delta(objs, cursor, reset=False, has_more=False):
@@ -99,6 +102,16 @@ def dbox_delta(objs, cursor, reset=False, has_more=False):
         entries=",".join(meta_list))
 
 
+def fetch_mock_base(request, callback, dbox_resp, **kwargs):
+    if not isinstance(request, HTTPRequest):
+        request = HTTPRequest(url=request, **kwargs)
+    request.headers = HTTPHeaders(request.headers)
+    output = cStringIO.StringIO()
+    output.write(dbox_resp)
+    resp = HTTPResponse(request=request, code=200, buffer=output)
+    callback(resp)
+
+
 class GetTreeTest(BaseTest):
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')  # all requests are mocked
@@ -106,17 +119,12 @@ class GetTreeTest(BaseTest):
         self.create_test_user(m_get_current_user)
 
         def fetch_mock(request, callback, **kwargs):
-            if not isinstance(request, HTTPRequest):
-                request = HTTPRequest(url=request, **kwargs)
-            request.headers = HTTPHeaders(request.headers)
             dbox_resp = dbox_delta([
                 {'type': TF.folder, 'path': '/dir_1'},
                 {'type': TF.text, 'path': '/1.txt'},
             ], cursor="cursor")
-            output = cStringIO.StringIO()
-            output.write(dbox_resp)
-            resp = HTTPResponse(request=request, code=200, buffer=output)
-            callback(resp)
+            fetch_mock_base(request, callback, dbox_resp, **kwargs)
+
         m_fetch.side_effect = fetch_mock
         response = self.post_with_xsrf(
             self.reverse_url('dropbox_get_path'), {'path': '/'})
@@ -145,11 +153,7 @@ class GetTreeTest(BaseTest):
         self.img_path = '/pic.png'
 
         def fetch_mock(request, callback, **kwargs):
-            if not isinstance(request, HTTPRequest):
-                request = HTTPRequest(url=request, **kwargs)
-            request.headers = HTTPHeaders(request.headers)
-            output = cStringIO.StringIO()
-            if "api.dropbox.com/1/delta" in request.url:
+            if "api.dropbox.com/1/delta" in request:
                 dbox_resp = dbox_delta([
                     {'type': TF.image_png, 'path': self.img_path},
                 ], cursor="cursor")
@@ -157,9 +161,7 @@ class GetTreeTest(BaseTest):
                 global thumbnail_calls
                 self.thumbnail_calls += 1
                 dbox_resp = self.img_bin_content
-            output.write(dbox_resp)
-            resp = HTTPResponse(request=request, code=200, buffer=output)
-            callback(resp)
+            fetch_mock_base(request, callback, dbox_resp, **kwargs)
         m_fetch.side_effect = fetch_mock
 
         response = self.post_with_xsrf(
@@ -176,3 +178,45 @@ class GetTreeTest(BaseTest):
         self.assertEqual(set([self.img_path]), set(json_resp['tree'].keys()))
         self.assertEqual(json_resp['tree'][self.img_path]['thumbnail_url'],
             _get_thumb_url(thumb_name, self.test_user_name))
+
+
+class GetContentTest(BaseTest):
+    @patch.object(BaseHandler, 'get_current_user')
+    @patch.object(SimpleAsyncHTTPClient, 'fetch')
+    def test_text_content(self, m_fetch, m_get_current_user):
+        self.create_test_user(m_get_current_user)
+        self.text_content = 'text text text'
+
+        meta = json.loads(get_dbox_meta('/1.txt', TF.text, with_path=False))
+        meta_db, _ = _adopt_meta(meta, separate_id=False)
+        self.db_save(self.test_user_name, meta_db)
+
+        def fetch_mock(request, callback, **kwargs):
+            if not isinstance(request, HTTPRequest):
+                request = HTTPRequest(url=request, **kwargs)
+            request.headers = HTTPHeaders(request.headers)
+            if "api-content.dropbox.com/1/files/" in request.url:
+                dbox_resp = self.text_content
+                headers = {'X-Dropbox-Metadata': json.dumps(meta)}
+            else:
+                self.assertTrue(False)
+                callback(None)
+                return
+            output = cStringIO.StringIO()
+            output.write(dbox_resp)
+            resp = HTTPResponse(request=request, headers=headers, code=200,
+                buffer=output)
+            callback(resp)
+        m_fetch.side_effect = fetch_mock
+
+        response = self.post_with_xsrf(
+            self.reverse_url('dropbox_get_file'), {'path': '/1.txt'})
+        self.assertEqual(response.code, 200)
+        json_resp = json.loads(response.body)
+        self.assertEqual(json_resp['errcode'], 0)
+        self.assertEqual(json_resp['type'], ContentType.text_file)
+        self.assertEqual(json_resp['content'], self.text_content)
+        file_meta_params = set(["_id", "revision", "rev", "thumb_exists",
+            "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
+            "mime_type", "bytes", "size"])
+        self.assertEqual(file_meta_params, set(json_resp['meta'].keys()))

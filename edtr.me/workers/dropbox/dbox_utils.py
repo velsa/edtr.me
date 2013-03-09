@@ -91,5 +91,9 @@ def is_md(file_meta):
     return file_meta.mime_type == MIME_MD and file_meta.path.endswith('.md')
 
 
+def is_image(mime_type):
+    return bool(mime_type) and 'image' in mime_type
+
+
 def is_image_thumb(mime_type, thumb_exists):
-    return bool(mime_type) and 'image' in mime_type and thumb_exists
+    return is_image(mime_type) and thumb_exists
