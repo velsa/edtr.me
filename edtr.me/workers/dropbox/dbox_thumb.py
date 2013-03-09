@@ -37,7 +37,7 @@ def _get_thumb_url(thumb_file_name, user_name):
     if options.debug:
         return "file:///{0}".format(os.path.join(
             get_user_root(user_name, FolderType.thumbnail),
-            thumb_file_name).replace('\\', '/'))
+            thumb_file_name).replace('\\', '/').lstrip('/'))
     else:
         return "http://thumbnails.{uname}.edtr.me/{fname}".format(
             uname=user_name,
