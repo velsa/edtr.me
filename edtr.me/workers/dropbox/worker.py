@@ -1,512 +1,40 @@
-import os.path
-from datetime import datetime
 import logging
 
 from tornado import gen
 from django.utils import simplejson as json
 import motor
-import pytz
-from schematics.serialize import make_safe_python, to_python
+from schematics.serialize import make_safe_python
 
 from utils.async_dropbox import DropboxMixin
 from models.dropbox import DropboxFile, PS
-from models.accounts import UserModel
-from utils.gl import DB, SocketPool
+from utils.gl import DB
 from utils.error import ErrCode
-from utils.main import (get_user_root, parse_md_headers, FolderType,
-    create_path_if_not_exist)
-from .dbox_utils import unify_path, get_file_url, check_bad_response
-from .thumb import remove_thumbnail, create_thumbnail, copy_thumb
+from .dbox_utils import (unify_path, get_file_url, check_bad_response,
+    update_meta, is_image_thumb, save_meta)
+from .dbox_thumb import remove_thumbnail, copy_thumb
+from .dbox_settings import DEFAULT_ENCODING
+from .dbox_publish import publish_object
+from .dbox_op import get_obj_content, get_tree_from_db
+from .dbox_delta import update_dbox_delta, dbox_sync_user
 logger = logging.getLogger('edtr_logger')
-
-
-# Strange dropbox behaviour:
-# File with ANSI (cp1251) encoding, dropbox output as ISO-8859-8 encoding
-DROPBOX_ENCODE_MAP = {
-    'ISO-8859-8': 'cp1251',
-}
-DEFAULT_ENCODING = 'utf8'
-DELTA_PERIOD_SEC = 5
-F_CONT_PER_SEC = 5
-
-MIME_MD = 'application/octet-stream'
-TEXT_MIMES = (
-    'text/plain',
-    'text/html',
-    MIME_MD,
-)
-
-MAND_MD_HEADERS = ['state', ]
-
-
-class MdState:
-    draft = 'draft'
-    published = 'published'
 
 
 def dbox_periodic_update():
     # TODO: fetch only needed fields
     cursor = DB.instance().accounts.find(
         {'dbox_access_token': {'$exists': True}})
-    cursor.each(callback=_dbox_sync_user)
-
-
-def _delta_called_recently(user):
-    # TODO store last_delta in cache (memcached, redis)
-    # to minimize time between check and save last_delta
-    last_delta = user.last_delta
-    if last_delta:
-        last_delta_time = datetime.now() - last_delta
-        if last_delta_time.total_seconds() < DELTA_PERIOD_SEC:
-            return True
-    return False
-
-
-def _adopt_meta(meta_data, update_date=True, separate_id=True):
-    meta = dict(meta_data)
-    _id = meta.pop('path')
-    meta['root_path'] = os.path.dirname(_id)
-    if update_date:
-        meta['last_updated'] = datetime.now()
-    if not separate_id:
-        meta['_id'] = _id
-    return meta, _id
-
-
-@gen.engine
-def _save_meta(db, meta_data, colln, callback=None):
-    meta, _ = _adopt_meta(meta_data, separate_id=False)
-    yield motor.Op(db[colln].save, meta)
-    callback(meta)
-
-
-@gen.engine
-def _update_meta(db, meta_data, colln, update=True, callback=None):
-    meta, _id = _adopt_meta(meta_data, update)
-    r = yield motor.Op(db[colln].update, {"_id": _id}, {"$set": meta})
-    meta['_id'] = _id
-    if not r['updatedExisting']:
-        yield motor.Op(db[colln].save, meta)
-    callback(meta)
-
-
-def has_dbox_access(user):
-    access = user.dbox_access_token
-    return bool(access)
-
-
-def transform_updates(entries):
-    return entries
-
-
-@gen.engine
-def _get_tree_from_db(path, user, db, recurse=False, callback=None):
-    if recurse:
-        callback({'errcode': ErrCode.not_implemented})
-    else:
-        path = unify_path(path)
-        cursor = db[user.name].find({"root_path": path},
-            fields=DropboxFile.public_exclude_fields())
-        files = yield motor.Op(cursor.to_list, DropboxFile.FIND_LIST_LEN)
-        files_tree = {}
-        for f in files:
-            files_tree[f['_id']] = f
-        result = {'errcode': ErrCode.ok, 'tree': files_tree}
-        if len(files) == DropboxFile.FIND_LIST_LEN:
-            result['has_more'] = True
-            logger.debug(u"FIND_LIST_LEN reached for user '{0}',"
-                " path '{1}".format(user.name, path))
-        callback(result)
-
-
-def _get_response_encoding(response):
-    encoding = 'ascii'
-    cont_type = response.headers.get('Content-Type', None)
-    if cont_type:
-        for v in cont_type.split(';'):
-            if 'charset=' in v:
-                encoding = v.split('=', 1)[-1]
-                encoding = DROPBOX_ENCODE_MAP.get(encoding, encoding)
-                break
-    return encoding
-
-
-@gen.engine
-def _get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
-                                                     rev=None, callback=None):
-    path = file_meta._id
-    if file_meta.is_dir:
-        r = yield gen.Task(_get_tree_from_db, path, user, db)
-        callback(r)
-    elif file_meta.mime_type in TEXT_MIMES or for_publish:
-        # make dropbox request
-        api_url = get_file_url(path, 'files')
-        access_token = user.get_dropbox_token()
-        if rev:
-            response = yield gen.Task(async_dbox.dropbox_request,
-                "api-content", api_url,
-                access_token=access_token,
-                rev=rev)
-        else:
-            response = yield gen.Task(async_dbox.dropbox_request,
-                "api-content", api_url,
-                access_token=access_token)
-        if check_bad_response(response, callback):
-            return
-        if for_publish:
-            meta_ser = to_python(file_meta)
-        else:
-            # Skip black list fields
-            meta_ser = make_safe_python(DropboxFile, file_meta, 'public')
-        if not rev:
-            meta_dbox = json.loads(response.headers['X-Dropbox-Metadata'])
-            # TODO when called from publish, _update_meta can be done later
-            meta_dict = yield gen.Task(_update_meta, db, meta_dbox, user.name)
-            # update fields, that will be return to client
-            if for_publish:
-                # meta_ser = to_python(file_meta)
-                meta_ser.update(meta_dict)
-            else:
-                # Skip black list fields
-                # meta_ser = make_safe_python(DropboxFile, file_meta, 'public')
-                for f in meta_dict:
-                    if f in meta_ser:
-                        meta_ser[f] = meta_dict[f]
-        if file_meta.mime_type in TEXT_MIMES:
-            encoding = _get_response_encoding(response)
-            callback({
-                'errcode': ErrCode.ok,
-                # TODO check file magic number to find encoding
-                'encoding': encoding,
-                'content': response.body.decode(encoding, 'replace'),
-                'meta': meta_ser,
-            })
-        else:
-            # TODO: check file size and reject, if it big.
-            # TODO: maybe use chunk download like this:
-            # http://codingrelic.geekhold.com/2011/10/tornado-httpclient-chunked-downloads.html
-            callback({
-                'errcode': ErrCode.ok,
-                'body': response.body,
-                'meta': meta_ser,
-            })
-    else:
-        url_trans, url_expires = None, None
-        # check, if saved media url is already saved and not expired
-        expires = file_meta.get_url_expires()
-        now = pytz.UTC.localize(datetime.utcnow())
-        if file_meta.url_trans and expires and expires > now:
-            url_trans = file_meta.url_trans
-            url_expires = file_meta.url_expires
-        else:
-            # make dropbox request
-            access_token = user.get_dropbox_token()
-            api_url = get_file_url(path, 'media')
-            post_args = {}
-            response = yield gen.Task(async_dbox.dropbox_request,
-                "api", api_url,
-                access_token=access_token,
-                post_args=post_args)
-            if check_bad_response(response, callback):
-                return
-            dbox_media_url = json.loads(response.body)
-            url_trans = dbox_media_url['url']
-            url_expires = dbox_media_url['expires']
-            file_meta.url_trans = url_trans
-            file_meta.set_url_expires(url_expires)
-            yield motor.Op(file_meta.update, db, collection=user.name)
-        callback({
-            'errcode': ErrCode.ok,
-            'url': url_trans,
-            'expires': url_expires})
-
-
-@gen.engine
-def _publish_text(fm, user, preview, pub_paths, file_content, db, callback):
-    if not preview and fm.pub_status == PS.published:
-        logger.debug(u"{0} is already published".format(fm._id))
-        callback({"errcode": ErrCode.already_published})
-        return
-    for pp in pub_paths:
-        path_file = os.path.join(pp, fm._id.lstrip('/'))
-        create_path_if_not_exist(path_file)
-        with open(path_file, 'wb') as f:
-            f.write(file_content.encode(DEFAULT_ENCODING))
-    if preview:
-        if not (fm.pub_status == PS.published and fm.rev == fm.pub_rev):
-            fm.pub_status = PS.draft
-    else:
-        fm.pub_status = PS.published
-        fm.pub_rev = fm.rev
-    yield motor.Op(fm.update, db, collection=user.name)
-    callback({
-        "errcode": ErrCode.ok,
-        "mime_type": "text",
-        "meta": make_safe_python(DropboxFile, fm, 'public')})
-
-
-@gen.engine
-def _publish_binary(fm, user, preview, pub_paths, body, db, callback):
-    if not preview and fm.pub_status == PS.published:
-        logger.debug(u"{0} is already published".format(fm._id))
-        callback({"errcode": ErrCode.already_published})
-        return
-    for pp in pub_paths:
-        path_file = os.path.join(pp, fm._id.lstrip('/'))
-        create_path_if_not_exist(path_file)
-        with open(path_file, 'wb') as f:
-            f.write(body)
-    if preview:
-        if not (fm.pub_status == PS.published or fm.rev == fm.pub_rev):
-            fm.pub_status = PS.draft
-    else:
-        fm.pub_status = PS.published
-        fm.pub_rev = fm.rev
-    yield motor.Op(fm.update, db, collection=user.name)
-    callback({
-        "errcode": ErrCode.ok,
-        "mime_type": "bin",
-        "meta": make_safe_python(DropboxFile, fm, 'public')})
-
-
-@gen.engine
-def _publish_object(file_meta, user, db, async_dbox, preview=False,
-                                                     obj=None, callback=None):
-    logger.debug(u"Publishing object. Path: {0}, user: {1}".format(
-        file_meta.path, user.name))
-    if not obj:
-        obj = yield gen.Task(_get_obj_content,
-            file_meta, user, db, async_dbox, for_publish=True)
-    if obj['errcode'] == ErrCode.ok:
-        pub_paths = [get_user_root(user.name, FolderType.preview)]
-        if not preview:
-            pub_paths.append(get_user_root(user.name, FolderType.publish))
-        if 'content' in obj:
-            # Text content
-            r = yield gen.Task(_publish_text, DropboxFile(**obj['meta']),
-                user, preview, pub_paths, obj['content'], db)
-            callback(r)
-        else:
-            # Non text content. Save from given url.
-            r = yield gen.Task(_publish_binary, DropboxFile(**obj['meta']),
-                user, preview, pub_paths, obj['body'], db)
-            callback(r)
-    else:
-        callback(obj)
-
-
-def _is_md(file_meta):
-    return file_meta.mime_type == MIME_MD and file_meta.path.endswith('.md')
-
-
-def _is_image_thumb(mime_type, thumb_exists):
-    return bool(mime_type) and 'image' in mime_type and thumb_exists
-
-
-@gen.engine
-def _dbox_process_publish(updates, user, db, async_dbox, callback):
-    errors = []
-    for path, meta in updates.items():
-        if meta:
-            # process updated file
-            if _is_md(meta):
-                # md file
-                md_obj = yield gen.Task(_get_obj_content,
-                    meta, user, db, async_dbox, for_publish=True, rev=meta.rev)
-                if md_obj['errcode'] == ErrCode.ok:
-                    headers = parse_md_headers(md_obj['content'])
-                    missed_headers = [
-                        h for h in MAND_MD_HEADERS if h not in headers]
-                    if not headers:
-                        errors.append(
-                            {"description": u"headers not found for {0}".format(
-                                path)})
-                    elif missed_headers:
-                        errors.append(
-                            {"description": u"missed headers for {0}".format(
-                                path)})
-                    else:
-                        preview = None
-                        if MdState.draft in headers['state']:
-                            preview = True
-                        elif MdState.published in headers['state']:
-                            preview = False
-                        if preview is not None:
-                            result = yield gen.Task(_publish_object, meta,
-                                user, db, async_dbox, preview=preview, obj=md_obj)
-                            if not result['errcode'] == ErrCode.ok:
-                                errors.append(result)
-                            else:
-                                # update fields in meta
-                                for f in result['meta']:
-                                    if hasattr(meta, f):
-                                        setattr(meta, f, result['meta'][f])
-                        elif meta.pub_status != PS.dbox:
-                            # TODO md file was published or preview
-                            # and now it has state regular
-                            # remove it from publish and preview
-                            errors.append({"description":
-                                u"Removing from pub state not implemented ({0})"\
-                                .foramt(path)})
-                else:
-                    errors.append(md_obj)
-            else:
-                # non md file
-                if meta.pub_status in (PS.draft, PS.published):
-                    result = yield gen.Task(_publish_object, meta,
-                        user, db, async_dbox, preview=True)
-                    if not result['errcode'] == ErrCode.ok:
-                        errors.append(result)
-        else:
-            # process deleted file
-            print "Processing DELETED file", path
-            pass
-    if errors:
-        logger.error(u"_dbox_process_publish errors: {0}".format(
-            errors))
-        callback({"errcode": ErrCode.unknown_error, "errors": errors})
-    else:
-        callback({"errcode": ErrCode.ok})
-
-
-@gen.engine
-def _update_dbox_delta(db, async_dbox, user, reg_update=False,
-                                           force_update=False, callback=None):
-    # TODO: don't make any actions
-    # if previous call of this method is not finished for current user
-    updates = None
-    # check, that update_delta is not called very often
-    if force_update or not _delta_called_recently(user):
-        # Get delta metadata from dropbox
-        access_token = user.get_dropbox_token()
-        post_args = {}
-        if user.dbox_cursor:
-            post_args['cursor'] = user.dbox_cursor
-        has_more = True
-        cursor = None
-        updates = {}
-        while has_more:
-            # make dropbox request
-            user.last_delta = datetime.now()
-            # TODO find a way to call save one time in this func
-            yield motor.Op(user.save, db)
-            response = yield gen.Task(async_dbox.dropbox_request,
-                "api", "/1/delta",
-                access_token=access_token,
-                post_args=post_args)
-            if check_bad_response(response, callback):
-                return
-            dbox_delta = json.loads(response.body)
-            has_more = dbox_delta['has_more']
-            cursor = dbox_delta['cursor']
-            if dbox_delta['reset']:
-                logger.debug(
-                    u"Reseting user all files for '{0}'".format(user.name))
-                yield motor.Op(db[user.name].drop)
-            for i, (e_path, entry) in enumerate(dbox_delta['entries']):
-                # TODO: find a way not call db on every file
-                dfile = yield motor.Op(DropboxFile.find_one,
-                    db, {"_id": e_path}, user.name)
-                if entry is None:
-                    if dfile:
-                        # TODO
-                        # maybe there is a way to delete files in one db call
-                        updates[e_path] = None
-                        yield motor.Op(
-                            DropboxFile.remove_entries, db,
-                            {"_id": e_path}, collection=user.name)
-                        if _is_image_thumb(dfile.mime_type, dfile.thumb_exists):
-                            remove_thumbnail(dfile.path, user.name)
-                else:
-                    # TODO
-                    # maybe there is a way to save files in one db call
-                    if _is_image_thumb(entry.get('mime_type', None),
-                                 entry.get('thumb_exists', None)):
-                        if not dfile or dfile['modified'] != entry['modified']:
-                            thumb_rst = yield gen.Task(create_thumbnail,
-                                entry, user, async_dbox)
-                            if thumb_rst['errcode'] == ErrCode.ok:
-                                entry['thumbnail_url'] = thumb_rst['thumb_url']
-
-                    meta = yield gen.Task(_update_meta,
-                        db, entry, user.name, False)
-                    if not dfile:
-                        updates[e_path] = DropboxFile(**meta)
-                    elif dfile['modified'] != entry['modified']:
-                        for f in entry:
-                            if hasattr(dfile, f) and f != 'path':
-                                setattr(dfile, f, entry[f])
-                        updates[e_path] = dfile
-        user.dbox_cursor = cursor
-        yield motor.Op(user.save, db)
-    else:
-        logger.debug("Delta called recently")
-    if callback:
-        ret_val = {'errcode': ErrCode.ok}
-        if reg_update:
-            ret_val['updates'] = updates
-        else:
-            pub_rst = yield gen.Task(_dbox_process_publish,
-                updates, user, db, async_dbox)
-            if pub_rst['errcode'] != ErrCode.ok:
-                # TODO process errors
-                pass
-        callback(ret_val)
-
-
-@gen.engine
-def _dbox_sync_user(user, error):
-    if error:
-        try:
-            raise error
-        except:
-            logger.exception("_dbox_sync_user error:")
-    elif user:
-        user = UserModel(**user)
-        async_dbox = DropboxMixin()
-        db = DB.instance()
-        rst = yield gen.Task(_update_dbox_delta,
-            db, async_dbox, user, reg_update=True)
-        if rst['errcode'] != ErrCode.ok:
-            logger.warning(u"Dropbox periodic update for user {0}"
-                "ended with status = {1}".format(user.name, rst['errcode']))
-        elif 'updates' in rst and rst['updates']:
-            updates = rst['updates']
-            pub_rst = yield gen.Task(_dbox_process_publish,
-                updates, user, db, async_dbox)
-            if pub_rst['errcode'] != ErrCode.ok:
-                # TODO process errors
-                pass
-            # TODO notify user, that reg_publish failed.
-            # For exmaple, it can be due to bad md headers
-            skt_opened = SocketPool.is_socket_opened(user.name)
-            if skt_opened:
-                logger.debug(u"Sending updates to socket. "
-                    "User: {0}, updates: {1}".format(
-                        user.name, rst['updates']))
-                for p in rst['updates']:
-                    if rst['updates'][p]:
-                        rst['updates'][p] = make_safe_python(
-                            DropboxFile, rst['updates'][p], 'public')
-                SocketPool.notify_dbox_update(user.name, rst)
-            else:
-                logger.debug(u"Updates found, but socket is closed. "
-                    "User: {0}, updates: {1}".format(
-                        user.name, rst['updates']))
-    else:
-        logger.error("_dbox_sync_user user not found")
+    cursor.each(callback=dbox_sync_user)
 
 
 class DropboxWorkerMixin(DropboxMixin):
     @gen.engine
     def wk_dbox_get_tree(self, user, path, recurse=False, callback=None):
         # Update metadata from dropbox to database
-        r = yield gen.Task(_update_dbox_delta, self.db, self, user)
+        r = yield gen.Task(update_dbox_delta, self.db, self, user)
         if r['errcode'] != ErrCode.ok:
             callback(r)
             return
-        result = yield gen.Task(
-            _get_tree_from_db, path, user, self.db, recurse)
+        result = yield gen.Task(get_tree_from_db, path, user, self.db, recurse)
         callback(result)
 
     @gen.engine
@@ -518,8 +46,7 @@ class DropboxWorkerMixin(DropboxMixin):
             callback(data)
             return
         file_meta = data
-        result = yield gen.Task(_get_obj_content,
-            file_meta, user, self.db, self)
+        result = yield gen.Task(get_obj_content, file_meta, user, self.db, self)
         callback(result)
 
     @gen.engine
@@ -551,9 +78,9 @@ class DropboxWorkerMixin(DropboxMixin):
         # TODO: save meta of all transitional folders, but maybe let it be
         # just not allow user in UI to create /a/b/f.txt, if /a not exists
         if data:
-            yield gen.Task(_update_meta, self.db, dbox_meta, user.name)
+            yield gen.Task(update_meta, self.db, dbox_meta, user.name)
         else:
-            new_data = yield gen.Task(_save_meta, self.db, dbox_meta, user.name)
+            new_data = yield gen.Task(save_meta, self.db, dbox_meta, user.name)
         if data:
             file_meta = data
             for f in dbox_meta:
@@ -561,7 +88,7 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             file_meta = DropboxFile(**new_data)
         if file_meta.pub_status in (PS.draft, PS.published):
-            result = yield gen.Task(_publish_object,
+            result = yield gen.Task(publish_object,
                 file_meta, user, self.db, self, preview=True)
             callback(result)
         else:
@@ -587,7 +114,7 @@ class DropboxWorkerMixin(DropboxMixin):
         file_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders, but maybe let it be
         # just not allow  user in UI to create /a/b/, if /a not exists
-        yield gen.Task(_update_meta, self.db, file_meta, user.name)
+        yield gen.Task(update_meta, self.db, file_meta, user.name)
         callback({'errcode': ErrCode.ok})
 
     @gen.engine
@@ -618,7 +145,7 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             yield motor.Op(DropboxFile.remove_entries, self.db,
                 {"_id": f_path}, collection=user.name)
-            if _is_image_thumb(file_meta.get('mime_type', None),
+            if is_image_thumb(file_meta.get('mime_type', None),
                          file_meta.get('thumb_exists', None)):
                 remove_thumbnail(f_path, user.name)
         callback({'errcode': ErrCode.ok})
@@ -641,15 +168,15 @@ class DropboxWorkerMixin(DropboxMixin):
         if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        if _is_image_thumb(file_meta.get('mime_type', None),
+        if is_image_thumb(file_meta.get('mime_type', None),
                      file_meta.get('thumb_exists', None)):
             yield gen.Task(copy_thumb, from_path, file_meta, user, self)
             remove_thumbnail(from_path, user.name)
-        yield gen.Task(_update_meta, self.db, file_meta, user.name)
+        yield gen.Task(update_meta, self.db, file_meta, user.name)
         # TODO: update some changes locally. For example, thumbnail.
         # Currently, if dir was moved, all thumbnails are created again
         # via dropbox
-        yield gen.Task(_update_dbox_delta, self.db, self, user, force_update=True)
+        yield gen.Task(update_dbox_delta, self.db, self, user, force_update=True)
         callback({'errcode': ErrCode.ok})
 
     @gen.engine
@@ -670,14 +197,14 @@ class DropboxWorkerMixin(DropboxMixin):
         if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        if _is_image_thumb(file_meta.get('mime_type', None),
+        if is_image_thumb(file_meta.get('mime_type', None),
                      file_meta.get('thumb_exists', None)):
             yield gen.Task(copy_thumb, from_path, file_meta, user, self)
-        yield gen.Task(_update_meta, self.db, file_meta, user.name)
+        yield gen.Task(update_meta, self.db, file_meta, user.name)
         # TODO: update some changes locally. For example, thumbnail.
         # Currently, if dir was copied, all thumbnails are created again
         # via dropbox
-        yield gen.Task(_update_dbox_delta, self.db, self, user, force_update=True)
+        yield gen.Task(update_dbox_delta, self.db, self, user, force_update=True)
         callback({'errcode': ErrCode.ok})
 
     @gen.engine
@@ -694,7 +221,7 @@ class DropboxWorkerMixin(DropboxMixin):
             callback({"errcode": ErrCode.already_published})
             return
 
-        result = yield gen.Task(_publish_object, file_meta, user, self.db, self)
+        result = yield gen.Task(publish_object, file_meta, user, self.db, self)
         callback(result)
 
     @gen.engine
@@ -708,7 +235,7 @@ class DropboxWorkerMixin(DropboxMixin):
         if file_meta.is_dir or recurse:
             callback({"errcode": ErrCode.not_implemented})
 
-        result = yield gen.Task(self._publish_object,
+        result = yield gen.Task(publish_object,
             file_meta, user, self.db, self, preview=True)
         callback(result)
 
