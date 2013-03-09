@@ -10,6 +10,7 @@ from tornado.httputil import HTTPHeaders
 from base import BaseTest
 from handlers.base import BaseHandler
 from workers.dropbox.thumb import _get_thumbnail_serv_path, _get_thumb_url
+from utils.main import get_user_root, FolderType
 
 
 class TF:
@@ -130,6 +131,9 @@ class GetTreeTest(BaseTest):
             "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
             "mime_type", "bytes", "size"])
         self.assertEqual(file_meta_params, set(json_resp['tree']['/1.txt'].keys()))
+        # thumb path not created, because not images in dropbox
+        thumb_folder = get_user_root(self.test_user_name, FolderType.thumbnail)
+        self.assertFalse(os.path.exists(thumb_folder))
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
