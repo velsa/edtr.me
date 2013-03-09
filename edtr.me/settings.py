@@ -21,6 +21,7 @@ define("debug", default=False, help="debug mode")
 define("socketio", default=False, help="enable socketio interface")
 define("dbox_time", default=300000, help="Dropbox auto sync period, msec")
 define("site_root", default=site_root, help="Path to users site data")
+define("local", default=False, help="If true, edtr.me links will start with file:///")
 # These don't have defaults; see README for details.
 define('dropbox_consumer_key')
 define('dropbox_consumer_secret')
