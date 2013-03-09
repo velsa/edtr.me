@@ -299,8 +299,8 @@ def _is_md(file_meta):
     return file_meta.mime_type == MIME_MD and file_meta.path.endswith('.md')
 
 
-def _is_image(mime_type):
-    return bool(mime_type) and 'image' in mime_type
+def _is_image_thumb(mime_type, thumb_exists):
+    return bool(mime_type) and 'image' in mime_type and thumb_exists
 
 
 @gen.engine
@@ -415,12 +415,13 @@ def _update_dbox_delta(db, async_dbox, user, reg_update=False,
                         yield motor.Op(
                             DropboxFile.remove_entries, db,
                             {"_id": e_path}, collection=user.name)
-                        if _is_image(dfile.mime_type):
+                        if _is_image_thumb(dfile.mime_type, dfile.thumb_exists):
                             remove_thumbnail(dfile.path, user.name)
                 else:
                     # TODO
                     # maybe there is a way to save files in one db call
-                    if _is_image(entry.get('mime_type', None)):
+                    if _is_image_thumb(entry.get('mime_type', None),
+                                 entry.get('thumb_exists', None)):
                         if not dfile or dfile['modified'] != entry['modified']:
                             thumb_rst = yield gen.Task(create_thumbnail,
                                 entry, user, async_dbox)
@@ -617,7 +618,8 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             yield motor.Op(DropboxFile.remove_entries, self.db,
                 {"_id": f_path}, collection=user.name)
-            if _is_image(file_meta['mime_type']):
+            if _is_image_thumb(file_meta.get('mime_type', None),
+                         file_meta.get('thumb_exists', None)):
                 remove_thumbnail(f_path, user.name)
         callback({'errcode': ErrCode.ok})
 
@@ -639,7 +641,8 @@ class DropboxWorkerMixin(DropboxMixin):
         if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        if _is_image(file_meta.get('mime_type', None)):
+        if _is_image_thumb(file_meta.get('mime_type', None),
+                     file_meta.get('thumb_exists', None)):
             yield gen.Task(copy_thumb, from_path, file_meta, user, self)
             remove_thumbnail(from_path, user.name)
         yield gen.Task(_update_meta, self.db, file_meta, user.name)
@@ -667,7 +670,8 @@ class DropboxWorkerMixin(DropboxMixin):
         if check_bad_response(response, callback):
             return
         file_meta = json.loads(response.body)
-        if _is_image(file_meta.get('mime_type', None)):
+        if _is_image_thumb(file_meta.get('mime_type', None),
+                     file_meta.get('thumb_exists', None)):
             yield gen.Task(copy_thumb, from_path, file_meta, user, self)
         yield gen.Task(_update_meta, self.db, file_meta, user.name)
         # TODO: update some changes locally. For example, thumbnail.
