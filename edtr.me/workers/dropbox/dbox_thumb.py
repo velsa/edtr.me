@@ -5,6 +5,7 @@ from hashlib import sha1
 from shutil import copyfile
 
 from tornado import gen
+from tornado.options import options
 
 from utils.main import get_user_root, FolderType
 from models.dropbox import DropboxFile
@@ -33,9 +34,14 @@ def _get_meta_prop(file_meta, prop):
 
 
 def _get_thumb_url(thumb_file_name, user_name):
-    return "http://thumbnails.{uname}.edtr.me/{fname}".format(
-        uname=user_name,
-        fname=thumb_file_name)
+    if options.debug:
+        return "file:///{0}".format(os.path.join(
+            get_user_root(user_name, FolderType.thumbnail),
+            thumb_file_name).replace('\\', '/'))
+    else:
+        return "http://thumbnails.{uname}.edtr.me/{fname}".format(
+            uname=user_name,
+            fname=thumb_file_name)
 
 
 @gen.engine
