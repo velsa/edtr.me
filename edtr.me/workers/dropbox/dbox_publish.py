@@ -44,11 +44,11 @@ def _publish_binary(fm, user, preview, pub_paths, body, db, callback):
 @gen.engine
 def _publish_text(fm, user, preview, pub_paths, file_content, db, callback):
     if not preview and fm.pub_status == PS.published:
-        logger.debug(u"{0} is already published".format(fm._id))
+        logger.debug(u"{0} is already published".format(fm.path))
         callback({"errcode": ErrCode.already_published})
         return
     for pp in pub_paths:
-        path_file = os.path.join(pp, fm._id.lstrip('/'))
+        path_file = os.path.join(pp, fm.path.lstrip('/'))
         create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(file_content.encode(DEFAULT_ENCODING))
@@ -79,14 +79,17 @@ def publish_object(file_meta, user, db, async_dbox, preview=False,
             pub_paths.append(get_user_root(user.name, FolderType.publish))
         if obj.get('type', None) == ContentType.text_file:
             # Text content
-            r = yield gen.Task(_publish_text, DropboxFile(**obj['meta']),
-                user, preview, pub_paths, obj['content'], db)
-            callback(r)
+            pub_func = _publish_text
         else:
             # Non text content. Save from given url.
-            r = yield gen.Task(_publish_binary, DropboxFile(**obj['meta']),
-                user, preview, pub_paths, obj['body'], db)
-            callback(r)
+            pub_func = _publish_binary
+        if isinstance(obj['meta'], DropboxFile):
+            meta = obj['meta']
+        else:
+            meta = DropboxFile(**obj['meta'])
+        r = yield gen.Task(pub_func,
+            meta, user, preview, pub_paths, obj['content'], db)
+        callback(r)
     else:
         callback(obj)
 

@@ -7,7 +7,7 @@ from tornado.httputil import HTTPHeaders
 class TF:
     folder = 0
     text = "text/plain"
-    md = 2
+    md = "application/octet-stream"
     css = 3
     js = 4
     html = 5
@@ -95,6 +95,22 @@ def get_dbox_meta(path, o_type, with_path=True):
             "root": "app_folder",
             "mime_type": "{f_type}",
             "size": "541.7 KB"
+          }}""".format(path=path, f_type=o_type)
+    elif o_type == TF.md:
+        meta_data = """
+          {{
+            "revision": 13,
+            "rev": "d0c3bcb59",
+            "thumb_exists": false,
+            "bytes": 7,
+            "modified": "Tue, 22 Jan 2013 13:59:27 +0000",
+            "client_mtime": "Tue, 22 Jan 2013 13:58:53 +0000",
+            "path": "{path}",
+            "is_dir": false,
+            "icon": "page_white_text",
+            "root": "app_folder",
+            "mime_type": "{f_type}",
+            "size": "7 bytes"
           }}""".format(path=path, f_type=o_type)
     if with_path:
         meta_data = """[

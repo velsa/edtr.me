@@ -11,8 +11,8 @@ from django.utils import simplejson as json
 from utils.error import ErrCode
 from models.dropbox import DropboxFile
 from .dbox_utils import (unify_path, get_file_url, check_bad_response,
-    update_meta, is_image)
-from .dbox_settings import DROPBOX_ENCODE_MAP, TEXT_MIMES, ContentType
+    update_meta, get_content_type)
+from .dbox_settings import DROPBOX_ENCODE_MAP, ContentType
 logger = logging.getLogger('edtr_logger')
 
 
@@ -48,22 +48,11 @@ def _get_response_encoding(response):
     return encoding
 
 
-def _get_content_type(file_meta):
-    if file_meta.is_dir:
-        return ContentType.directory
-    elif file_meta.mime_type in TEXT_MIMES:
-        return ContentType.text_file
-    elif is_image(file_meta.mime_type):
-        return ContentType.image
-    else:
-        return ContentType.binary
-
-
 @gen.engine
 def get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
                                                      rev=None, callback=None):
     path = file_meta.path
-    content_type = _get_content_type(file_meta)
+    content_type = get_content_type(file_meta)
     content = None
     if content_type == ContentType.directory:
         callback({'errcode': ErrCode.bad_request})

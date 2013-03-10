@@ -10,9 +10,9 @@ from models.dropbox import DropboxFile, PS
 from utils.gl import DB
 from utils.error import ErrCode
 from .dbox_utils import (unify_path, get_file_url, check_bad_response,
-    update_meta, is_image_thumb, save_meta)
+    update_meta, is_image_thumb, save_meta, get_content_type)
 from .dbox_thumb import remove_thumbnail, copy_thumb
-from .dbox_settings import DEFAULT_ENCODING
+from .dbox_settings import DEFAULT_ENCODING, TEXT_MIMES
 from .dbox_publish import publish_object
 from .dbox_op import get_obj_content, get_tree_from_db
 from .dbox_delta import update_dbox_delta, dbox_sync_user
@@ -50,13 +50,17 @@ class DropboxWorkerMixin(DropboxMixin):
         callback(result)
 
     @gen.engine
-    def wk_dbox_save_file(self, user, path, text_content, callback=None):
+    def wk_dbox_save_file(self, user, path, text_content, publish=False,
+                                                               callback=None):
         # TODO: not allow call this api very often
         path = unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
             # file meta not found
             data = None
+        elif data.mime_type not in TEXT_MIMES:
+            callback({'errcode': ErrCode.bad_request})
+            return
         if text_content:
             try:
                 text_content = text_content.encode(DEFAULT_ENCODING)
@@ -85,14 +89,15 @@ class DropboxWorkerMixin(DropboxMixin):
         else:
             new_data = yield gen.Task(save_meta, self.db, dbox_meta, user.name)
             file_meta = DropboxFile(**new_data)
-        if file_meta.pub_status in (PS.draft, PS.published):
-            result = yield gen.Task(publish_object,
-                file_meta, user, self.db, self, preview=True)
-            callback(result)
-        else:
-            callback({
-                'errcode': ErrCode.ok,
-                'meta': make_safe_python(DropboxFile, file_meta, 'public')})
+        obj_for_pub = {
+            'errcode': ErrCode.ok,
+            'type': get_content_type(file_meta),
+            'content': text_content,
+            'meta': file_meta
+        }
+        result = yield gen.Task(publish_object,
+            file_meta, user, self.db, self, preview=not publish, obj=obj_for_pub)
+        callback(result)
 
     @gen.engine
     def wk_dbox_create_dir(self, user, path, callback=None):
@@ -220,21 +225,6 @@ class DropboxWorkerMixin(DropboxMixin):
             return
 
         result = yield gen.Task(publish_object, file_meta, user, self.db, self)
-        callback(result)
-
-    @gen.engine
-    def wk_dbox_preview(self, user, path, recurse=False, callback=None):
-        path = unify_path(path)
-        success, data = yield gen.Task(self._get_filemeta, path, user.name)
-        if not success:
-            callback(data)
-            return
-        file_meta = data
-        if file_meta.is_dir or recurse:
-            callback({"errcode": ErrCode.not_implemented})
-
-        result = yield gen.Task(publish_object,
-            file_meta, user, self.db, self, preview=True)
         callback(result)
 
     @gen.engine

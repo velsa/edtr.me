@@ -8,7 +8,7 @@ import motor
 from tornado import gen
 
 from utils.error import ErrCode
-from .dbox_settings import DELTA_PERIOD_SEC, MIME_MD
+from .dbox_settings import DELTA_PERIOD_SEC, MIME_MD, ContentType, TEXT_MIMES
 logger = logging.getLogger('edtr_logger')
 
 
@@ -98,3 +98,14 @@ def is_image(mime_type):
 
 def is_image_thumb(mime_type, thumb_exists):
     return is_image(mime_type) and thumb_exists
+
+
+def get_content_type(file_meta):
+    if file_meta.is_dir:
+        return ContentType.directory
+    elif file_meta.mime_type in TEXT_MIMES:
+        return ContentType.text_file
+    elif is_image(file_meta.mime_type):
+        return ContentType.image
+    else:
+        return ContentType.binary

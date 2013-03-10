@@ -10,6 +10,7 @@ TEST_MODULES = [
     'tests.auth_test',
     'tests.dropbox.api_ajax.get_tree_test',
     'tests.dropbox.api_ajax.get_file_test',
+    'tests.dropbox.api_ajax.save_file_test',
 ]
 
 
