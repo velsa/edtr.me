@@ -722,7 +722,6 @@ function edtrCodemirror(content_type, content) {
             lines++;
         }
         // See if we need to update anything on metadata changes
-        debugger;
         var old_metadata = self.tabs[index].metadata;
         self.tabs[index].metadata = {
             status:     status,
@@ -1212,19 +1211,31 @@ function edtrCodemirror(content_type, content) {
     },
 
     this.update_preview_theme   = function() {
-        var theme;
+        var theme = edtrSettings.general.preview.theme(),
+            fix_path = true;
         // Metadata style has precedence over theme in settings
         if (self.tabs[self.current_tab] &&
             self.tabs[self.current_tab].metadata &&
             self.tabs[self.current_tab].metadata.data.style) {
-            theme = self.tabs[self.current_tab].metadata.data.style.toLowerCase();
-        } else {
-            theme = edtrSettings.general.preview.theme();
+            var user_theme = self.tabs[self.current_tab].metadata.data.style.toLowerCase();
+            if (theme.endsWith(".css")) {
+                // TODO: append user preview path to .css file
+                var user_path = edtrHelper.get_filename_path(self.tabs[self.current_tab].node.id);
+                if (user_path === '/') user_path = "";
+                theme = "http://preview.user.edtr.me/"+user_path+"/"+user_theme;
+                fix_path = false;
+            } else {
+                if ($.inArray(user_theme, edtrSettings.general.preview.theme_list()) !== -1)
+                    theme = user_theme;
+            }
         }
+        if (fix_path)
+            theme = "/static/css/md_preview/" + theme + ".css";
+        // Update stylesheet in preview iframe
         var prev_css = self.dom_preview_head.find("link[rel=stylesheet]");
         self.dom_preview_head.
-            append("<link rel=\"stylesheet\" href=\"/static/css/md_preview/" +
-                theme + ".css?reload=" + (new Date()).getTime() + "\">");
+            append("<link rel=\"stylesheet\" href=\"" +
+                theme + "?reload=" + (new Date()).getTime() + "\">");
         prev_css.remove();
     };
 

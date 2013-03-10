@@ -1390,7 +1390,7 @@ var edtrTree = {
             server_data = {path: full_path_new};
 
         // Process action in ztree
-        if ($.inArray(action, ["add_file", "add_subdir"]) > -1) {
+        if ($.inArray(action, ["add_file", "add_subdir"]) !== -1) {
             // General parameters
             node = {
                 id:         full_path_new,

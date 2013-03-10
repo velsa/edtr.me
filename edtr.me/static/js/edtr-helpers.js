@@ -18,6 +18,12 @@ if (typeof String.prototype.startsWith != 'function') {
         return this.slice(0, str.length) == str;
     };
 }
+// adds .endsWith(text) to any string
+if (typeof String.prototype.endsWith !== 'function') {
+    String.prototype.endsWith = function(suffix) {
+        return this.indexOf(suffix, this.length - suffix.length) !== -1;
+    };
+}
 // adds .format(text) to any string
 // "{0} is dead, but {1} is alive! {0} {2}".format("ASP", "ASP.NET")
 // outputs
