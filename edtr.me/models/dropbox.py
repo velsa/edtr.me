@@ -4,7 +4,7 @@ from schematics.types import (StringType, IntType, BooleanType, DateTimeType,
 from models.base import BaseModel
 from schematics.serialize import (blacklist)
 
-DBOX_PUBLIC_EXCLUDE = 'last_updated',
+DBOX_PUBLIC_EXCLUDE = 'last_updated', 'url_trans', 'url_expires'
 
 
 class PS:

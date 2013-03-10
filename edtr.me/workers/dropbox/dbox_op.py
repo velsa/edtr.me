@@ -131,6 +131,7 @@ def get_obj_content(file_meta, user, db, async_dbox, for_publish=False,
             file_meta.set_url_expires(url_expires)
             yield motor.Op(file_meta.update, db, collection=user.name)
         content = url_trans
+        meta_ser = make_safe_python(DropboxFile, file_meta, 'public')
     # TODO: check file size and reject, if it big.
     # TODO: maybe use chunk download like this:
     # http://codingrelic.geekhold.com/2011/10/tornado-httpclient-chunked-downloads.html
