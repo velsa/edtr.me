@@ -88,7 +88,8 @@ def update_meta(db, meta_data, colln, update=True, callback=None):
 
 
 def is_md(file_meta):
-    return file_meta.mime_type == MIME_MD and file_meta.path.endswith('.md')
+    return file_meta.mime_type == MIME_MD and\
+        file_meta.path.rsplit('.', 1)[-1] in ('md', "mkd", "markdown")
 
 
 def is_image(mime_type):

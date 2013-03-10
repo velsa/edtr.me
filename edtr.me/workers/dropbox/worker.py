@@ -79,13 +79,11 @@ class DropboxWorkerMixin(DropboxMixin):
         # just not allow user in UI to create /a/b/f.txt, if /a not exists
         if data:
             yield gen.Task(update_meta, self.db, dbox_meta, user.name)
-        else:
-            new_data = yield gen.Task(save_meta, self.db, dbox_meta, user.name)
-        if data:
             file_meta = data
             for f in dbox_meta:
                 setattr(file_meta, f, dbox_meta[f])
         else:
+            new_data = yield gen.Task(save_meta, self.db, dbox_meta, user.name)
             file_meta = DropboxFile(**new_data)
         if file_meta.pub_status in (PS.draft, PS.published):
             result = yield gen.Task(publish_object,

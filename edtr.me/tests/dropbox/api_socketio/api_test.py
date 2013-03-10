@@ -1,7 +1,8 @@
 from tornadio2 import proto, SocketConnection
-from lib.mock import patch
+
 from urls import EdtrRouter
-from base_socketio import SocketIoBaseTest
+from tests.lib.mock import patch
+from tests.base_socketio import SocketIoBaseTest
 
 
 class SocketIoApiTest(SocketIoBaseTest):
