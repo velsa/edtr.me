@@ -242,7 +242,7 @@ var edtrSplitters = {
         $(window).resize(function () {
             self.bottom_elem.css({
                 top:    self.top_elem.height()+"px",
-                height: "100%"
+                height: "auto"
             });
         });
     },

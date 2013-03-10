@@ -420,12 +420,15 @@ function edtrCodemirror(content_type, content) {
         self.dom_search_input.focus().select();
         self.search_state = {
             query:              self.dom_search_input.val(),
+            igore_case:         true,
+            wrap:               false,
             posFrom:            self.cm_editor.getCursor("end"),
             posTo:              self.cm_editor.getCursor("end"),
             kc_posFrom:         self.cm_editor.getCursor("end"),
             kc_posTo:           self.cm_editor.getCursor("end"),
             keeping_cursor:     true,   // true when searching without moving cursor
-            first_time:         true   // HACK: used to ignore first search_update_query()
+            visible:            true,   // true when search dialog is visible
+            first_time:         true    // HACK: used to ignore first search_update_query()
                                         // which is called when search input is shown
         };
         // debugger;
@@ -435,39 +438,31 @@ function edtrCodemirror(content_type, content) {
 
     // Show replace dialog (over the save/preview/publish buttons)
     this.show_replace = function(cm) {
-        // Show find dialog
+        // Show find dom elements and initialize search_state
         self.show_find();
-        // And replace dialog near it
+        // And replace dom elements near it
         self.dom_buttonbar.find(".cme-replace").show();
+        // Increase buttonbar size and decrease editor size accordingly
+        var row_height = self.dom_buttonbar.find("tr").height() + 4;
+        self.dom_buttonbar.height(self.dom_buttonbar.height()+row_height);
+        self.dom_editor.css({bottom: self.dom_buttonbar.height()+2}); // see style.css
         self.bb_state = self.BB_STATES.REPLACE;
-        // if (self.search_state)
-        //     self.cm_editor.removeOverlay(self.search_state.overlay);
-        self.search_state = {
-            // If text is selected - use it for search
-            query:              self.cm_editor.somethingSelected() ?
-                                    self.cm_editor.getSelection() :
-                                    self.dom_search_input.val(),
-            posFrom:            self.cm_editor.getCursor(),
-            posTo:              self.cm_editor.getCursor(),
-            kc_posFrom:         self.cm_editor.getCursor(),
-            kc_posTo:           self.cm_editor.getCursor(),
-            keeping_cursor:     true,   // true when searching without moving cursor
-            first_time:         true   // HACK: used to ignore first search_update_query()
-                                        // which is called when search input is shown
-        };
-        // debugger;
-        // self.search_state.overlay = edtr_search_mode(self.search_state.query);
-        // self.cm_editor.addOverlay(self.search_state.overlay);//, {opaque: "cme-search-selection"});
     };
 
     // Leave various modes (search, replace)
     this.process_esc = function() {
         if (self.bb_state === self.BB_STATES.SEARCH ||
             self.bb_state === self.BB_STATES.REPLACE) {
-            // Hide search input field and show buttons
-            self.dom_buttonbar.find(".cme-search").hide();
-            if (self.bb_state === self.BB_STATES.REPLACE)
+            // Restore buttonbar and editor size accordingly
+            if (self.bb_state === self.BB_STATES.REPLACE) {
+                var row_height = self.dom_buttonbar.find("tr").height() + 4;
+                self.dom_buttonbar.height(self.dom_buttonbar.height()-row_height);
+                self.dom_editor.css({bottom: self.dom_buttonbar.height()+2}); // see style.css
                 self.dom_buttonbar.find(".cme-replace").hide();
+            }
+            // Hide search input field and show buttons
+            self.search_state.visible = false;
+            self.dom_buttonbar.find(".cme-search").hide();
             self.dom_buttonbar.find(".cme-buttons").show();
             self.bb_state = self.BB_STATES.BUTTONS;
             // if (self.search_state) {
@@ -478,6 +473,47 @@ function edtrCodemirror(content_type, content) {
         self.focus();
     };
 
+    //
+    // UI methods
+    //
+    // Toggle case sensitivity
+    this.search_toggle_case = function(elem) {
+        // IMPORTANT: when "active" class is NOT present - button is pushed down
+        if (self.search_state) {
+            self.search_state.igore_case = ($(elem).hasClass("active"));
+            self.search_find(false, true);
+        }
+    };
+    // Toggle search wrapping
+    this.search_toggle_wrap = function(elem) {
+        // IMPORTANT: when "active" class is NOT present - button is pushed down
+        if (self.search_state) {
+            self.search_state.wrap = ! ($(elem).hasClass("active"));
+            self.search_find(false, true);
+        }
+    };
+    // Find next match
+    this.search_find_next = function(elem) {
+        if (self.search_state) {
+            self.search_find(false, false);
+            self.dom_search_input.focus();
+        }
+    };
+    // Find previous match
+    this.search_find_previous = function(elem) {
+        if (self.search_state) {
+            self.search_find(true, false);
+            self.dom_search_input.focus();
+        }
+    };
+    // Replace active selection
+    this.search_replace = function(elem) {
+        if (self.search_state && self.cm_editor.somethingSelected()) {
+            self.cm_editor.replaceSelection(self.dom_replace_input.val());
+            self.dom_search_input.focus();
+        }
+    };
+
     // Find text in codemirror
     // Called from search input on.keyup
     this.search_update_query = function() {
@@ -486,7 +522,7 @@ function edtrCodemirror(content_type, content) {
             self.search_state.first_time = false;
         } else {
             self.search_state.query = self.dom_search_input.val();
-            self.search_state.keeping_cursor = true;
+            // self.search_state.keeping_cursor = true;
             self.search_find(false, true);
         }
     };
@@ -495,12 +531,13 @@ function edtrCodemirror(content_type, content) {
     // Called from search input on.keydown:
     //      Up:         reverse = true
     //      Enter/Down: reverse = false
-    //  If search_state.keep_cursor is true - search_state.pos is NOT updated
+    //  If keep_cursor is true - search_state.pos is NOT updated
     this.search_find = function(reverse, keep_cursor) {
         // console.log(self.search_state.query);
         function getSearchCursor(cm, query, pos) {
             // Heuristic: if the query string is all lowercase, do a case insensitive search.
-            return self.cm_editor.getSearchCursor(query, pos, typeof query == "string" && query == query.toLowerCase());
+            // return self.cm_editor.getSearchCursor(query, pos, typeof query == "string" && query == query.toLowerCase());
+            return self.cm_editor.getSearchCursor(query, pos, typeof query == "string" && self.search_state.igore_case);
         }
         function parseQuery(query) {
             var isRE = query.match(/^\/(.*)\/([a-z]*)$/);
@@ -510,24 +547,26 @@ function edtrCodemirror(content_type, content) {
         self.cm_editor.operation(function() {
             // Stop keeping cursor, we start from beginning or end of match, depending on direction
             if (!keep_cursor && self.search_state.keeping_cursor === true) {
-                self.search_state.keeping_cursor = false;
                 if (reverse)
                     self.search_state.posTo = self.search_state.posFrom = self.search_state.kc_posFrom;
                 else
                     self.search_state.posTo = self.search_state.posFrom = self.search_state.kc_posTo;
             }
+            // Update keeping cursor state
+            self.search_state.keeping_cursor = keep_cursor;
+            // If we're keeping cursor - first clear selection
+            if (keep_cursor)
+                self.cm_editor.setCursor(self.search_state.kc_posFrom);
             var cursor = getSearchCursor(self.cm_editor, query,
                     reverse ? self.search_state.posFrom : self.search_state.posTo);
             // If not found - wrap around
             if (!cursor.find(reverse)) {
+                if (!self.search_state.wrap)
+                    return;
                 cursor = getSearchCursor(self.cm_editor, query,
                     reverse ?   CodeMirror.Pos(self.cm_editor.lastLine()) :
                                 CodeMirror.Pos(self.cm_editor.firstLine(), 0));
                 if (!cursor.find(reverse)) {
-                    // Nothing found and keeping cursor - clear selection
-                    if (keep_cursor) {
-                        self.cm_editor.setCursor(self.search_state.kc_posFrom);
-                    }
                     return;
                 }
             }
@@ -540,106 +579,6 @@ function edtrCodemirror(content_type, content) {
             } else {
                 self.search_state.kc_posFrom   = cursor.from();
                 self.search_state.kc_posTo     = cursor.to();
-            }
-        });
-    };
-
-    //
-    // Parse metadata at the beginning of markdown file (and others as well ?)
-    // returns:
-    //      status:     true - success, false - error in metadata
-    //      lines:      # of lines in metadata
-    //      content:    content without metadata AND without the new line after metadata
-    //      data:       { key: value, ... } array of metadata
-    //
-    // TODO: optimize:  save all metadata as string and on each parse compare it to the text
-    //                  and see if it has changed or text has more metadata after the match
-    //
-    this.parse_metadata = function(text) {
-        var i = 0, eol,
-            line, j, key, val,
-            status = true, lines = 0, content = text, data = {};
-        while (i < text.length) {
-            // Get next line
-            eol = text.indexOf("\n", i);
-            if (eol === -1) eol = text.length;
-            line = text.substr(i, eol-i);
-            // Last line of metadata - new line
-            if (!line.length) {
-                content = text.substr(i+1);
-                break;
-            }
-            // First character should be alphanumberical
-            if(!line[0].match('[a-zA-Z0-9]')) {
-                content = text.substr(i);
-                break;
-            }
-            // Find key:value
-            j = line.indexOf(":");
-            if (j === -1) {
-                status = false;
-                content = text.substr(i);
-                break;
-            }
-            // Add key/value pair to data
-            data[text.substr(i, j).trim()] = text.substr(i+j+1, eol-i-j-1).trim();
-            // console.log(JSON.stringify(data));
-            i = eol+1;
-            lines++;
-        }
-        return {
-            status:     status,
-            lines:      lines,
-            content:    content,
-            data:       data
-        };
-    };
-
-    // Show modal for convenient meta-data editing
-    this.edit_metadata = function() {
-        var key, ko_meta, prefix="meta_";
-
-        // Clear file_meta (its a temp object)
-        for (key in edtrSettings.file_meta) {
-            if (key.startsWith(prefix))
-                edtrSettings.file_meta[key]("");
-        }
-        // Copy parsed meta into view model
-        for (key in self.tabs[self.current_tab].metadata.data) {
-            ko_meta = edtrSettings.file_meta[prefix+key.toLowerCase()];
-            if (ko_meta)
-                ko_meta(self.tabs[self.current_tab].metadata.data[key]);
-        }
-        edtrSettings.file_meta_modal(self.tabs[self.current_tab].node.id, function(args) {
-            if (args.button === "ok") {
-                // TODO: Save metadata into codemirror's text
-                var metadata_text = "", max_key_length=0, key;
-
-                // Find longest key
-                for (key in edtrSettings.file_meta) {
-                    if (key.startsWith(prefix) && key.length > max_key_length)
-                        max_key_length = key.length;
-                }
-                // Create aligned metadata text
-                for (key in edtrSettings.file_meta) {
-                    // Ignore knockout and validator fields
-                    if (!key.startsWith(prefix)) continue;
-                    // Add meta key only if it has value
-                    ko_meta = edtrSettings.file_meta[key];
-                    if (ko_meta().length) {
-                        // Align value with spaces
-                        metadata_text += key.replace(prefix, "").capitalize() + ":" +
-                            Array(max_key_length-key.length+2+4).join(" ") +
-                            ko_meta() + "\n";
-                    }
-                }
-                // Always end metadata with new line
-                if (metadata_text.length)
-                    metadata_text += "\n";
-                self.cm_editor.setValue(metadata_text + self.tabs[self.current_tab].metadata.content);
-            } else if (args.button === "cancel") {
-                // Modal canceled
-                // Should we do anything here ?
             }
         });
     };
@@ -713,7 +652,7 @@ function edtrCodemirror(content_type, content) {
             this.preview_timer_id = setTimeout(function() {
                 self.is_preview_timer = false;
                 // Parse metadata
-                self.tabs[self.current_tab].metadata = self.parse_metadata(self.cm_editor.getValue());
+                self.parse_tab_metadata(self.current_tab);
                 // Generate preview
                 self.dom_preview_body.html(marked(self.tabs[self.current_tab].metadata.content));
                 // Get anchors from generated preview
@@ -732,7 +671,117 @@ function edtrCodemirror(content_type, content) {
         if (self.tabs[self.current_tab].state === self.TAB_STATES.SAVED) {
             self.set_tab_state(self.TAB_STATES.NOT_SAVED);
         }
+        // Metadata will also be parsed in update_live_preview() on timer,
+        // to optimize number of calls to it
         self.update_live_preview();
+    };
+
+    //
+    // Parse metadata at the beginning of markdown file (and others as well ?)
+    //      index       tab index to parse metadata for
+    // returns:
+    //      status:     true - success, false - error in metadata
+    //      lines:      # of lines in metadata
+    //      content:    content without metadata AND without the new line after metadata
+    //      data:       { key: value, ... } array of metadata
+    //
+    // TODO: optimize:  save all metadata as string and on each parse compare it to the text
+    //                  and see if it has changed or text has more metadata after the match
+    //
+    this.parse_tab_metadata = function(index) {
+        var i = 0, eol,
+            line, j, key, val,
+            text = self.tabs[index].doc.getValue(),
+            status = true, lines = 0, content = text, data = {};
+        while (i < text.length) {
+            // Get next line
+            eol = text.indexOf("\n", i);
+            if (eol === -1) eol = text.length;
+            line = text.substr(i, eol-i);
+            // Last line of metadata - new line
+            if (!line.length) {
+                content = text.substr(i+1);
+                break;
+            }
+            // First character should be alphanumberical
+            if(!line[0].match('[a-zA-Z0-9]')) {
+                content = text.substr(i);
+                break;
+            }
+            // Find key:value
+            j = line.indexOf(":");
+            if (j === -1) {
+                status = false;
+                content = text.substr(i);
+                break;
+            }
+            // Add key/value pair to data
+            data[text.substr(i, j).trim().toLowerCase()] = text.substr(i+j+1, eol-i-j-1).trim();
+            // console.log(JSON.stringify(data));
+            i = eol+1;
+            lines++;
+        }
+        // See if we need to update anything on metadata changes
+        debugger;
+        var old_metadata = self.tabs[index].metadata;
+        self.tabs[index].metadata = {
+            status:     status,
+            lines:      lines,
+            content:    content,
+            data:       data
+        };
+        if (!old_metadata || old_metadata.data.style !== data.style) {
+            self.update_preview_theme();
+        }
+    };
+
+    // Show modal for convenient meta-data editing
+    this.edit_tab_metadata = function() {
+        var key, ko_meta, prefix="meta_";
+
+        // Clear file_meta (its a temp object)
+        for (key in edtrSettings.file_meta) {
+            if (key.startsWith(prefix))
+                edtrSettings.file_meta[key]("");
+        }
+        // Copy parsed meta into view model
+        for (key in self.tabs[self.current_tab].metadata.data) {
+            ko_meta = edtrSettings.file_meta[prefix+key];
+            if (ko_meta)
+                ko_meta(self.tabs[self.current_tab].metadata.data[key]);
+        }
+        edtrSettings.file_meta_modal(self.tabs[self.current_tab].node.id, function(args) {
+            if (args.button === "ok") {
+                // TODO: Save metadata into codemirror's text
+                var metadata_text = "", max_key_length=0, key;
+
+                // Find longest key
+                for (key in edtrSettings.file_meta) {
+                    if (key.startsWith(prefix) && key.length > max_key_length)
+                        max_key_length = key.length;
+                }
+                // Create aligned metadata text
+                for (key in edtrSettings.file_meta) {
+                    // Ignore knockout and validator fields
+                    if (!key.startsWith(prefix)) continue;
+                    // Add meta key only if it has value
+                    ko_meta = edtrSettings.file_meta[key];
+                    if (ko_meta().length) {
+                        // Align value with spaces
+                        metadata_text += key.replace(prefix, "").capitalize() + ":" +
+                            Array(max_key_length-key.length+2+4).join(" ") +
+                            ko_meta() + "\n";
+                    }
+                }
+                // Always end metadata with new line
+                if (metadata_text.length)
+                    metadata_text += "\n";
+                self.cm_editor.setValue(metadata_text + self.tabs[self.current_tab].metadata.content);
+            } else if (args.button === "cancel") {
+                // Modal canceled
+                // Should we do anything here ?
+            }
+        });
     };
 
     // Tab state helper: changes tab state to saved, saving, published, etc...
@@ -913,16 +962,18 @@ function edtrCodemirror(content_type, content) {
     // Add new tab with given content
     // We expect content_type to be one of the supported types
     this.add_tab                = function(tree_node, content_type, content) {
+        // Sanity checks
         if (!tree_node) {
             messagesBar.show_internal_error("edtrCodemirror.add_tab", "no node ?! ");
             return;
         }
-        if (!content) {
+        if (content === undefined || content === null) {
             messagesBar.show_internal_error("edtrCodemirror.add_tab", "no content ?! ");
             return;
         }
         // See if we have this tab already opened
-        var index = self.find_tab(tree_node.id);
+        var index = -1;
+        index = self.find_tab(tree_node.id);
         if (index !== -1) {
             // Tab is in saving mode - ignore request
             if (self.tabs[index].state === self.TAB_STATES.SAVING)
@@ -935,20 +986,25 @@ function edtrCodemirror(content_type, content) {
             self.switch_tab(tree_node.id);
 
             self.tabs[index].doc.setValue(content);
-            self.tabs[index].metadata = self.parse_metadata(content);
             self.tabs[index].node = tree_node;
+            self.parse_tab_metadata(index);
         } else {
+            // No tabs ? Hide stub and show real editor
+            if (!self.tabs.length) {
+                self.dom_elem.find(".edtr-stub-editor").hide();
+                self.dom_elem.find(".edtr-editor").show();
+            }
+
             // Clear current active tab
             self.dom_tabs_ul.find("li").removeClass("active");
             // Create new active tab
             // debugger;
-            icon_url = tree_node.icon;
             var li = $("<li>")
                     .addClass("tab")
                     .addClass("active")
                     .attr("data-node-id", tree_node.id),
                 icon = $("<img>")
-                    .attr("src", icon_url),
+                    .attr("src", tree_node.icon),
                 a = $("<a>")
                     .addClass("editor-tab")
                     .attr("href", "#")
@@ -971,24 +1027,26 @@ function edtrCodemirror(content_type, content) {
                 dom_elem:       li,
                 doc:            cm_doc,
                 node:           tree_node,
-                content_type:   content_type,
-                metadata:       self.parse_metadata(content)
+                content_type:   content_type
             });
             cm_doc.setValue(content);
+            // TODO: do we need to to anything with old_doc ?
             var old_doc = self.cm_editor.swapDoc(cm_doc);
             // if (self.tabs.length > 1)
             //     self.tabs[self.current_tab].doc = old_doc;
             self.current_tab = self.tabs.length-1;
 
-            // Change tree icon to reflect that file was opened for editing
-            edtrTree.update_node_icon(self.tabs[self.current_tab].node, "editing");
+            self.parse_tab_metadata(self.current_tab);
         }
 
         // Clear undo history, thus disallowing to undo setValue()
         self.cm_editor.clearHistory();
         self.cm_editor.focus();
 
+        // Change tree icon to reflect that file was opened for editing
+        edtrTree.update_node_icon(self.tabs[self.current_tab].node, "editing");
         self.set_tab_state(self.TAB_STATES.SAVED);
+
         // Cancel previous preview timer
         if (self.is_preview_timer) {
             self.is_preview_timer = false;
@@ -1003,7 +1061,7 @@ function edtrCodemirror(content_type, content) {
     this.find_tab              = function(node_id, show_error) {
         // Find the tab
         for (var i=0; i < self.tabs.length; i++) {
-            if (self.tabs[i].node.id === node_id)
+            if (self.tabs[i].node && self.tabs[i].node.id === node_id)
                 break;
         }
         // Sanity check
@@ -1042,26 +1100,27 @@ function edtrCodemirror(content_type, content) {
         self.set_tab_state();
 
         // Update preview for new tab
-        this.update_live_preview();
+        self.update_preview_theme();
+        self.update_live_preview();
     },
 
     // Close tab by node id
     // IMPORTANT: We expect the user confirmation to be already processed
     // If show_error is provided and false - we DON'T show message when tab is not found
-    // Default is to show the error message
+    // Default is TO SHOW the error message
     this.close_tab              = function(node_id, show_error) {
-        if (self.tabs.length === 1) {
-            messagesBar.show_notification_warning("Removal of last tab is not implemented yet.");
-            return;
-        }
+        // if (self.tabs.length === 1) {
+        //     messagesBar.show_notification_warning("Removal of last tab is not implemented yet.");
+        //     return;
+        // }
         // Default is to show error when tab is not found
         if (show_error === undefined) show_error = true;
         var index = self.find_tab(node_id, show_error), change_active = false;
         if (index === -1) return;
         var dom_li = self.dom_tabs_ul.find("li[data-node-id='"+node_id+"']");
 
-        // When closing active tab - change active to previous tab or next tab
-        // if closing the first tab
+        // When closing active tab - change active to previous tab
+        // or next tab if closing the first tab
         if (dom_li.hasClass("active"))
             change_active = true;
 
@@ -1073,7 +1132,14 @@ function edtrCodemirror(content_type, content) {
         self.tabs.splice(index, 1);
         if (self.current_tab > 0) self.current_tab--;
 
-        if (change_active) {
+        // Removed last tab - hide editor and preview
+        if (!self.tabs.length) {
+            self.dom_elem.find(".edtr-editor").hide();
+            self.dom_elem.find(".edtr-stub-editor").show();
+            // self.dom_preview_head.html("");
+            self.dom_preview_body.html("");
+        }
+        else if (change_active) {
             self.switch_tab(self.tabs[self.current_tab].node.id, true);
         }
 
@@ -1092,7 +1158,8 @@ function edtrCodemirror(content_type, content) {
         if (event.which === 3) {
             var index = self.find_tab($(this).data("node-id"), true);
             if (index === -1) return;
-            edtrTree.on_right_click(event, null, self.tabs[index].node);
+            if (self.tabs[index].node)
+                edtrTree.on_right_click(event, null, self.tabs[index].node);
         }
 
         return false;
@@ -1145,12 +1212,19 @@ function edtrCodemirror(content_type, content) {
     },
 
     this.update_preview_theme   = function() {
+        var theme;
+        // Metadata style has precedence over theme in settings
+        if (self.tabs[self.current_tab] &&
+            self.tabs[self.current_tab].metadata &&
+            self.tabs[self.current_tab].metadata.data.style) {
+            theme = self.tabs[self.current_tab].metadata.data.style.toLowerCase();
+        } else {
+            theme = edtrSettings.general.preview.theme();
+        }
         var prev_css = self.dom_preview_head.find("link[rel=stylesheet]");
         self.dom_preview_head.
             append("<link rel=\"stylesheet\" href=\"/static/css/md_preview/" +
-                edtrSettings.general.preview.theme() +
-                ".css?reload=" +
-                (new Date()).getTime() + "\">");
+                theme + ".css?reload=" + (new Date()).getTime() + "\">");
         prev_css.remove();
     };
 
@@ -1193,9 +1267,9 @@ function edtrCodemirror(content_type, content) {
         this.dom_tabs           = dom_container.find(".editor-tabs");
         this.dom_toolbar        = dom_container.find(".editor-toolbar");
         this.dom_editor         = dom_container.find(".editor-area");
-        this.dom_textarea       = dom_container.find(".cme-textarea");
-        this.dom_buttonbar      = dom_container.find(".cme-buttonbar");
-        this.dom_search_input   = dom_container.find(".cme-search input");
+        this.dom_buttonbar      = dom_container.find(".editor-buttons");
+        this.dom_search_input   = dom_container.find(".cme-search .search-input");
+        this.dom_replace_input  = dom_container.find(".cme-search .replace-input");
         this.dom_tabs_ul        = this.dom_tabs.find("ul");
         this.dom_save_btn       = this.dom_elem.find('#btn_save');
         this.dom_save_btn_text  = this.dom_elem.find('#btn_save_text');
@@ -1242,7 +1316,7 @@ function edtrCodemirror(content_type, content) {
                 // File
                 "Ctrl-S":       this.save_codemirror,
                 "Cmd-S":        this.save_codemirror,
-                "Ctrl-M":       this.edit_metadata,
+                "Ctrl-M":       this.edit_tab_metadata,
 
                 // Edit
                 "Tab":          this.tab,
@@ -1252,8 +1326,8 @@ function edtrCodemirror(content_type, content) {
                 // Search / Navigation
                 "Ctrl-F":       this.show_find,
                 "Cmd-F":        this.show_find,
-                "Shift-Ctrl-F": this.show_replace,
-                "Shift-Cmd-F":  this.show_replace,
+                "Ctrl-Alt-F":   this.show_replace,
+                "Cmd--Alt-F":   this.show_replace,
                 "Shift-Ctrl-B": this.toggle_bookmark,
 
                 // Leaves various modes
@@ -1276,7 +1350,7 @@ function edtrCodemirror(content_type, content) {
             }
         };
 
-        this.cm_editor = CodeMirror.fromTextArea(this.dom_textarea[0], cm_settings);
+        this.cm_editor = CodeMirror.fromTextArea(dom_container.find(".cme-textarea").get(0), cm_settings);
 
         // .ON events
         this.cm_editor.on("change", this.on_change);
@@ -1347,14 +1421,10 @@ function edtrCodemirror(content_type, content) {
           sanitize:         false
         });
 
-        // Actions for toolbar buttons
-        this.dom_elem.find(".cme-toolbar-tooltip, .cme-toolbar-tooltip-left").on("click", function(event) {
-            self[$(this).data("action")]();
+        // Actions for toolbar and buttonbar buttons
+        this.dom_elem.find(".cme-button").on("click", function(event) {
+            self[$(this).data("action")].apply(self, $(this));
         });
-
-        // Buttons below editor
-        this.dom_elem.find('#btn_preview').on("click", this.preview_codemirror);
-        this.dom_elem.find('#btn_save').on("click", this.save_codemirror);
 
         // Search on any text (keyup)
         // Special search navigation (keydown):
@@ -1390,16 +1460,24 @@ function edtrCodemirror(content_type, content) {
             }
         });
 
-        // TOOLTIPS for toolbar
-        this.dom_elem.find(".cme-toolbar-tooltip").tooltip({
+        // Update search position if search dialog is visible
+        $(self.cm_editor.getScrollerElement()).on("mouseup keyup", function(event) {
+            if (self.search_state && self.search_state.visible) {
+                self.search_state.posFrom = self.search_state.posTo =
+                self.search_state.kc_posFrom = self.search_state.kc_posTo =
+                    self.cm_editor.getCursor("end");
+            }
+        });
+
+        // TOOLTIPS for toolbar and buttons (default is tooltip on top of element)
+        this.dom_elem.find(".cme-button-tooltip").tooltip({
             placement: "top", html: true, delay: { show: 1000, hide: 300 }
         });
-        this.dom_elem.find(".cme-toolbar-tooltip-left").tooltip({
-            placement: "left", html: true, delay: { show: 2000, hide: 300 }
+        this.dom_elem.find(".cme-button-tooltip-left").tooltip({
+            placement: "left", html: true, delay: { show: 1500, hide: 300 }
         });
-        // TOOLTIPS for buttons
-        this.dom_elem.find(".cme-button-tooltip").tooltip({
-            placement: "bottom", delay: { show: 800, hide: 300 }
+        this.dom_elem.find(".cme-button-tooltip-bottom").tooltip({
+            placement: "bottom", html: true, delay: { show: 800, hide: 300 }
         });
 
         return this;

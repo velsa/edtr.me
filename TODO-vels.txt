@@ -1,6 +1,7 @@
 
 UI:
 - general settings dialog:  preview follows cursor (?)
+- preview theme should be taken from metadata
 - color icons in toolbar (from famfam silk set)
 - folder settings: edit as text file (python style, like in pelican ?)
 - special icons for each type: 'editing', 'published'. ask outsource designer to make those

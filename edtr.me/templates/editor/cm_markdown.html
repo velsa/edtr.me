@@ -22,34 +22,76 @@
 -->
 <div class="editor-buttons">
     <div class="cme-buttonbar well">
+        <!-- Editor buttons -->
         <div class="cme-buttons">
             <button id="btn_save"
                     title="Save to Dropbox"
-                    class="btn btn-success btn-small cme-button-tooltip" href="#">
+                    class="btn btn-success btn-small cme-button cme-button-tooltip-bottom" href="#"
+                    data-action="save_codemirror">
                 <i class="icon-ok-sign icon-white"></i>
                 <span id="btn_save_text">Save Draft</span>
             </button>
             <button id="btn_preview"
                     title="Open page preview in new window"
-                    class="btn btn-info btn-small cme-button-tooltip" href="#">
+                    class="btn btn-info btn-small cme-button cme-button-tooltip-bottom" href="#"
+                    data-action="preview_codemirror">
                 <i class="icon-eye-open icon-white"></i>
                 Preview...
             </button>
             <button id="btn_publish"
                     title="Publish HTML to your website (also saves file to Dropbox)"
-                    class="btn btn-primary btn-small cme-button-tooltip pull-right" href="#">
+                    class="btn btn-primary btn-small cme-button cme-button-tooltip-bottom pull-right"
+                    href="#" data-action="publish_codemirror">
                 <i class="icon-globe icon-white"></i>
                 Publish
             </button>
         </div><!-- .cme-buttons -->
-        <div class="cme-search" style="display:none">
-            <span>Search:</span>
-            <input type="text" class="search-query" placeholder="text or regexp (use /re/ syntax)">
+        <!-- Editor search/replace -->
+        <div class="cme-search input-perepend" style="display:none">
+            <table><tr><td>
+            <div class="btn-group" data-toggle="buttons-checkbox">
+                <button type="button" class="btn btn-mini cme-button cme-button-tooltip-bottom"
+                    title="Case sensitive" tabindex="-1"
+                    data-action="search_toggle_case">Aa</button>
+                <button type="button" class="btn btn-mini cme-button cme-button-tooltip-bottom"
+                    title="Wrap" tabindex="-1"
+                    data-action="search_toggle_wrap">
+                    <i class="icon-retweet icon-black"></i>
+                </button>
+            </div>
+            </td><td>
+                <label>Search for:</label>
+            </td><td>
+                <input type="text" class="search-input input-xlarge"
+                    tabindex="1"
+                    placeholder="text or regexp (use /re/ syntax)">
+            </td><td>
+                <button type="button"
+                    class="btn btn-small cme-button"
+                    title="Find next match" tabindex="-1"
+                    data-action="search_find_next">
+                    <i class="icon-arrow-down icon-black"></i>
+                </button>
+                <button type="button"
+                    class="btn btn-small cme-button"
+                    title="Find previous match" tabindex="-1"
+                    data-action="search_find_previous">
+                    <i class="icon-arrow-up icon-black"></i>
+                </button>
+            </td></tr><tr><td>
+            </td><td>
+                <label class="cme-replace" style="display:none">Replace with:</label>
+            </td><td>
+                <input type="text" class="cme-replace replace-input input-xlarge"
+                    style="display:none" tabindex="2"
+                    placeholder="">
+            </td><td>
+                <button type="button"
+                    class="cme-replace btn btn-small cme-button cme-button-tooltip-bottom"
+                    title="Replace match" tabindex="-1" style="display:none"
+                    data-action="search_replace">Replace</button>
+            </td></tr></table>
         </div><!-- .cme-search -->
-        <div class="cme-replace" style="display:none">
-            <span>Replace:</span>
-            <input type="text" placeholder="">
-        </div><!-- .cme-replace -->
     </div><!-- .cme-buttonbar -->
 </div>
 

@@ -4,7 +4,6 @@
 //
 var edtrTree = {
     // TODO: edit/extend those via user settings
-    base_icon_url:      "/static/images/",
     editor_type:      {
         'md':           'markdown',
         'txt':          'markdown',
@@ -101,7 +100,7 @@ var edtrTree = {
                 name:       "(Dropbox) Apps/edtr.me/",
                 open:       true,
                 isParent:   true,
-                icon:       edtrTree.base_icon_url+"dropbox.png",
+                icon:       edtrSettings.base_icon_url+"dropbox.png",
                 // iconSkin:   "parent",
                 children:   []
         }];
@@ -350,7 +349,7 @@ var edtrTree = {
     update_node_icon:      function(node, state) {
         // If state is not provided - set icon according to pub_state
         if (state === undefined)
-            state = edtrSettings.pub_status[node.pub_status];
+            state = edtrSettings.PUB_STATUS[node.pub_status];
         node.icon = node.icons[state];
         edtrTree.ztree.updateNode(node);
     },
@@ -385,16 +384,17 @@ var edtrTree = {
         //      unpublished:    def icon
         //      editing:        large edit icon over the def icon
         if (!tree_node.isParent) {
+            var base_icon_url = edtrSettings.base_icon_url;
             tree_node.icons = {
-                def:        edtrTree.base_icon_url+"dropbox-api-icons/16x16/"+server_data.icon+".gif",
-                large:      edtrTree.base_icon_url+"dropbox-api-icons/48x48/"+server_data.icon+"48.gif",
-                published:  edtrTree.base_icon_url+"famfamfam_silk_icons_v013/icons/world.png",
-                editing:    edtrTree.base_icon_url+"famfamfam_silk_icons_v013/icons/page_edit.png"
+                def:        base_icon_url+"dropbox-api-icons/16x16/"+server_data.icon+".gif",
+                large:      base_icon_url+"dropbox-api-icons/48x48/"+server_data.icon+"48.gif",
+                published:  base_icon_url+"famfamfam_silk_icons_v013/icons/world.png",
+                editing:    base_icon_url+"famfamfam_silk_icons_v013/icons/page_edit.png"
             };
             tree_node.icons.draft = tree_node.icons.def;
             tree_node.icons.unpublished = tree_node.icons.def;
             // Set icon according to publish status
-            tree_node.icon = tree_node.icons[edtrSettings.pub_status[tree_node.pub_status]];
+            tree_node.icon = tree_node.icons[edtrSettings.PUB_STATUS[tree_node.pub_status]];
         }
         return tree_node;
     },
@@ -1280,6 +1280,7 @@ var edtrTree = {
     //                  rename_file, rename_subdir,
     //                  remove_checked,
     // path:            path to directory where filename resides
+    //                  IMPORTANT: path is without the '/' and the end (unless it is '/')
     // filename:        file name to perform action on
     // filename_new:    file name to rename to (if action is rename)
     //
@@ -1375,24 +1376,24 @@ var edtrTree = {
         }
 
         // Get parent node
-        // Path in tree is always WITHOUT '/' at the end
-        var tree_path = path === '/' ? path : path.substr(0, path.length-1),
-            parent_node = edtrTree.ztree.getNodeByParam("id", tree_path);
+        // path is always WITHOUT '/' at the end
+        var parent_node = edtrTree.ztree.getNodeByParam("id", path);
         if (!parent_node) {
             messagesBar.show_internal_error("edtrTree.file_action", "Can't find parent_node "+path);
             return false;
         }
 
-        // we expect path to always end with '/'
-        var full_path = path + filename_new,
+        // path is always WITHOUT '/' at the end
+        var full_path_new = path === '/' ? path + filename_new : path + '/' + filename_new,
+            full_path_old = path === '/' ? path + filename : path + '/' + filename,
             node,
-            server_data = {path: full_path};
+            server_data = {path: full_path_new};
 
         // Process action in ztree
         if ($.inArray(action, ["add_file", "add_subdir"]) > -1) {
             // General parameters
             node = {
-                id:         full_path,
+                id:         full_path_new,
                 name:       filename_new
             };
             // Specific parameters
@@ -1422,29 +1423,29 @@ var edtrTree = {
             return true;
         } else { // Remove, Rename, Publish or Unpublish
             // Find corresponding node in tree
-            node = edtrTree.ztree.getNodesByFilter(function(n) {
+            var found_nodes = edtrTree.ztree.getNodesByFilter(function(n) {
                 return n.name === filename && n.getParentNode().id === path;
             }, false, parent_node);
 
             // Some sanity checks
-            if (!node) {
+            if (!found_nodes) {
                 messagesBar.show_internal_error("edtrTree.file_action",
                     "Can't find node "+filename+" in "+path);
                 return false;
             }
-            if (node.length > 1) {
+            if (found_nodes.length > 1) {
                 messagesBar.show_internal_error("edtrTree.file_action",
                     "Too many nodes with the same name ("+filename+") in "+path);
                 return false;
             }
 
             // We found our node
-            node = node[0];
+            node = found_nodes[0];
             switch (action) {
                 case "rename_file":
                 case "rename_subdir":
-                    server_data.from_path   = path + filename;
-                    server_data.to_path     = full_path;
+                    server_data.from_path   = full_path_old;
+                    server_data.to_path     = full_path_new;
                     // Perform server rename and if successful do the tree rename
                     edtrTree.show_loading_node(node, true);
                     serverComm.action("dropbox", "move", server_data, function(data) {
@@ -1455,7 +1456,7 @@ var edtrTree = {
                         // TODO: server_data should contain new node info
                         // right now it contains from_path, to_path
                         // edtrTree._update_tree_node(node, server_data);
-                        node.id     = full_path,
+                        node.id     = full_path_new,
                         node.name   = filename_new;
                         edtrTree.ztree.updateNode(node);
                         // Notify user
@@ -1485,7 +1486,7 @@ var edtrTree = {
                                 edtrTree.ztree.selectNode(parent_node, false);
                                 // If file is opened in editor - remove tab
                                 // We simply ask for removal of tab and ignore errors
-                                edtrTree.editor.close_tab(nodes.id, false);
+                                edtrTree.editor.close_tab(node.id, false);
                                 break;
                             case "publish":
                                 // TODO: update node with new data and change tree icon
@@ -1655,7 +1656,7 @@ var edtrTree = {
                         // TODO: do we need a different editor HTML for different filetypes ?
                         // Probably just the toolbar should be different
                         // edtrTree.dom_editor.html($("#"+content_type+"_editor_html").html());
-                        edtrTree.dom_editor.html($("#markdown_editor_html").html());
+                        edtrTree.dom_editor.append($("#edtr_editor_template").html());
                         // Create new editor and save node with it
                         edtrTree.editor = new edtrCodemirror();
                         edtrTree.editor.init(

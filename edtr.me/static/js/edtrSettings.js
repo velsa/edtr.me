@@ -7,10 +7,11 @@ var edtrSettings = {
     //
     // Static settings
     //
-    amplify_key: "edtr_modal_view_model",
+    amplify_key:            "edtr_modal_view_model",
+    base_icon_url:          "/static/images/",
 
     // Various server statuses that we check against
-    pub_status: [ "unpublished", "published", "draft" ],
+    PUB_STATUS:             [ "unpublished", "published", "draft" ],
 
     //
     // Knockout models for dialogs
@@ -46,8 +47,10 @@ var edtrSettings = {
             auto_close_brackets:    ko.observable(true),
             hl_current_line:        ko.observable(false),
             indent_with_tabs:       ko.observable(false),
-            line_wrapping:          ko.observable(false),
-            show_toolbar:           ko.observable(true)
+            line_wrapping:          ko.observable(true),
+            show_toolbar:           ko.observable(true),
+            // Defaults that are not editable by user (?)
+            default_content_type:   "markdown"
         },
 
         // Settings for Preview pane
@@ -69,6 +72,9 @@ var edtrSettings = {
         // TODO: Load settings from server
         edtrSettings.general.editor.theme("eclipse");
         edtrSettings.general.preview.theme("default");
+        // TODO: should we get those from server as well ?
+        edtrSettings.general.editor.default_icon =
+            edtrSettings.base_icon_url+"dropbox-api-icons/16x16/page_white.gif";
     },
 
     // Show modal for general settings

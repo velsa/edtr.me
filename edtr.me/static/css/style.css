@@ -216,7 +216,7 @@ body {
 .editor-area {
     position:           absolute;
     top:                60px;   /* == .editor-tabs height + .editor-toolbar height */
-    bottom:             45px;   /* == .editor-buttons height + 2px (for blue border) */
+    bottom:             39px;   /* == .editor-buttons height + 2px (for blue border) */
     left:               0;
     right:              0;
     font-weight:        normal;
@@ -224,7 +224,7 @@ body {
 /* Buttons below codemirror */
 .editor-buttons {
     position:           absolute;
-    height:             43px;   /* == .editor-area bottom - 2px (for blue border) */
+    height:             37px;   /* == .editor-area bottom - 2px (for blue border) */
     bottom:             0;
     left:               0;
     right:              0;
@@ -368,7 +368,7 @@ body {
 .cme-toolbar .btn-group {
     margin-top:         1px;
 }
-.cme-toolbar-tooltip, .cme-toolbar-tooltip-left {
+.cme-toolbar .cme-button {
     padding-bottom:     6px;
     padding-top:        6px;
     margin-bottom:      4px;
@@ -378,8 +378,8 @@ body {
     margin-top:         -4px;}
 
 .cme-buttonbar {
-    margin-top:         0;
-    padding:            11px 5px 5px 5px;
+    margin:             0;
+    padding:            5px;
 }
 #btn_save {
     width:              120px;
@@ -388,26 +388,40 @@ body {
 #btn_preview, #btn_publish {
     width:              180px;
 }
-.cme-search, .cme-replace {
-    width:              50%;
+.cme-search {
+    /*width:              50%;*/
     display:            table;
 }
-.cme-search input, .cme-replace input {
-    padding:            4px 14px;
-    margin-top:         -4px;
-    margin-left:        4px;
-    display:            table-cell;
-    width:              100%;
+.cme-search .btn-group {
+    margin-top:         -2px;
+    margin-bottom:      -2px;
+    margin-right:       10px;
 }
-.cme-search span, .cme-replace span {
+.cme-search label {
+    margin-bottom:      -4px;
     display:            table-cell;
     width:              1px;
+    white-space:        nowrap;
+}
+.cme-search tr {
+    vertical-align:     bottom;
+}
+.cme-search input {
+    padding:            2px 7px;
+    margin:             -2px 4px;
+    display:            table-cell;
+}
+.cme-replace {
+    margin-top:         4px !important;
+}
+.cme-search .btn {
+    height:             24px;
 }
 .cme-search-selection {
     background:         yellow !important;
 }
 /* Editor Stub */
-.stub-editor > pre {
+.edtr-stub-editor > pre {
     position:           absolute;
     bottom:             0;
     top:                0;
