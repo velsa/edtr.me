@@ -22,8 +22,9 @@ class TF:
     css = 3
     js = 4
     html = 5
-    binary = 6
+    binary = "application/x-msdos-program"
     image_png = "image/png"
+    video_mp4 = "video/mp4"
 
 
 def get_dbox_meta(path, o_type, with_path=True):
@@ -73,6 +74,38 @@ def get_dbox_meta(path, o_type, with_path=True):
             "root": "app_folder",
             "mime_type": "{f_type}",
             "size": "423 KB"
+          }}""".format(path=path, f_type=o_type)
+    elif o_type == TF.binary:
+        meta_data = """
+          {{
+            "revision": 1134,
+            "rev": "46e0c3bcb59",
+            "thumb_exists": false,
+            "bytes": 7168,
+            "modified": "Sun, 10 Mar 2013 08:29:21 +0000",
+            "client_mtime": "Sat, 09 Mar 2013 13:01:01 +0000",
+            "path": "{path}",
+            "is_dir": false,
+            "icon": "page_white_gear",
+            "root": "app_folder",
+            "mime_type": "{f_type}",
+            "size": "7 KB"
+          }}""".format(path=path, f_type=o_type)
+    elif o_type == TF.video_mp4:
+        meta_data = """
+          {{
+            "revision": 1136,
+            "rev": "4700c3bcb59",
+            "thumb_exists": false,
+            "bytes": 554672,
+            "modified": "Sun, 10 Mar 2013 08:38:15 +0000",
+            "client_mtime": "Mon, 18 Oct 2010 09:14:42 +0000",
+            "path": "{path}",
+            "is_dir": false,
+            "icon": "page_white_film",
+            "root": "app_folder",
+            "mime_type": "{f_type}",
+            "size": "541.7 KB"
           }}""".format(path=path, f_type=o_type)
     if with_path:
         meta_data = """[
@@ -247,18 +280,16 @@ class GetContentTest(BaseTest):
             if "api.dropbox.com/1/media/" in request.url and\
               self.dbox_path in request.url:
                 dbox_resp = json.dumps({
-                    'url': 'http://www.dropbox.com/s/m/a2mbDa2',
+                    'url': self.dbox_image_url,
                     'expires': 'Sun, 16 Sep 2040 01:01:25 +0000'
                 })
-                headers = {'X-Dropbox-Metadata': json.dumps(meta)}
             else:
                 self.assertTrue(False)
                 callback(None)
                 return
             output = cStringIO.StringIO()
             output.write(dbox_resp)
-            resp = HTTPResponse(request=request, headers=headers, code=200,
-                buffer=output)
+            resp = HTTPResponse(request=request, code=200, buffer=output)
             callback(resp)
         m_fetch.side_effect = fetch_mock
 
@@ -272,4 +303,48 @@ class GetContentTest(BaseTest):
         file_meta_params = set(["_id", "revision", "rev", "thumb_exists",
             "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
             "mime_type", "bytes", "size", "thumbnail_url"])
+        self.assertEqual(file_meta_params, set(json_resp['meta'].keys()))
+
+    @patch.object(BaseHandler, 'get_current_user')
+    @patch.object(SimpleAsyncHTTPClient, 'fetch')
+    def test_binary_content(self, m_fetch, m_get_current_user):
+        self.create_test_user(m_get_current_user)
+        self.dbox_video_url = 'http://www.dropbox.com/s/m/a2mbDa2'
+        self.dbox_path = '/vidos.mp4'
+
+        meta = json.loads(
+            get_dbox_meta(self.dbox_path, TF.video_mp4, with_path=False))
+        meta_db, _ = _adopt_meta(meta, separate_id=False)
+        self.db_save(self.test_user_name, meta_db)
+
+        def fetch_mock(request, callback, **kwargs):
+            if not isinstance(request, HTTPRequest):
+                request = HTTPRequest(url=request, **kwargs)
+            request.headers = HTTPHeaders(request.headers)
+            if "api.dropbox.com/1/media/" in request.url and\
+              self.dbox_path in request.url:
+                dbox_resp = json.dumps({
+                    'url': self.dbox_video_url,
+                    'expires': 'Sun, 16 Sep 2040 01:01:25 +0000'
+                })
+            else:
+                self.assertTrue(False)
+                callback(None)
+                return
+            output = cStringIO.StringIO()
+            output.write(dbox_resp)
+            resp = HTTPResponse(request=request, code=200, buffer=output)
+            callback(resp)
+        m_fetch.side_effect = fetch_mock
+
+        response = self.post_with_xsrf(
+            self.reverse_url('dropbox_get_file'), {'path': self.dbox_path})
+        self.assertEqual(response.code, 200)
+        json_resp = json.loads(response.body)
+        self.assertEqual(json_resp['errcode'], 0)
+        self.assertEqual(json_resp['type'], ContentType.binary)
+        self.assertEqual(json_resp['content'], self.dbox_video_url)
+        file_meta_params = set(["_id", "revision", "rev", "thumb_exists",
+            "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
+            "mime_type", "bytes", "size"])
         self.assertEqual(file_meta_params, set(json_resp['meta'].keys()))
