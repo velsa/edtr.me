@@ -1,6 +1,8 @@
 # collect here widly used utils
 import os
+import re
 import logging
+from collections import OrderedDict
 from tornado.options import options
 logger = logging.getLogger('edtr_logger')
 
@@ -16,6 +18,8 @@ class FolderType:
 
 
 MAX_HEADER_LINE = 10
+AVALIABLE_HEADERS = ('Author', 'Title', 'Status', 'Slug', 'Tags',
+    'HeaderAnchors', 'Style', 'DatePublished', 'DateModified', 'DateFormat')
 
 
 def get_user_root(user_name, folder_type):
@@ -31,29 +35,41 @@ def create_site_folder(user_name):
 
 
 def _parse_header_line(line):
-    if isinstance(line, unicode):
-        o = unicode
-    elif isinstance(line, str):
-        o = str
+    line_regex = re.search(r"""
+        (?P<key>\w+)
+        (?P<space_before>\s*)
+        :
+        (?P<space_after>\s*)
+        (?P<value>[^\s].+)$
+        """, line, re.VERBOSE)
+    if line_regex:
+        return (
+            line_regex.group('key'),
+            line_regex.group('space_before'),
+            line_regex.group('space_after'),
+            line_regex.group('value').strip()
+        )
     else:
-        return (None, None)
-    h = map(o.strip, line.split(":", 1))
-    if len(h) != 2:
-        return (None, None)
-    else:
-        return h
+        return [None] * 4
 
 
 def parse_md_headers(content):
-    headers = dict()
-    for lino, line in enumerate(content.splitlines()):
-        if not len(line.strip()) or lino > MAX_HEADER_LINE:
+    headers = OrderedDict()
+    symbols_in_headers = 0
+    for lino, line in enumerate(content.splitlines(True)):
+        if not len(line.strip()):
+            symbols_in_headers += len(line)
+            break
+        if lino > MAX_HEADER_LINE:
             break
         else:
-            (h, v) = _parse_header_line(line)
-            if h and isinstance(h, (str, unicode)):
-                headers[h.lower()] = v
-    return headers
+            (h, b, a, v) = _parse_header_line(line)
+            if h and h in AVALIABLE_HEADERS:
+                headers[h] = dict(value=v, space_before=b, space_after=a)
+                symbols_in_headers += len(line)
+            else:
+                break
+    return headers, symbols_in_headers
 
 
 def create_path_if_not_exist(path_file):

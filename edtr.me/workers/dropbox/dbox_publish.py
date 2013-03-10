@@ -17,6 +17,24 @@ from .dbox_op import get_obj_content
 logger = logging.getLogger('edtr_logger')
 
 
+def update_md_header_meta(text_content, publish):
+    md_heads, md_heads_len = parse_md_headers(text_content)
+    if 'Status' not in md_heads:
+        md_heads['Status'] = dict(space_before='', space_after='            ')
+    md_heads['Status']['value'] = MdState.draft
+    no_head_text = text_content[md_heads_len:]
+    updated_md_meta = u""
+    for h, d in md_heads.items():
+        updated_md_meta += u"{head}{sp_bef}:{sp_aft}{value}\n".format(
+            head=h,
+            sp_bef=d['space_before'],
+            sp_aft=d['space_after'],
+            value=d['value'])
+    updated_md_meta += "\n"
+    text_updated_head = updated_md_meta + no_head_text
+    return text_updated_head
+
+
 @gen.engine
 def _publish_binary(fm, user, preview, pub_paths, body, db, callback):
     if not preview and fm.pub_status == PS.published:

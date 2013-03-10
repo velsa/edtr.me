@@ -3,17 +3,16 @@ import logging
 from tornado import gen
 from django.utils import simplejson as json
 import motor
-from schematics.serialize import make_safe_python
 
 from utils.async_dropbox import DropboxMixin
 from models.dropbox import DropboxFile, PS
 from utils.gl import DB
 from utils.error import ErrCode
 from .dbox_utils import (unify_path, get_file_url, check_bad_response,
-    update_meta, is_image_thumb, save_meta, get_content_type)
+    update_meta, is_image_thumb, save_meta, get_content_type, is_md, is_md_ext)
 from .dbox_thumb import remove_thumbnail, copy_thumb
 from .dbox_settings import DEFAULT_ENCODING, TEXT_MIMES
-from .dbox_publish import publish_object
+from .dbox_publish import publish_object, update_md_header_meta
 from .dbox_op import get_obj_content, get_tree_from_db
 from .dbox_delta import update_dbox_delta, dbox_sync_user
 logger = logging.getLogger('edtr_logger')
@@ -68,6 +67,10 @@ class DropboxWorkerMixin(DropboxMixin):
                 text_content = text_content.encode('ascii', 'replace')
         else:
             text_content = ''
+        md_file = False
+        if (data and is_md(data)) or is_md_ext(path):
+            md_file = True
+            text_content = update_md_header_meta(text_content, publish)
         # make dropbox request
         api_url = get_file_url(path, 'files_put')
         access_token = user.get_dropbox_token()
@@ -96,7 +99,10 @@ class DropboxWorkerMixin(DropboxMixin):
             'meta': file_meta
         }
         result = yield gen.Task(publish_object,
-            file_meta, user, self.db, self, preview=not publish, obj=obj_for_pub)
+            file_meta, user, self.db, self, preview=not publish,
+            obj=obj_for_pub)
+        if md_file:
+            result['markdown_content'] = text_content
         callback(result)
 
     @gen.engine

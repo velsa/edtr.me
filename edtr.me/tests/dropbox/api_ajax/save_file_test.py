@@ -18,9 +18,9 @@ from utils.main import get_user_root, FolderType
 class SaveFileTest(BaseTest):
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
-    def test_update_existing(self, m_fetch, m_get_current_user):
+    def test_update_existing_no_md_meta(self, m_fetch, m_get_current_user):
         self.create_test_user(m_get_current_user)
-        self.text_content = '## Hello'
+        self.text_content = """## Hello"""
         self.dbox_path = '/post.md'
         self.updated_revision = 100
         self.updated_rev = 'd0c3bdw93'
@@ -62,10 +62,13 @@ class SaveFileTest(BaseTest):
         self.assertEqual(json_resp['meta']['revision'], self.updated_revision)
         self.assertEqual(json_resp['meta']['rev'], self.updated_rev)
         self.assertEqual(json_resp['meta']['pub_status'], PS.draft)
+        text_updated_heads =\
+            u"Status:            draft\n\n" + self.text_content
+        self.assertEqual(json_resp['markdown_content'], text_updated_heads)
         # TODO: check, post is generated, not just copied
-        copied_file = os.path.join(
+        md_file_path = os.path.join(
             get_user_root(self.test_user_name, FolderType.preview),
             self.dbox_path.lstrip('/'))
-        self.assertTrue(os.path.exists(copied_file))
-        with open(copied_file) as f:
-            self.assertEqual(f.read(), self.text_content)
+        self.assertTrue(os.path.exists(md_file_path))
+        with open(md_file_path) as f:
+            self.assertEqual(f.read(), text_updated_heads)
