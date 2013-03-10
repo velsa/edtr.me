@@ -11,7 +11,8 @@ from models.dropbox import DropboxFile, PS
 from utils.main import (get_user_root, parse_md_headers, FolderType,
     create_path_if_not_exist)
 from .dbox_utils import is_md
-from .dbox_settings import DEFAULT_ENCODING, MAND_MD_HEADERS, MdState
+from .dbox_settings import (DEFAULT_ENCODING, MAND_MD_HEADERS, MdState,
+    ContentType)
 from .dbox_op import get_obj_content
 logger = logging.getLogger('edtr_logger')
 
@@ -76,7 +77,7 @@ def publish_object(file_meta, user, db, async_dbox, preview=False,
         pub_paths = [get_user_root(user.name, FolderType.preview)]
         if not preview:
             pub_paths.append(get_user_root(user.name, FolderType.publish))
-        if 'content' in obj:
+        if obj.get('type', None) == ContentType.text_file:
             # Text content
             r = yield gen.Task(_publish_text, DropboxFile(**obj['meta']),
                 user, preview, pub_paths, obj['content'], db)
