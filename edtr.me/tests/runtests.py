@@ -8,6 +8,9 @@ import settings  # only options.define to be runned
 
 TEST_MODULES = [
     'tests.auth_test',
+    'tests.dropbox.api_ajax.get_tree_test',
+    'tests.dropbox.api_ajax.get_file_test',
+    'tests.dropbox.api_ajax.save_file_test',
 ]
 
 
@@ -48,7 +51,8 @@ if __name__ == '__main__':
 
     if options.socketio:
         TEST_MODULES += [
-            'tests.dbox_socketio_test',
+            'tests.auth_socketio_test',
+            'tests.dropbox.api_socketio.api_test',
         ]
 
     tornado.testing.main(**kwargs)

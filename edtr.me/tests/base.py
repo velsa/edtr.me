@@ -1,3 +1,5 @@
+import os.path
+import shutil
 import Cookie
 from datetime import timedelta
 from tornado.testing import AsyncHTTPTestCase, LogTrapTestCase
@@ -24,12 +26,20 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
 
     def setUp(self):
         super(BaseTest, self).setUp()
+        self.test_user_name = 'testuser'
         self.reverse_url = reverse_url
         ### clear data base before each test
         self.db_clear()
         # raw fix for TestClient. Currently don't understand, how to use it
         # without source modification
         self.cookies = Cookie.SimpleCookie()
+
+    def tearDown(self):
+        super(BaseTest, self).tearDown()
+        user_publish_folder = os.path.join(
+            options.site_root, self.test_user_name)
+        if os.path.exists(user_publish_folder):
+            shutil.rmtree(user_publish_folder)
 
     def get_app(self):
         return app
@@ -55,9 +65,30 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
     def get_http_port(self):
         return options.port
 
+    def create_test_user(self, mocked_get_current_user):
+        username = self.test_user_name
+        first_name = 'first'
+        last_name = 'last'
+        email = 'test@test.com'
+        key = "some_key"
+        secret = "some_secret"
+        self.db_save('accounts', {
+            '_id': username,
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email,
+            'dbox_access_token': {"key": "some_key", "secret": "some_secret"},
+        })
+        mocked_get_current_user.return_value = username
+        return username, email, key, secret
+
     def db_clear(self):
         @gen.engine
         def async_op():
+            cursor = db.accounts.find()
+            users = yield motor.Op(cursor.to_list)
+            for user in users:
+                yield motor.Op(db[user['_id']].remove)
             yield motor.Op(db.accounts.remove)
             self.stop()
         async_op()
@@ -71,10 +102,10 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         async_op()
         return self.wait()
 
-    def db_save(self, user_data):
+    def db_save(self, collection, data):
         @gen.engine
         def async_op():
-            result = yield motor.Op(db.accounts.save, user_data)
+            result = yield motor.Op(db[collection].save, data)
             self.stop(result)
         async_op()
         return self.wait()
@@ -87,3 +118,10 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
             self.stop(timeout)
         async_op()
         self.wait()
+
+    def post_with_xsrf(self, url, data):
+        _xsrf = 'some_hash_key'
+        post_data = data or {}
+        post_data["_xsrf"] = _xsrf
+        return self.post(url, data=post_data,
+            headers={'Cookie': '_xsrf={0}'.format(_xsrf)})

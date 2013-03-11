@@ -91,7 +91,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     @gen.engine
     def dbox_get_file(self, path):
         if not path:
-            self.emit_as_json('dbox_get_file', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_get_file', {'errcode': ErrCode.bad_request})
         else:
             result = yield gen.Task(self.wk_dbox_get_file, self.user, path)
             self.emit_as_json('dbox_get_file', result)
@@ -101,7 +101,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     def dbox_save_file(self, path, content):
 
         if not path:
-            self.emit_as_json('dbox_save_file', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_save_file', {'errcode': ErrCode.bad_request})
         else:
             data = yield gen.Task(self.wk_dbox_save_file, self.user, path,
                 content)
@@ -111,7 +111,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     @gen.engine
     def dbox_create_dir(self, path):
         if not path:
-            self.emit_as_json('dbox_create_dir', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_create_dir', {'errcode': ErrCode.bad_request})
         else:
             data = yield gen.Task(self.wk_dbox_create_dir, self.user, path)
             self.emit_as_json('dbox_create_dir', data)
@@ -120,7 +120,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     @gen.engine
     def dbox_delete_path(self, path):
         if not path:
-            self.emit_as_json('dbox_delete_path', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_delete_path', {'errcode': ErrCode.bad_request})
         else:
             data = yield gen.Task(self.wk_dbox_delete, self.user, path)
             self.emit_as_json('dbox_delete_path', data)
@@ -129,7 +129,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     @gen.engine
     def dbox_move(self, from_path, to_path):
         if not from_path or not to_path:
-            self.emit_as_json('dbox_move', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_move', {'errcode': ErrCode.bad_request})
         else:
             data = yield gen.Task(self.wk_dbox_move, self.user, from_path, to_path)
             self.emit_as_json('dbox_move', data)
@@ -138,7 +138,7 @@ class EdtrConnection(SocketConnection, DropboxWorkerMixin):
     @gen.engine
     def dbox_copy(self, from_path, to_path):
         if not from_path or not to_path:
-            self.emit_as_json('dbox_copy', {'status': ErrCode.bad_request})
+            self.emit_as_json('dbox_copy', {'errcode': ErrCode.bad_request})
         else:
             data = yield gen.Task(self.wk_dbox_copy, self.user, from_path, to_path)
             self.emit_as_json('dbox_copy', data)

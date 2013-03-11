@@ -42,7 +42,7 @@ class DropboxGetFile(DropboxHandler):
     def post(self):
         path = self.get_argument("path", None)
         if not path:
-            self.finish_json_request({'status': ErrCode.bad_request})
+            self.finish_json_request({'errcode': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.wk_dbox_get_file, user, path)
@@ -60,12 +60,12 @@ class DropboxSaveFile(DropboxHandler):
     def post(self):
         path = self.get_argument("path", None)
         if not path:
-            self.finish_json_request({'status': ErrCode.bad_request})
+            self.finish_json_request({'errcode': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             text_content = self.get_argument("content", None)
-            data = yield gen.Task(self.wk_dbox_save_file, user, path,
-                text_content)
+            data = yield gen.Task(self.wk_dbox_save_file,
+                user, path, text_content)
             self.finish_json_request(data)
 
 
@@ -78,7 +78,7 @@ class DropboxCreateDir(DropboxHandler):
     def post(self):
         path = self.get_argument("path", None)
         if not path:
-            self.finish_json_request({'status': ErrCode.bad_request})
+            self.finish_json_request({'errcode': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.wk_dbox_create_dir, user, path)
@@ -94,7 +94,7 @@ class DropboxDelete(DropboxHandler):
     def post(self):
         path = self.get_argument("path", None)
         if not path:
-            self.finish_json_request({'status': ErrCode.bad_request})
+            self.finish_json_request({'errcode': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.wk_dbox_delete, user, path)
@@ -111,14 +111,14 @@ class DropboxMove(DropboxHandler):
         from_path = self.get_argument("from_path", None)
         to_path = self.get_argument("to_path", None)
         if not from_path or not to_path:
-            self.finish_json_request({'status': ErrCode.bad_request})
+            self.finish_json_request({'errcode': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.wk_dbox_move, user, from_path, to_path)
             self.finish_json_request(data)
 
 
-class DropboxSave(DropboxHandler):
+class DropboxCopy(DropboxHandler):
     """Copies a file or folder to a new location."""
 
     @tornado.web.asynchronous
@@ -128,7 +128,7 @@ class DropboxSave(DropboxHandler):
         from_path = self.get_argument("from_path", None)
         to_path = self.get_argument("to_path", None)
         if not from_path or not to_path:
-            self.finish_json_request({'status': ErrCode.bad_request})
+            self.finish_json_request({'errcode': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
             data = yield gen.Task(self.wk_dbox_copy, user, from_path, to_path)
@@ -143,27 +143,11 @@ class DropboxPublish(DropboxHandler):
     @tornado.web.authenticated
     def post(self):
         path = self.get_argument("path", None)
-        recurse = self.get_argument("recurse", None) == 'true'
         if not path:
-            self.finish_json_request({'status': ErrCode.bad_request})
+            self.finish_json_request({'errcode': ErrCode.bad_request})
         else:
             user = yield gen.Task(self.get_edtr_current_user)
-            data = yield gen.Task(self.wk_dbox_publish, user, path, recurse)
-            self.finish_json_request(data)
-
-
-class DropboxPreview(DropboxHandler):
-    """Preview a file or folder."""
-
-    @tornado.web.asynchronous
-    @gen.engine
-    @tornado.web.authenticated
-    def post(self):
-        path = self.get_argument("path", None)
-        recurse = self.get_argument("recurse", None) == 'true'
-        if not path:
-            self.finish_json_request({'status': ErrCode.bad_request})
-        else:
-            user = yield gen.Task(self.get_edtr_current_user)
-            data = yield gen.Task(self.wk_dbox_preview, user, path, recurse)
+            text_content = self.get_argument("content", None)
+            data = yield gen.Task(self.wk_dbox_publish, user, path,
+                text_content)
             self.finish_json_request(data)

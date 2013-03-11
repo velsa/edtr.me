@@ -1,9 +1,10 @@
 import dateutil.parser
-from schematics.types import (StringType, IntType, BooleanType, DateTimeType)
+from schematics.types import (StringType, IntType, BooleanType, DateTimeType,
+    URLType)
 from models.base import BaseModel
 from schematics.serialize import (blacklist)
 
-DBOX_PUBLIC_EXCLUDE = 'last_updated',
+DBOX_PUBLIC_EXCLUDE = 'last_updated', 'url_trans', 'url_expires'
 
 
 class PS:
@@ -35,6 +36,7 @@ class DropboxFile(BaseModel):
     url_expires = StringType()
     pub_status = IntType(choices=PS._all())
     pub_rev = StringType()
+    thumbnail_url = URLType()
 
     FIND_LIST_LEN = 250
 

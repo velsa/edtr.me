@@ -100,8 +100,8 @@ class DropboxMixin(tornado.auth.OAuthMixin):
             def wrapped_callback(response):
                 d_body = response.body
                 if d_body:
-                    if len(d_body) > 300:
-                        d_body = d_body[:300] + "........."
+                    if len(d_body) > 1000:
+                        d_body = d_body[:1000] + "........."
                 d_code = response.code
                 d_error = response.error
                 resp = "\n\tbody: {0},\n\tcode: {1},\n\terror: {2}".format(
