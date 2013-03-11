@@ -195,6 +195,18 @@ var edtrSplitters = {
             self.toggle_sidebar();
         });
 
+        _fix_height = function(top_height) {
+            var new_height = self.container_elem.height() - top_height - 5;
+            if (new_height < self.bottom_min_height)
+                new_height = self.bottom_min_height;
+            else if (top_height <= self.top_min_height)
+                new_height = self.container_elem.height() - self.top_min_height - 5;
+            if (new_height == self.bottom_elem.height())
+                return;
+            self.top_elem.css({bottom: new_height});
+            self.bottom_elem.css({height: new_height});
+        };
+
         this.h_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
@@ -210,16 +222,7 @@ var edtrSplitters = {
                     self.bottom_elem.append('<div id="tarpaulin"></div>');
                 }
                 self.is_dragging = true;
-                var top_height = e.clientY - self.container_shift,
-                    new_height = self.container_elem.height() - top_height - 5;
-                if (new_height < self.bottom_min_height)
-                    new_height = self.bottom_min_height;
-                else if (top_height <= self.top_min_height)
-                    new_height = self.container_elem.height() - self.top_min_height - 5;
-                if (new_height == self.bottom_elem.height())
-                    return;
-                self.bottom_elem.css({height: new_height, top: "auto"});
-                self.top_elem.css({bottom: new_height});
+                _fix_height(e.clientY - self.container_shift);
             });
             $(window).on("mouseup", function(e) {
                 var was_dragging = self.is_dragging;
@@ -240,10 +243,7 @@ var edtrSplitters = {
         });
 
         $(window).resize(function () {
-            self.bottom_elem.css({
-                top:    self.top_elem.height()+"px",
-                height: "auto"
-            });
+            _fix_height(self.bottom_elem.height() - self.container_shift);
         });
     },
 

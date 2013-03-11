@@ -21,6 +21,7 @@ Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
 - Add support for dt/dd (definition lists):
     http://kramdown.rubyforge.org/syntax.html#definition-lists
+- Add support for custom attributes to markdown block and inline elements as in here: [Attribute Lists](http://pythonhosted.org/Markdown/extensions/attr_list.html)
 
 JS:
 - publish functionality:
