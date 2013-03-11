@@ -9,29 +9,35 @@
                 title="Header (1-6): <b>Ctrl-H</b>" href="#">
                 <!--
                 <b>H</b>
-                -->
                 <i class="icon-text-height icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/text_heading_1.png">
             </a>
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="toggle_bold"
                 title="Bold: <b>Ctrl-B</b>" href="#">
                 <!--
                 <b>B</b>
-                -->
                 <i class="icon-bold icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/text_bold.png">
             </a>
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="toggle_italic"
                 title="Italic: <b>Ctrl-I</b>" href="#">
                 <!--
                 <b><i>I</i></b>
-                -->
                 <i class="icon-italic icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/text_italic.png">
             </a>
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="toggle_code"
                 title="Code block: <b>Ctrl-K</b>" href="#">
+                <!--
                 <i class="icon-barcode icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/tag.png">
             </a>
         </div><!--/btn-group-->
 
@@ -39,17 +45,26 @@
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="unordered_list"
                 title="Unordered List: <b>Ctrl-U</b>" href="#">
+                <!--
                 <i class="icon-th-list icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/text_list_bullets.png">
             </a>
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="ordered_list"
                 title="Ordered List: <b>Ctrl-1</b>" href="#">
+                <!--
                 <i class="icon-list icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/text_list_numbers.png">
             </a>
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="blockquote"
                 title="Blockquote: <b>Ctrl-Q</b>" href="#">
+                <!--
                 <i class="icon-chevron-right icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/text_indent.png">
             </a>
         </div><!--/btn-group-->
 
@@ -57,42 +72,52 @@
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="divider_hr"
                 title="Insert Divider (Horizontal Rule)" href="#">
+                <!--
                 <i class="icon-minus icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/text_horizontalrule.png">
             </a>
         </div><!--/btn-group-->
 
         <div class="btn-group">
-            <a class="btn btn-default btn-small cme-button cme-button-tooltip"
-                data-action="insert_image_url"
-                title="Insert Image: <b>Ctrl-G</b>" href="#">
-                <i class="icon-picture icon-black"></i>
-            </a>
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="insert_url"
                 title="Insert URL: <b>Ctrl-L</b>" href="#">
+                <!--
                 <i class="icon-magnet icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/link_add.png">
+            </a>
+            <a class="btn btn-default btn-small cme-button cme-button-tooltip"
+                data-action="insert_image_url"
+                title="Insert Image: <b>Ctrl-G</b>" href="#">
+                <!--
+                <i class="icon-picture icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/photo_add.png">
             </a>
         </div><!--/btn-group-->
 
         <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown"
+            <a class="btn cme-button dropdown-toggle" data-toggle="dropdown"
                title="Custom tags. You can add/remove those in Settings" href="#">
                 <!--
                 &nbsp;<i class="icon-font icon-black"></i>&nbsp;
-                -->
                 T
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/tag_blue_add.png">
                 <span class="caret"></span>
             </a>
-            <ul class="dropdown-menu" style="max-width: 350px;">
-                <li><a id="tbb_style1" href="#">
-                    <b>&lt;mycap&gt;</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Enlarge letter
+            <ul class="cme-toolbar-dropdown cme-custom-attr-list dropdown-menu">
+                <li><a data-action="custom_attr" href="#">
+                    Yellow background<strong class="shortcut">{: .yellow-bg }</strong>
                 </a></li>
-                <li><a id="tbb_style2" href="#">
-                    <b>&lt;mycolor&gt;</b> &nbsp;&nbsp;&nbsp; Custom color
+                <li><a data-action="custom_attr" href="#">
+                    Red text<strong class="shortcut">{: .red-text }</strong>
                 </a></li>
                 <li class="divider"></li>
-                <li><a id="tbb_style3" href="#">
-                    <b>&lt;myback&gt;</b> &nbsp;&nbsp;&nbsp; Custom background
+                <li><a data-action="custom_attr" href="#">
+                    lowercase text<strong class="shortcut">{: .lower-text }</strong>
                 </a></li>
             </ul>
         </div><!--/btn-group-->
@@ -101,17 +126,35 @@
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="toggle_width"
                 title="Toggle Width: <b>Ctrl-Shift-W</b>" href="#">
+                <!--
                 <i class="icon-resize-horizontal icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/arrow_left.png"
+                    class="edtr-toolbar-img-left">
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/arrow_right.png"
+                    class="edtr-toolbar-img-right" style="display:none">
             </a>
             <a class="btn btn-default btn-small cme-button cme-button-tooltip"
                 data-action="toggle_height"
                 title="Toggle Height: <b>Ctrl-Shift-H</b>" href="#">
+                <!--
                 <i class="icon-resize-vertical icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/arrow_down.png"
+                    class="edtr-toolbar-img-down">
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/arrow_up.png"
+                    class="edtr-toolbar-img-up" style="display:none">
             </a>
             <a class="btn btn-default btn-small cme-button cme-button-tooltip-left"
                 data-action="toggle_fullscreen"
                 title="Enter Fullscreen: <b>Ctrl-Alt-Shift-W</b><br>To leave fullscreen mode, press <b>Esc</b>" href="#">
+                <!--
                 <i class="icon-fullscreen icon-black"></i>
+                -->
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/arrow_out.png"
+                    class="edtr-toolbar-img-out">
+                <img src="/static/images/famfamfam_silk_icons_v013/icons/arrow_in.png"
+                    class="edtr-toolbar-img-in" style="display:none">
             </a>
         </div><!--/btn-group-->
     </div><!--/btn-toolbar-->

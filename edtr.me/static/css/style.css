@@ -24,7 +24,14 @@ body {
 .popover-file-info td:first-child, .popover-dir-info td:first-child {
     padding-right:      10px;
 }
-
+.popover-thumbnail {
+    width:              128px;
+    height:             128px;
+    display:            table-cell;
+    text-align:         center;
+    vertical-align:     middle;
+/*    border:             1px dotted #ddd; */
+}
 /* Add disabled state for items in sidebar
  */
 .dropdown-toggle {
@@ -369,20 +376,29 @@ body {
     margin-top:         1px;
 }
 .cme-toolbar .cme-button {
-    padding-bottom:     6px;
-    padding-top:        6px;
+    padding-bottom:     4px;
+    padding-top:        4px;
     margin-bottom:      4px;
+    margin-top:         1px;
 }
 .cme-toolbar .dropdown-toggle {
-    padding:            3px 8px 3px 8px;;
-    margin-top:         -4px;}
-
+    margin-bottom:      -2px;
+    padding-top:        1px;
+    margin-top:         -4px;
+    padding-bottom:     1px;
+}
+.cme-toolbar-dropdown {
+    font-size:          11px !important;
+}
+.cme-custom-attr-list {
+    max-width:          350px;
+}
 .cme-buttonbar {
     margin:             0;
     padding:            5px;
 }
 #btn_save {
-    width:              120px;
+    width:              160px;
     margin-right:       5px;
 }
 #btn_preview, #btn_publish {

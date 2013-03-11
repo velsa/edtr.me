@@ -23,32 +23,68 @@ function edtrCodemirror(content_type, content) {
     //     self.dom_elem.show().attr("disabled", "true");
     // };
 
+    // Change toolbar button to reflect left sidebar (lsb) state
+    this._update_toolbar_width_button = function() {
+        if (edtrSplitters.lsb_is_visible) {
+            self.dom_toolbar.find(".edtr-toolbar-img-left").show();
+            self.dom_toolbar.find(".edtr-toolbar-img-right").hide();
+            self._update_toolbar_fullscreen_button();
+        } else {
+            self.dom_toolbar.find(".edtr-toolbar-img-left").hide();
+            self.dom_toolbar.find(".edtr-toolbar-img-right").show();
+            self._update_toolbar_fullscreen_button();
+        }
+    };
     this.toggle_width = function() {
         edtrSplitters.toggle_sidebar();
+        self._update_toolbar_width_button();
         // HACK: have to call refresh twice, because codemirror throws error
         self.cm_editor.refresh();
         setTimeout(self.cm_editor.refresh, 500);
     };
 
+    // Change toolbar button to reflect preview state
+    this._update_toolbar_height_button = function() {
+        if (edtrSplitters.preview_is_visible) {
+            self.dom_toolbar.find(".edtr-toolbar-img-down").show();
+            self.dom_toolbar.find(".edtr-toolbar-img-up").hide();
+            self._update_toolbar_fullscreen_button();
+        } else {
+            self.dom_toolbar.find(".edtr-toolbar-img-down").hide();
+            self.dom_toolbar.find(".edtr-toolbar-img-up").show();
+            self._update_toolbar_fullscreen_button();
+        }
+    };
     this.toggle_height = function() {
         edtrSplitters.toggle_preview();
+        self._update_toolbar_height_button();
         // HACK: have to call refresh twice, because codemirror throws error
         self.cm_editor.refresh();
         setTimeout(self.cm_editor.refresh, 500);
     };
 
+    // Change toolbar button to reflect fullscreen state
+    this._update_toolbar_fullscreen_button = function() {
+        if (edtrSplitters.lsb_is_visible || edtrSplitters.preview_is_visible) {
+            self.dom_toolbar.find(".edtr-toolbar-img-out").show();
+            self.dom_toolbar.find(".edtr-toolbar-img-in").hide();
+        } else {
+            self.dom_toolbar.find(".edtr-toolbar-img-out").hide();
+            self.dom_toolbar.find(".edtr-toolbar-img-in").show();
+        }
+    };
     this.toggle_fullscreen = function() {
         // requestFullScreen is really nice but it blocks too many keys (shortcuts, Esc, etc..)
         // requestFullScreen(document.body);
-        if (!self.is_codemirror_fullscreen) {
-            self.is_codemirror_fullscreen = true;
+        if (edtrSplitters.lsb_is_visible || edtrSplitters.preview_is_visible) {
             edtrSplitters.hide_sidebar();
             edtrSplitters.hide_preview();
         } else {
-            self.is_codemirror_fullscreen = false;
             edtrSplitters.show_sidebar();
             edtrSplitters.show_preview();
         }
+        self._update_toolbar_height_button();
+        self._update_toolbar_width_button();
         // HACK: have to call refresh twice, because codemirror throws error
         self.cm_editor.refresh();
         setTimeout(self.cm_editor.refresh, 500);
@@ -646,8 +682,8 @@ function edtrCodemirror(content_type, content) {
     };
 
     this.update_live_preview = function() {
-        // Update preview on timer (no need for preview when in fullscreen)
-        if (!self.is_codemirror_fullscreen && !self.is_preview_timer) {
+        // Update preview on timer (only when preview is visible)
+        if (edtrSplitters.preview_is_visible && !self.is_preview_timer) {
             self.is_preview_timer = true;
             this.preview_timer_id = setTimeout(function() {
                 self.is_preview_timer = false;
@@ -736,7 +772,8 @@ function edtrCodemirror(content_type, content) {
 
     // Show modal for convenient meta-data editing
     this.edit_tab_metadata = function() {
-        var key, ko_meta, prefix="meta_";
+        var key, ko_meta, prefix="meta_",
+            cur_tab = self.tabs[self.current_tab];
 
         // Clear file_meta (its a temp object)
         for (key in edtrSettings.file_meta) {
@@ -744,12 +781,12 @@ function edtrCodemirror(content_type, content) {
                 edtrSettings.file_meta[key]("");
         }
         // Copy parsed meta into view model
-        for (key in self.tabs[self.current_tab].metadata.data) {
+        for (key in cur_tab.metadata.data) {
             ko_meta = edtrSettings.file_meta[prefix+key];
             if (ko_meta)
-                ko_meta(self.tabs[self.current_tab].metadata.data[key]);
+                ko_meta(cur_tab.metadata.data[key]);
         }
-        edtrSettings.file_meta_modal(self.tabs[self.current_tab].node.id, function(args) {
+        edtrSettings.file_meta_modal(cur_tab.node.id, function(args) {
             if (args.button === "ok") {
                 // TODO: Save metadata into codemirror's text
                 var metadata_text = "", max_key_length=0, key;
@@ -775,7 +812,7 @@ function edtrCodemirror(content_type, content) {
                 // Always end metadata with new line
                 if (metadata_text.length)
                     metadata_text += "\n";
-                self.cm_editor.setValue(metadata_text + self.tabs[self.current_tab].metadata.content);
+                self.cm_editor.setValue(metadata_text + cur_tab.metadata.content);
             } else if (args.button === "cancel") {
                 // Modal canceled
                 // Should we do anything here ?
@@ -785,25 +822,27 @@ function edtrCodemirror(content_type, content) {
 
     // Tab state helper: changes tab state to saved, saving, published, etc...
     this.set_tab_state = function(state) {
+        var cur_tab = self.tabs[self.current_tab];
         // If no state passed - update buttons to reflect current state
         if (state === undefined)
-            state = self.tabs[self.current_tab].state;
+            state = cur_tab.state;
         switch (state) {
             case self.TAB_STATES.SAVED:
-                self.tabs[self.current_tab].state = state;
+                cur_tab.state = state;
                 // TODO: add draft/published/unpublished text to button
-                self.tabs[self.current_tab].dom_elem.find("a").removeClass("not-saved");
-                self.dom_save_btn_text.text("SAVED ("+"draft"+")");
+                cur_tab.dom_elem.find("a").removeClass("not-saved");
+                self.dom_save_btn_text.text("SAVED ("+
+                    edtrSettings.PUB_STATUS[cur_tab.node.pub_status]+")");
                 self.dom_save_btn.removeClass("btn-success").tooltip("hide").attr('disabled', 'disabled');
                 break;
             case self.TAB_STATES.SAVING:
-                self.tabs[self.current_tab].state = state;
+                cur_tab.state = state;
                 self.dom_save_btn_text.text("saving draft...");
                 self.dom_save_btn.removeClass("btn-success").attr('disabled', 'disabled');
                 break;
             case self.TAB_STATES.NOT_SAVED:
-                self.tabs[self.current_tab].state = state;
-                self.tabs[self.current_tab].dom_elem.find("a").addClass("not-saved");
+                cur_tab.state = state;
+                cur_tab.dom_elem.find("a").addClass("not-saved");
                 self.dom_save_btn_text.text("Save Draft");
                 self.dom_save_btn.addClass("btn-success").removeAttr('disabled');
                 break;
@@ -885,40 +924,45 @@ function edtrCodemirror(content_type, content) {
     };
 
     // SAVE BUTTON and Ctrl-S:
-    // Save codemirror's contents and launch callback when done
+    // Save contents of current tab and launch callback when done
     // callback parameter will be true if saved ok and false if not
     this.save_codemirror = function() {
+        var cur_tab = self.tabs[self.current_tab];
         // File is already saved or in the process of being saved
-        if (self.tabs[self.current_tab].state !== self.TAB_STATES.NOT_SAVED)
+        if (cur_tab.state !== self.TAB_STATES.NOT_SAVED)
             return;
         // Update state, show backdrop and rotating wheel in tree
         self.set_tab_state(self.TAB_STATES.SAVING);
         self.dom_elem.find(".file-saving").show();
-        edtrTree.show_loading_node(self.tabs[self.current_tab].node, true);
+        edtrTree.show_loading_node(cur_tab.node, true);
         serverComm.action("dropbox", "save_file",
             {
-                path: self.tabs[self.current_tab].node.id,
-                content: self.cm_editor.getValue()
+                path:       cur_tab.node.id,
+                content:    cur_tab.doc.getValue()
             }, function(data) {
                 // Clear backdrop and rotating wheel in tree
                 self.dom_elem.find(".file-saving").hide();
-                edtrTree.show_loading_node(self.tabs[self.current_tab].node, false);
-                if (data.status > serverComm.max_success_status) {
+                edtrTree.show_loading_node(cur_tab.node, false);
+                if (data.errcode) {
                     // Serious error
                     self.set_tab_state(self.TAB_STATES.NOT_SAVED);
-                    if (data.status === 6)
-                        messagesBar.show_notification_warning(serverComm.human_status[data.status]);
-                    else
-                        messagesBar.show_error(serverComm.human_status[data.status]);
-                    if (self.on_saved)
-                        self.on_saved.call(this, false);
+                    messagesBar.show_error(serverComm.human_status[data.errcode]);
+                    if (self.on_saved) self.on_saved.call(this, false);
                 } else {
+                    // Update node with new server data
+                    edtrTree._update_tree_node(cur_tab.node, data.meta);
+                    // When saving markdown file we're get new (possibly updated) content
+                    // with metadata at the top
+                    if (data.markdown_content) {
+                        cur_tab.doc.setValue(data.markdown_content);
+                        self.parse_tab_metadata(self.current_tab);
+                    }
                     self.set_tab_state(self.TAB_STATES.SAVED);
-                    messagesBar.show_notification("Saved "+self.tabs[self.current_tab].node.id);
-                    if (self.on_saved)
-                        self.on_saved.call(this, true);
+                    messagesBar.show_notification("Saved "+cur_tab.node.id);
+                    if (self.on_saved) self.on_saved.call(this, true);
                 }
-            });
+            }
+        );
     };
 
     // Show confirmation dialog to replace existing tab with new content
@@ -1212,15 +1256,14 @@ function edtrCodemirror(content_type, content) {
 
     this.update_preview_theme   = function() {
         var theme = edtrSettings.general.preview.theme(),
-            fix_path = true;
+            fix_path = true,
+            cur_tab = self.tabs[self.current_tab];
         // Metadata style has precedence over theme in settings
-        if (self.tabs[self.current_tab] &&
-            self.tabs[self.current_tab].metadata &&
-            self.tabs[self.current_tab].metadata.data.style) {
-            var user_theme = self.tabs[self.current_tab].metadata.data.style.toLowerCase();
+        if (cur_tab && cur_tab.metadata && cur_tab.metadata.data.style) {
+            var user_theme = cur_tab.metadata.data.style.toLowerCase();
             if (theme.endsWith(".css")) {
                 // TODO: append user preview path to .css file
-                var user_path = edtrHelper.get_filename_path(self.tabs[self.current_tab].node.id);
+                var user_path = edtrHelper.get_filename_path(cur_tab.node.id);
                 if (user_path === '/') user_path = "";
                 theme = "http://preview.user.edtr.me/"+user_path+"/"+user_theme;
                 fix_path = false;
@@ -1243,7 +1286,6 @@ function edtrCodemirror(content_type, content) {
         //
         // INITIALIZATION (constructor)
         //
-        this.is_codemirror_fullscreen   = false;
         this.is_hidden                  = false;
         this.is_preview_timer           = false;
         this.preview_timer_id           = null;
@@ -1435,6 +1477,8 @@ function edtrCodemirror(content_type, content) {
         // Actions for toolbar and buttonbar buttons
         this.dom_elem.find(".cme-button").on("click", function(event) {
             self[$(this).data("action")].apply(self, $(this));
+            // Since all actions perform operations on text - get focus back to editor
+            self.focus();
         });
 
         // Search on any text (keyup)

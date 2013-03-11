@@ -160,7 +160,7 @@ var edtrSplitters = {
             parseInt(this.container_elem.css('bottom'), 10);
         this.is_dragging = false;
 
-        var self = this;
+        self = this;
 
         this.vl_splitter
         .on("mousedown", function(e) {
@@ -321,19 +321,21 @@ var serverComm = {
     api_v:              "/v1/",
     human_status: {
         0:      "success",
-        1:      "directory",
-        2:      "image",
-        3:      "binary",
-        4:      "not found",
-        5:      "bad request",
-        6:      "called to often",
-        7:      "already published",
+        1:      "not found",
+        2:      "bad request",
+        3:      "called to often",
+        4:      "already published",
         20770:  "unknown error",
         20771:  "not implemented",
         30770:  "server failure",
         30771:  "network failure"
     },
-    max_success_status: 3,
+    FILE_TYPES: {
+        0:      "directory",
+        1:      "text_file",
+        3:      "image",
+        4:      "binary"
+    },
     sio: null,
 
     init:                   function() {
@@ -363,10 +365,10 @@ var serverComm = {
                 //     console.log(f+":", response[f]);
                 // }
 
-                if (response.status > serverComm.max_success_status) {
+                if (response.errcode) {
                     // server failure
                     messagesBar.show_error("ERROR in sio.on('dbox_updates'):"+
-                        serverComm.human_status[response.status]);
+                        serverComm.human_status[response.errcode]);
                     return;
                 }
 
@@ -387,7 +389,6 @@ var serverComm = {
                     });
                 }
                 // Create an array from object to iterate over it in recursion
-
                 for (obj in response.updates)
                     updates_arr.push(response.updates[obj]);
                 recursive_update(0, updates_arr);
@@ -440,6 +441,14 @@ var serverComm = {
         });
     },
 
+    // Do error processing
+    // Currently only displays error message
+    process_errcode: function(context, data) {
+        if (data.errcode) {
+            messagesBar.show_error("ERROR: <b>'"+context+"'</b>: "+serverComm.human_status[data.errcode]);
+        }
+    },
+
     // Process action using POST request to server
     action: function(source, action_string, params, callback) {
         this.post_request(source, action_string, params, function(data, textStatus, jqXHR) {
@@ -448,26 +457,23 @@ var serverComm = {
                 // We're here from post_request.fail, so error message should already be displayed
                 // pass error to callback
                 data = {};
-                data.status = 30770;
+                data.errcode = 30770;
                 callback.call(null, data);
             } else if(textStatus !== "success") {
                 // pass error to callback
                 // TODO: actually we shouldn't get here ?!
                 console.log(source, action_string, "ERROR", textStatus, data);
-                data.status = 30770;
+                data.errcode = 30770;
                 messagesBar.show_error("ERROR: '"+source+" "+action_string+"' for <b>"+params.path+"</b><br>"+
-                    serverComm.human_status[data.status]+"<br>"+data.http_code+data.error);
+                    serverComm.human_status[data.errcode]+"<br>"+data.http_code+data.error);
                 callback.call(null, data);
             } else {
                 // success
                 // console.log(source, action_string, params, data);
-                if (data.status > serverComm.max_success_status) {
+                if (data.errcode) {
                     messagesBar.show_error("ERROR: '"+source+" "+action_string+"' for <b>"+params.path+"</b><br>"+
-                        serverComm.human_status[data.status]);
+                        serverComm.human_status[data.errcode]);
                 }
-                // TODO: check status == 2
-                if (data.url)
-                    data.content = data.url;
                 callback.call(null, data);
             }
         });

@@ -24,6 +24,12 @@ if (typeof String.prototype.endsWith !== 'function') {
         return this.indexOf(suffix, this.length - suffix.length) !== -1;
     };
 }
+// counts number of strings (s1) in string
+if (typeof String.prototype.count !== 'function') {
+    String.prototype.count=function(s1) {
+        return (this.length - this.replace(new RegExp(s1,"g"), '').length) / s1.length;
+    };
+}
 // adds .format(text) to any string
 // "{0} is dead, but {1} is alive! {0} {2}".format("ASP", "ASP.NET")
 // outputs
