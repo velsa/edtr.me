@@ -21,7 +21,7 @@ def update_md_header_meta(text_content, publish):
     md_heads, md_heads_len = parse_md_headers(text_content)
     if 'Status' not in md_heads:
         md_heads['Status'] = dict(space_before='', space_after='            ')
-    md_heads['Status']['value'] = MdState.draft
+    md_heads['Status']['value'] = MdState.publish if publish else MdState.draft
     no_head_text = text_content[md_heads_len:]
     updated_md_meta = u""
     for h, d in md_heads.items():
