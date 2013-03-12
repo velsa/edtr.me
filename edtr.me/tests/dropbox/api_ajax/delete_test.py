@@ -60,7 +60,6 @@ class DeleteTest(BaseTest):
     def test_delete_image_with_thumb(self, m_fetch, m_get_current_user):
         self.create_test_user(m_get_current_user)
         self.file_path = '/image.png'
-        self.thumb_content = 'thumb bin content'
 
         meta = json.loads(
             get_dbox_meta(self.file_path, TF.image_png, with_path=False))
@@ -75,7 +74,7 @@ class DeleteTest(BaseTest):
         thumb_folder = get_user_root(self.test_user_name, FolderType.thumbnail)
         os.makedirs(thumb_folder)
         with open(self.thumb_serv_path, 'wb') as f:
-            f.write(self.thumb_content)
+            f.write('thumb bin content')
 
         def fetch_mock(request, callback, **kwargs):
             if not isinstance(request, HTTPRequest):
