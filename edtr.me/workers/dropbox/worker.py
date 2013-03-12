@@ -3,6 +3,7 @@ import logging
 from tornado import gen
 from django.utils import simplejson as json
 import motor
+from schematics.serialize import make_safe_python
 
 from utils.async_dropbox import DropboxMixin
 from models.dropbox import DropboxFile, PS
@@ -123,8 +124,9 @@ class DropboxWorkerMixin(DropboxMixin):
         file_meta = json.loads(response.body)
         # TODO: save meta of all transitional folders, but maybe let it be
         # just not allow  user in UI to create /a/b/, if /a not exists
-        yield gen.Task(update_meta, self.db, file_meta, user.name)
-        callback({'errcode': ErrCode.ok})
+        meta = yield gen.Task(update_meta, self.db, file_meta, user.name)
+        meta = make_safe_python(DropboxFile, meta, 'public')
+        callback({'errcode': ErrCode.ok, 'meta': meta})
 
     @gen.engine
     def wk_dbox_delete(self, user, path, callback=None):
