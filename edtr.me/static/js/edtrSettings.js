@@ -39,8 +39,8 @@ var edtrSettings = {
                                         "lesser-dark", "monokai", "neat", "night",
                                         "rubyblue", "solarized", "solarized light", "solarized dark",
                                         "twilight", "vibrant-ink", "xq-dark"
-                                    ],
-            // theme_tpl:              "codemirror-3.1/theme/{0}.css"
+            ],
+            // theme_tpl:              "codemirror-3.1/theme/{0}"
             font_size:              ko.observable("14"),
             font_size_list:         [ "14", "15", "16", "17" ],
             line_numbers:           ko.observable(true),
@@ -59,8 +59,20 @@ var edtrSettings = {
             theme_list:     [
                                 "alt", "dark", "default", "foghorn", "github", "light",
                                 "smalltext", "swiss"
-                            ]
-            // theme_tpl:      "css/md_preview/{0}.css"
+            ],
+            theme_code:     ko.observable(""),
+            theme_code_list: [
+                                "arta", "ascetic", "brown_paper", "dark",
+                                "default", "far", "github", "googlecode",
+                                "idea", "ir_black", "magula", "monokai",
+                                "monokai_sublime", "pojoaque", "railscasts",
+                                "rainbow", "school_book", "solarized_dark",
+                                "solarized_light", "sunburst", "tomorrow-night-blue",
+                                "tomorrow-night-bright", "tomorrow-night-eighties",
+                                "tomorrow-night", "tomorrow", "vs", "xcode",
+                                "zenburn"
+            ]
+            // theme_tpl:      "css/md_preview/{0}"
         }
     }),
 
@@ -72,6 +84,7 @@ var edtrSettings = {
         // TODO: Load settings from server
         edtrSettings.general.editor.theme("eclipse");
         edtrSettings.general.preview.theme("default");
+        edtrSettings.general.preview.theme_code("default");
         // TODO: should we get those from server as well ?
         edtrSettings.general.editor.default_icon =
             edtrSettings.base_icon_url+"dropbox-api-icons/16x16/page_white.gif";

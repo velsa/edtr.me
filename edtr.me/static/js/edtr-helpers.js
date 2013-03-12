@@ -50,7 +50,7 @@ String.prototype.capitalize = function() {
 
 // Converts dashed name into human readable string
 String.prototype.humanReadable = function() {
-    return this.replace(/-/g, ' ').capitalize();
+    return this.replace(/[-_]/g, ' ').capitalize();
 };
 
 // adds element any array

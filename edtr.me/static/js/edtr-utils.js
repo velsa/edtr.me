@@ -134,8 +134,6 @@ var syncIcon = {
 
 
 var edtrSplitters = {
-    self:       null,
-
     //
     // Setup splitter drag events
     //
@@ -160,28 +158,26 @@ var edtrSplitters = {
             parseInt(this.container_elem.css('bottom'), 10);
         this.is_dragging = false;
 
-        self = this;
-
         this.vl_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
-            if (!self.lsb_is_visible)
+            if (!edtrSplitters.lsb_is_visible)
                 return;
             $(window).on("mousemove", function(e) {
-                self.is_dragging = true;
+                edtrSplitters.is_dragging = true;
                 var new_width = e.clientX-5;
-                if (new_width > self.left_max_width)
-                    new_width = self.left_max_width;
-                else if (new_width < self.left_min_width)
-                    new_width = self.left_min_width;
-                if (new_width == self.left_elem.width())
+                if (new_width > edtrSplitters.left_max_width)
+                    new_width = edtrSplitters.left_max_width;
+                else if (new_width < edtrSplitters.left_min_width)
+                    new_width = edtrSplitters.left_min_width;
+                if (new_width == edtrSplitters.left_elem.width())
                     return;
-                self.left_elem.width(new_width);
-                self.right_elem.css({left: new_width});
+                edtrSplitters.left_elem.width(new_width);
+                edtrSplitters.right_elem.css({left: new_width});
             });
             $(window).on("mouseup", function(e) {
-                var was_dragging = self.is_dragging;
-                self.is_dragging = false;
+                var was_dragging = edtrSplitters.is_dragging;
+                edtrSplitters.is_dragging = false;
                 $(window).off("mousemove");
                 $(window).off("mouseup");
                 if (!was_dragging) { // was clicking
@@ -192,41 +188,41 @@ var edtrSplitters = {
             });
         })
         .on("dblclick", function(e) {
-            self.toggle_sidebar();
+            edtrSplitters.toggle_sidebar();
         });
 
         _fix_height = function(top_height) {
-            var new_height = self.container_elem.height() - top_height - 5;
-            if (new_height < self.bottom_min_height)
-                new_height = self.bottom_min_height;
-            else if (top_height <= self.top_min_height)
-                new_height = self.container_elem.height() - self.top_min_height - 5;
-            if (new_height == self.bottom_elem.height())
+            var new_height = edtrSplitters.container_elem.height() - top_height - 5;
+            if (new_height < edtrSplitters.bottom_min_height)
+                new_height = edtrSplitters.bottom_min_height;
+            else if (top_height <= edtrSplitters.top_min_height)
+                new_height = edtrSplitters.container_elem.height() - edtrSplitters.top_min_height - 5;
+            if (new_height == edtrSplitters.bottom_elem.height())
                 return;
-            self.top_elem.css({bottom: new_height});
-            self.bottom_elem.css({height: new_height});
+            edtrSplitters.top_elem.css({bottom: new_height});
+            edtrSplitters.bottom_elem.css({height: new_height});
         };
 
         this.h_splitter
         .on("mousedown", function(e) {
             e.preventDefault(); // disable text selection during drag
-            if (!self.preview_is_visible)
+            if (!edtrSplitters.preview_is_visible)
                 return;
-            // self.preview_container.contents().find('body').on("mousemove", function(e) {
+            // edtrSplitters.preview_container.contents().find('body').on("mousemove", function(e) {
             //     //e.preventDefault(); // disable text selection during drag
             //     console.log(e.pageY);
             // });
             $(window).on("mousemove", function(e) {
-                if (!self.is_dragging) {
+                if (!edtrSplitters.is_dragging) {
                     // Apply hack div over iframe, we don't want it to capture our mouse events
-                    self.bottom_elem.append('<div id="tarpaulin"></div>');
+                    edtrSplitters.bottom_elem.append('<div id="tarpaulin"></div>');
                 }
-                self.is_dragging = true;
-                _fix_height(e.clientY - self.container_shift);
+                edtrSplitters.is_dragging = true;
+                _fix_height(e.clientY - edtrSplitters.container_shift);
             });
             $(window).on("mouseup", function(e) {
-                var was_dragging = self.is_dragging;
-                self.is_dragging = false;
+                var was_dragging = edtrSplitters.is_dragging;
+                edtrSplitters.is_dragging = false;
                 $(window).off("mousemove");
                 $(window).off("mouseup");
                 if (!was_dragging) { // was clicking
@@ -239,62 +235,70 @@ var edtrSplitters = {
             });
         })
         .on("dblclick", function(e) {
-            self.toggle_preview();
+            edtrSplitters.toggle_preview();
         });
 
         $(window).resize(function () {
-            _fix_height(self.bottom_elem.height() - self.container_shift);
+            _fix_height(edtrSplitters.bottom_elem.height() - edtrSplitters.container_shift);
         });
     },
 
     toggle_sidebar: function() {
-        if (self.lsb_is_visible)
-            self.hide_sidebar();
+        if (edtrSplitters.lsb_is_visible)
+            edtrSplitters.hide_sidebar();
         else
-            self.show_sidebar();
+            edtrSplitters.show_sidebar();
     },
     hide_sidebar: function() {
-        if (self.lsb_is_visible) {
-            self.lsb_is_visible = false;
-            self.left_sidebar.hide();
-            self.vl_splitter.css({left: 0});
-            self.right_elem_left = self.right_elem.css("left");
-            self.right_elem.css({left: self.vl_splitter.width() +
-                parseInt(self.vl_splitter.css('right'), 10)});
+        if (edtrSplitters.lsb_is_visible) {
+            edtrSplitters.lsb_is_visible = false;
+            edtrSplitters.left_sidebar.hide();
+            edtrSplitters.vl_splitter.css({left: 0});
+            edtrSplitters.right_elem_left = edtrSplitters.right_elem.css("left");
+            edtrSplitters.right_elem.css({left: edtrSplitters.vl_splitter.width() +
+                parseInt(edtrSplitters.vl_splitter.css('right'), 10)});
+            // If callback was registered - call it
+            if (edtrSplitters.on_sidebar_toggled) edtrSplitters.on_sidebar_toggled();
         }
     },
     show_sidebar: function() {
-        if (!self.lsb_is_visible) {
-            self.lsb_is_visible = true;
-            self.left_sidebar.show();
-            self.vl_splitter.removeAttr('style');
-            self.right_elem.css({left: self.right_elem_left});
+        if (!edtrSplitters.lsb_is_visible) {
+            edtrSplitters.lsb_is_visible = true;
+            edtrSplitters.left_sidebar.show();
+            edtrSplitters.vl_splitter.removeAttr('style');
+            edtrSplitters.right_elem.css({left: edtrSplitters.right_elem_left});
+            // If callback was registered - call it
+            if (edtrSplitters.on_sidebar_toggled) edtrSplitters.on_sidebar_toggled();
         }
     },
-    hide_editor: function() { self.right_elem.hide(); },
-    show_editor: function() { self.right_elem.show(); },
+    // hide_editor: function() { edtrSplitters.right_elem.hide(); },
+    // show_editor: function() { edtrSplitters.right_elem.show(); },
     toggle_preview: function() {
-        if (self.preview_is_visible)
-            self.hide_preview();
+        if (edtrSplitters.preview_is_visible)
+            edtrSplitters.hide_preview();
         else
-            self.show_preview();
+            edtrSplitters.show_preview();
     },
     hide_preview: function() {
-        if (self.preview_is_visible) {
-            self.preview_is_visible = false;
-            self.preview_container.hide();
-            self.h_splitter.css({top: self.bottom_elem.height() -
-                parseInt(self.h_splitter.css('top'), 10)});
-            self.top_elem_bottom = self.top_elem.css("bottom");
-            self.top_elem.css({'bottom': self.h_splitter.height()});
+        if (edtrSplitters.preview_is_visible) {
+            edtrSplitters.preview_is_visible = false;
+            edtrSplitters.preview_container.hide();
+            edtrSplitters.h_splitter.css({top: edtrSplitters.bottom_elem.height() -
+                parseInt(edtrSplitters.h_splitter.css('top'), 10)});
+            edtrSplitters.top_elem_bottom = edtrSplitters.top_elem.css("bottom");
+            edtrSplitters.top_elem.css({'bottom': edtrSplitters.h_splitter.height()});
+            // If callback was registered - call it
+            if (edtrSplitters.on_preview_toggled) edtrSplitters.on_preview_toggled();
         }
     },
     show_preview: function() {
-        if (!self.preview_is_visible) {
-            self.preview_is_visible = true;
-            self.preview_container.show();
-            self.h_splitter.removeAttr('style');
-            self.top_elem.css({'bottom': self.top_elem_bottom});
+        if (!edtrSplitters.preview_is_visible) {
+            edtrSplitters.preview_is_visible = true;
+            edtrSplitters.preview_container.show();
+            edtrSplitters.h_splitter.removeAttr('style');
+            edtrSplitters.top_elem.css({'bottom': edtrSplitters.top_elem_bottom});
+            // If callback was registered - call it
+            if (edtrSplitters.on_preview_toggled) edtrSplitters.on_preview_toggled();
         }
     }
 };

@@ -35,9 +35,9 @@ function edtrCodemirror(content_type, content) {
             self._update_toolbar_fullscreen_button();
         }
     };
+
     this.toggle_width = function() {
         edtrSplitters.toggle_sidebar();
-        self._update_toolbar_width_button();
         // HACK: have to call refresh twice, because codemirror throws error
         self.cm_editor.refresh();
         setTimeout(self.cm_editor.refresh, 500);
@@ -57,7 +57,6 @@ function edtrCodemirror(content_type, content) {
     };
     this.toggle_height = function() {
         edtrSplitters.toggle_preview();
-        self._update_toolbar_height_button();
         // HACK: have to call refresh twice, because codemirror throws error
         self.cm_editor.refresh();
         setTimeout(self.cm_editor.refresh, 500);
@@ -83,8 +82,6 @@ function edtrCodemirror(content_type, content) {
             edtrSplitters.show_sidebar();
             edtrSplitters.show_preview();
         }
-        self._update_toolbar_height_button();
-        self._update_toolbar_width_button();
         // HACK: have to call refresh twice, because codemirror throws error
         self.cm_editor.refresh();
         setTimeout(self.cm_editor.refresh, 500);
@@ -632,10 +629,15 @@ function edtrCodemirror(content_type, content) {
 
     //
     // Scroll preview-container to corresponding anchor
+    // if force is true - scrolling is forced even if we are on the same line
+    // this helps restoring preview position after changing stylesheets
     //
-    this.scroll_to_anchor = function() {
-        var line_num = self.cm_editor.getCursor(true).line-self.tabs[self.current_tab].metadata.lines;
-        if (line_num > 0&& line_num !== self.cur_line) {
+    this.scroll_to_anchor = function(force) {
+        // getCursor lines start from 0, while aTags ids start from 1
+        var line_num = self.cm_editor.getCursor(true).line+1-self.tabs[self.current_tab].metadata.lines;
+        console.log(line_num);
+        if (line_num > 0 &&
+            (line_num !== self.cur_line || force)) {
             self.cur_line = line_num;
             var i,
                 anchor_num=0,
@@ -673,7 +675,7 @@ function edtrCodemirror(content_type, content) {
                 var new_pos;
                 new_pos = Math.max(0,
                         Math.abs(aTag.position().top-preview_offset) - 90);
-                if (new_pos !== self.preview_pos) {
+                if (new_pos !== self.preview_pos || force) {
                     self.preview_pos = new_pos;
                     self.dom_preview_body.scrollTop(new_pos);
                 }
@@ -681,7 +683,7 @@ function edtrCodemirror(content_type, content) {
         }
     };
 
-    this.update_live_preview = function() {
+    this.update_live_preview = function(force_scroll) {
         // Update preview on timer (only when preview is visible)
         if (edtrSplitters.preview_is_visible && !self.is_preview_timer) {
             self.is_preview_timer = true;
@@ -693,10 +695,67 @@ function edtrCodemirror(content_type, content) {
                 self.dom_preview_body.html(marked(self.tabs[self.current_tab].metadata.content));
                 // Get anchors from generated preview
                 self.aTags = self.dom_preview_body.find("a.marked-anchor");
-                self.scroll_to_anchor();
+                self.scroll_to_anchor(force_scroll);
             }, 100);
         }
     },
+
+
+    // Select correct theme based on available metadata and general settings
+    // type === "theme":        get preview theme
+    // type === "theme_code":   get preview code theme
+    this._get_theme = function(type) {
+        var theme = edtrSettings.general.preview[type](),
+            fix_path = true,
+            cur_tab = self.tabs[self.current_tab],
+            meta_key = type === "theme" ? "style" : "codestyle";
+        // Metadata style has precedence over general settings
+        if (cur_tab.metadata && cur_tab.metadata.data[meta_key]) {
+            var user_theme = cur_tab.metadata.data[meta_key].toLowerCase();
+            if (user_theme.endsWith(".css")) {
+                // TODO: append real user preview path to .css file
+                var user_path = edtrHelper.get_filename_path(cur_tab.node.id);
+                if (user_path === '/') user_path = "";
+                theme = "http://preview.user.edtr.me/"+user_path+"/"+user_theme;
+                fix_path = false;
+            } else {
+                // If theme is one of the preset ones - use it, otherwise we fallback to
+                // theme set in general settings
+                if ($.inArray(user_theme, edtrSettings.general.preview[type+"_list"]()) !== -1)
+                    theme = user_theme;
+            }
+        }
+        if (fix_path)
+            theme = "/static/css/preview_"+type+"/" + theme + ".css";
+
+        return theme;
+    },
+
+    // Update head element in preview iframe with correct stylesheets
+    this.update_preview_theme   = function() {
+        // Compile template for preview head element (do it only once)
+        if (!self.preview_head_template) {
+            self.preview_head_template = _.template($("#preview_head_template").html());
+        }
+
+        // Don't do anything if we have no opened tabs
+        if (!self.tabs.length) return;
+
+        // Cancel previous preview timer
+        if (self.is_preview_timer) {
+            self.is_preview_timer = false;
+            clearTimeout(self.preview_timer_id);
+        }
+
+        // Update stylesheet in preview iframe
+        self.dom_preview_head.html(self.preview_head_template({
+            theme_url:          self._get_theme("theme"),
+            theme_code_url:     self._get_theme("theme_code"),
+            reload_hash:        (new Date()).getTime()
+        }));
+
+        self.update_live_preview(true);
+    };
 
     //
     // Text in CodeMirror changed
@@ -709,7 +768,7 @@ function edtrCodemirror(content_type, content) {
         }
         // Metadata will also be parsed in update_live_preview() on timer,
         // to optimize number of calls to it
-        self.update_live_preview();
+        self.update_live_preview(false);
     };
 
     //
@@ -737,6 +796,7 @@ function edtrCodemirror(content_type, content) {
             // Last line of metadata - new line
             if (!line.length) {
                 content = text.substr(i+1);
+                lines++;
                 break;
             }
             // First character should be alphanumberical
@@ -747,6 +807,8 @@ function edtrCodemirror(content_type, content) {
             // Find key:value
             j = line.indexOf(":");
             if (j === -1) {
+                // TODO: should we discard ALL metadata and set content to text ?
+                // (also set lines to 0)
                 status = false;
                 content = text.substr(i);
                 break;
@@ -765,7 +827,10 @@ function edtrCodemirror(content_type, content) {
             content:    content,
             data:       data
         };
-        if (!old_metadata || old_metadata.data.style !== data.style) {
+        // Some changes in metadata may requre a preview update
+        if (!old_metadata
+            || old_metadata.data.codestyle !== data.codestyle
+            || old_metadata.data.style !== data.style) {
             self.update_preview_theme();
         }
     };
@@ -856,7 +921,7 @@ function edtrCodemirror(content_type, content) {
     this.on_cursor_activity = function(inst) {
         // console.log("cursor");
         // self.cm_editor.highlightMatches("CodeMirror-matchhighlight");
-        self.scroll_to_anchor();
+        self.scroll_to_anchor(false);
     };
 
     this._make_marker = function() {
@@ -924,13 +989,19 @@ function edtrCodemirror(content_type, content) {
     };
 
     // SAVE BUTTON and Ctrl-S:
-    // Save contents of current tab and launch callback when done
+    // Save contents of current tab and launch callback self.on_saved() when done
     // callback parameter will be true if saved ok and false if not
     this.save_codemirror = function() {
         var cur_tab = self.tabs[self.current_tab];
         // File is already saved or in the process of being saved
-        if (cur_tab.state !== self.TAB_STATES.NOT_SAVED)
+        if (cur_tab.state === self.TAB_STATES.SAVED) {
+            if (self.on_saved) self.on_saved.call(this, true);
             return;
+        }
+        if (cur_tab.state === self.TAB_STATES.SAVING) {
+            if (self.on_saved) self.on_saved.call(this, false);
+            return;
+        }
         // Update state, show backdrop and rotating wheel in tree
         self.set_tab_state(self.TAB_STATES.SAVING);
         self.dom_elem.find(".file-saving").show();
@@ -963,6 +1034,24 @@ function edtrCodemirror(content_type, content) {
                 }
             }
         );
+    };
+
+    // SAVE BUTTON and Ctrl-S:
+    // Save contents of current tab and launch callback self.on_saved() when done
+    // callback parameter will be true if saved ok and false if not
+    this.publish_codemirror = function() {
+        var cur_tab = self.tabs[self.current_tab];
+        // Prepare callback to publish when save has completed
+        self.on_saved = function(is_success) {
+            // Imitate file action in tree
+            if (is_success) {
+                edtrTree.file_action("publish_file",
+                    edtrHelper.get_filename_path(cur_tab.node.id),
+                    cur_tab.node.name, cur_tab.node.name);
+            }
+        };
+        // And launch save
+        self.save_codemirror();
     };
 
     // Show confirmation dialog to replace existing tab with new content
@@ -1090,12 +1179,8 @@ function edtrCodemirror(content_type, content) {
         edtrTree.update_node_icon(self.tabs[self.current_tab].node, "editing");
         self.set_tab_state(self.TAB_STATES.SAVED);
 
-        // Cancel previous preview timer
-        if (self.is_preview_timer) {
-            self.is_preview_timer = false;
-            clearTimeout(self.preview_timer_id);
-        }
-        self.update_live_preview();
+        self.update_preview_theme();
+        self.update_live_preview(true);
     };
 
     // Find tab in tabs array by node id
@@ -1144,7 +1229,7 @@ function edtrCodemirror(content_type, content) {
 
         // Update preview for new tab
         self.update_preview_theme();
-        self.update_live_preview();
+        self.update_live_preview(true);
     },
 
     // Close tab by node id
@@ -1254,34 +1339,6 @@ function edtrCodemirror(content_type, content) {
         }
     },
 
-    this.update_preview_theme   = function() {
-        var theme = edtrSettings.general.preview.theme(),
-            fix_path = true,
-            cur_tab = self.tabs[self.current_tab];
-        // Metadata style has precedence over theme in settings
-        if (cur_tab && cur_tab.metadata && cur_tab.metadata.data.style) {
-            var user_theme = cur_tab.metadata.data.style.toLowerCase();
-            if (theme.endsWith(".css")) {
-                // TODO: append user preview path to .css file
-                var user_path = edtrHelper.get_filename_path(cur_tab.node.id);
-                if (user_path === '/') user_path = "";
-                theme = "http://preview.user.edtr.me/"+user_path+"/"+user_theme;
-                fix_path = false;
-            } else {
-                if ($.inArray(user_theme, edtrSettings.general.preview.theme_list()) !== -1)
-                    theme = user_theme;
-            }
-        }
-        if (fix_path)
-            theme = "/static/css/md_preview/" + theme + ".css";
-        // Update stylesheet in preview iframe
-        var prev_css = self.dom_preview_head.find("link[rel=stylesheet]");
-        self.dom_preview_head.
-            append("<link rel=\"stylesheet\" href=\"" +
-                theme + "?reload=" + (new Date()).getTime() + "\">");
-        prev_css.remove();
-    };
-
     this.init                   = function(dom_container, dom_preview) {
         //
         // INITIALIZATION (constructor)
@@ -1334,7 +1391,6 @@ function edtrCodemirror(content_type, content) {
 
         /* Allows last line to be positioned above the bottom */
         this.dom_preview_body.css("margin-bottom", "90px");
-        this.update_preview_theme();
 
         // TODO: get those from general settings
         var cm_settings = {
@@ -1418,6 +1474,10 @@ function edtrCodemirror(content_type, content) {
             .delegate("li", 'contextmenu', function(e){ e.preventDefault(); });
         this.dom_tabs_ul.delegate(".editor-tab-close", "click", this.on_tab_close_click);
 
+        // Handle edtrSplitters events by registering callbacks
+        edtrSplitters.on_sidebar_toggled = self._update_toolbar_width_button;
+        edtrSplitters.on_preview_toggled = self._update_toolbar_height_button;
+
         //
         // Subscribe to various settings
         //
@@ -1425,6 +1485,7 @@ function edtrCodemirror(content_type, content) {
         this.ko_sub = [];
         // Change preview stylesheet
         this.ko_sub[i++] = edtrSettings.general.preview.theme.subscribe(this.update_preview_theme);
+        this.ko_sub[i++] = edtrSettings.general.preview.theme_code.subscribe(this.update_preview_theme);
         // Change editor font size
         this.ko_sub[i++] = edtrSettings.general.editor.font_size.subscribe(function(new_size) {
             $(".CodeMirror-scroll").css("font-size", edtrSettings.general.editor.font_size()+"px");
@@ -1467,11 +1528,19 @@ function edtrCodemirror(content_type, content) {
 
         // Set default options for marked
         marked.setOptions({
-          gfm:              true,
-          tables:           false,
-          breaks:           true,
-          pedantic:         false,
-          sanitize:         false
+            gfm:              true,
+            tables:           false,
+            breaks:           true,
+            pedantic:         false,
+            sanitize:         false,
+            highlight:        function(code, lang) {
+            //if (lang === 'js') {
+                // console.log(lang);
+                // debugger;
+                return hljs.highlightAuto(code).value;
+            //}
+            //return code;
+            }
         });
 
         // Actions for toolbar and buttonbar buttons
@@ -1484,7 +1553,7 @@ function edtrCodemirror(content_type, content) {
         // Search on any text (keyup)
         // Special search navigation (keydown):
         //      next on Enter/Down, previous on Up and leave search mode on Esc
-        self.dom_search_input
+        this.dom_search_input
         .on("keyup", function(event) {
             switch (event.which) {
                 case 27: // Esc
@@ -1534,6 +1603,8 @@ function edtrCodemirror(content_type, content) {
         this.dom_elem.find(".cme-button-tooltip-bottom").tooltip({
             placement: "bottom", html: true, delay: { show: 800, hide: 300 }
         });
+
+        // this.update_preview_theme();
 
         return this;
     };

@@ -52,7 +52,6 @@ var edtrTree = {
             },
             edit: {
                 // Drag moves nodes without checking anything
-                // TODO: fix drag visualization, make it drag a real file box
                 enable:             true,
                 showRemoveBtn:      false,
                 showRenameBtn:      false,

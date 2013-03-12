@@ -107,6 +107,10 @@
     -->
     <script src="{{static_url('js/marked-vels.js')}}"></script>
 
+    <!-- Highlighter for pre code
+    -->
+    <script src="{{static_url('vendor/highlight.min.js')}}"></script>
+
     <!-- Socket IO - used for auto updates from server
     -->
     <script src="{{static_url('vendor/socket.io.js')}}"></script>
@@ -140,6 +144,9 @@
         {% include "modals/file_ut.html" %}
         {% include "modals/settings_ut.html" %}
         {% include "modals/efs_ut.html" %}
+
+        <!-- Template for preview iframe (for head element) -->
+        {% include "preview/head_ut.html" %}
 
         <!-- Bar for messages, errors and info -->
         <div id="messages_bar"></div>

@@ -41,21 +41,21 @@
                     <hr>
                     <table class="table-condensed"><tbody>
                         <tr>
-                            <td colspan="2">
+                            <td colspan="2" class="nowrap">
                                 <label class="checkbox">
                                     <input type="checkbox"
                                         data-bind="checked: editor.line_numbers">
                                         Show line numbers
                                 </label>
                             </td>
-                            <td colspan="2">
+                            <td colspan="2" class="nowrap">
                                 <label class="checkbox">
                                     <input type="checkbox"
                                         data-bind="checked: editor.show_toolbar">
                                         Show toolbar
                                 </label>
                             </td>
-                            <td colspan="2">
+                            <td colspan="2" class="nowrap">
                                 <label class="checkbox">
                                     <input type="checkbox"
                                         data-bind="checked: editor.auto_close_brackets">
@@ -64,21 +64,21 @@
                             </td>
                         </tr>
                         <tr>
-                            <td colspan="2">
+                            <td colspan="2" class="nowrap">
                                 <label class="checkbox">
                                     <input type="checkbox"
                                         data-bind="checked: editor.hl_current_line">
                                         Highlight current line
                                 </label>
                             </td>
-                            <td colspan="2">
+                            <td colspan="2" class="nowrap">
                                 <label class="checkbox">
                                     <input type="checkbox"
                                         data-bind="checked: editor.indent_with_tabs">
                                         Indent with Tabs
                                 </label>
                             </td>
-                            <td colspan="2">
+                            <td colspan="2" class="nowrap">
                                 <label class="checkbox">
                                     <input type="checkbox"
                                         data-bind="checked: editor.line_wrapping">
@@ -92,7 +92,7 @@
                     <!-- cells in a table row: 6 -->
                     <table class="table-condensed"><tbody>
                         <tr>
-                            <td colspan="1"> <label>Theme:</label> </td>
+                            <td colspan="1"> <label>Preview theme:</label> </td>
                             <td colspan="3">
                                 <select class="selectpicker"
                                     data-bind= "options: preview.theme_list,
@@ -100,6 +100,18 @@
                                                     return item.humanReadable()
                                                 },
                                                 value: preview.theme">
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="1"> <label>Theme for code blocks:</label> </td>
+                            <td colspan="3">
+                                <select class="selectpicker"
+                                    data-bind= "options: preview.theme_code_list,
+                                                optionsText: function(item) {
+                                                    return item.humanReadable()
+                                                },
+                                                value: preview.theme_code">
                                 </select>
                             </td>
                         </tr>

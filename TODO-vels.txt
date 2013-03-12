@@ -1,8 +1,6 @@
 
 UI:
-- general settings dialog:  preview follows cursor (?)
-- preview theme should be taken from metadata
-- color icons in toolbar (from famfam silk set)
+- In general settings dialog:  preview follows cursor (?)
 - folder settings: edit as text file (python style, like in pelican ?)
 - special icons for each type: 'editing', 'published'. ask outsource designer to make those
 - add sort by name, ext (default), date, sort order (ascending/descending)
@@ -12,23 +10,19 @@ UI:
 - tree and editor keyboard shortcuts. decide where to use alt and ctrl (avoid clashing with mac and windows browser shortcuts) and make tree actions accessible from within editor
 - add search/replace with autocomplete and regexp, a search dialog should popup in top right corner of the editor (or bottom, like i sublime ?)
 - enable Ctrl - cursor movement (currently only Option works)
-- Save button should show the Draft/Published status in all states:
-    Save Draft
-    SAVED (draft/published)
-    SAVING DRAFT...
+- metadata editing dialog - add option to insert current preview theme and preview code theme and Style and CodeStyle
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
 - Add support for dt/dd (definition lists):
     http://kramdown.rubyforge.org/syntax.html#definition-lists
-- Add support for custom attributes to markdown block and inline elements as in here: [Attribute Lists](http://pythonhosted.org/Markdown/extensions/attr_list.html)
+- Add support for custom attributes to markdown block and inline elements as in here: [Attribute Lists](http://pythonhosted.org/Markdown/extensions/attr_list.html). Configure them in text file and specify it in metadata (?). This way a user can have 3 files: template, attrlist and css, which define site structure.
 
 JS:
 - publish functionality:
-    - *from editor* with Publish button. If file is already published and unmodified, Publish button is greyed out.
+    If file is already published and unmodified, Publish button is greyed out.
 
 BUGS:
-- ztree: it would be really nice to be able to drag node visually (as icon or as a text line) and to visually see which node it will become a child of (e.g. highlight the whole parent node structure during drag)
 - ztree: if parent node is checked, but not loaded with ajax, its check_Child_State is -1, but when it is loaded, the check_Child_State becomes 1, although none of it's children are checked. So the check_Child_State should actually become 0
 - ztree: refresh dir node without closing it first
 - save doesn't check for exceptions (network errors, etc). Show "Saving..." text above rotating circle

@@ -210,7 +210,7 @@ Lexer.prototype.token = function(src, top) {
       src = src.substring(cap[0].length);
 
       // VELS
-      debugger;
+      // debugger;
       if (cap1 = this.rules.attr_list.exec(cap[0])) {
         //debugger;
         cap[0] = cap[0].replace(cap1[1], "");
@@ -637,7 +637,7 @@ InlineLexer.prototype.output = function(src) {
 
     // VELS
     if (cap = this.rules.attr_list.exec(src)) {
-      debugger;
+      //debugger;
       src = src.replace(cap[1], "");
       attr = 'style="background: red"';
       //continue;
