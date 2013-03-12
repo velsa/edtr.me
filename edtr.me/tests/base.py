@@ -94,10 +94,10 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         async_op()
         self.wait()
 
-    def db_find_one(self, user_data):
+    def db_find_one(self, collection, data):
         @gen.engine
         def async_op():
-            result = yield motor.Op(db.accounts.find_one, user_data)
+            result = yield motor.Op(db[collection].find_one, data)
             self.stop(result)
         async_op()
         return self.wait()
