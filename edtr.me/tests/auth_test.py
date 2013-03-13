@@ -39,7 +39,7 @@ class RegisterTest(BaseTest):
         self.assertEqual(resp.code, 302)
         self.assertEqual(resp.headers['Location'], self.reverse_url('home'))
         # check, user is created
-        user = self.db_find_one({'_id': username})
+        user = self.db_find_one('accounts', {'_id': username})
         self.assertEqual(user['_id'], username)
 
     def test_invalid_signup_data(self):
@@ -148,7 +148,7 @@ class LoginTest(BaseTest):
         self.assertEqual(fetch_mock_called[_DROPBOX_ACCOUNT_INFO_URL], True)
         self.assertEqual(resp.code, 302)
         self.assertEqual(self.reverse_url('home'), resp.headers['Location'])
-        user = self.db_find_one({'_id': username})
+        user = self.db_find_one('accounts', {'_id': username})
 
         # self.assertEqual(user['token_string'], '|'.join(
         #     [oauth_access_token, oauth_access_token_secret]))

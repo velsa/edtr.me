@@ -11,6 +11,8 @@ TEST_MODULES = [
     'tests.dropbox.api_ajax.get_tree_test',
     'tests.dropbox.api_ajax.get_file_test',
     'tests.dropbox.api_ajax.save_file_test',
+    'tests.dropbox.api_ajax.create_dir_test',
+    'tests.dropbox.api_ajax.delete_test',
 ]
 
 

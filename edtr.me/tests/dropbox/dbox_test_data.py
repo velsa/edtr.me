@@ -10,7 +10,7 @@ class TF:
     md = "application/octet-stream"
     css = 3
     js = 4
-    html = 5
+    html = "text/html"
     binary = "application/x-msdos-program"
     image_png = "image/png"
     video_mp4 = "video/mp4"
@@ -111,6 +111,22 @@ def get_dbox_meta(path, o_type, with_path=True):
             "root": "app_folder",
             "mime_type": "{f_type}",
             "size": "7 bytes"
+          }}""".format(path=path, f_type=o_type)
+    elif o_type == TF.html:
+        meta_data = """
+          {{
+              "revision": 1138,
+              "rev": "4720c3bcb59",
+              "thumb_exists": false,
+              "bytes": 489,
+              "modified": "Tue, 12 Mar 2013 08:07:01 +0000",
+              "client_mtime": "Tue, 26 Feb 2013 08:32:21 +0000",
+              "path": "{path}",
+              "is_dir": false,
+              "icon": "page_white_code",
+              "root": "app_folder",
+              "mime_type": "{f_type}",
+              "size": "489 bytes"
           }}""".format(path=path, f_type=o_type)
     if with_path:
         meta_data = """[
