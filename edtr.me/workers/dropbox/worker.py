@@ -62,10 +62,11 @@ class DropboxWorkerMixin(DropboxMixin):
             callback({'errcode': ErrCode.bad_request})
             return
         if text_content:
-            try:
-                text_content = text_content.encode(DEFAULT_ENCODING)
-            except UnicodeEncodeError:
-                text_content = text_content.encode('ascii', 'replace')
+            if not isinstance(text_content, unicode):
+                try:
+                    text_content = text_content.decode(DEFAULT_ENCODING)
+                except UnicodeEncodeError:
+                    text_content = text_content.decode('ascii', 'replace')
         else:
             text_content = ''
         md_file = False
