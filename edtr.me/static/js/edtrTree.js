@@ -1404,19 +1404,19 @@ var edtrTree = {
         // Process action in ztree
         if ($.inArray(action, ["add_file", "add_subdir"]) !== -1) {
             // General parameters
-            node = {
-                id:         full_path_new,
-                name:       filename_new
-            };
+            // node = {
+            //     id:         full_path_new,
+            //     name:       filename_new
+            // };
             // Specific parameters
             switch(action) {
                 case "add_file":
                     // Save empty file
                     server_data.content = "";
-                    node.isParent = false;
+                    // node.isParent = false;
                     break;
                 case "add_subdir":
-                    node.isParent = true;
+                    // node.isParent = true;
                     break;
             }
             // Perform server action and if successful do the tree action
@@ -1426,8 +1426,9 @@ var edtrTree = {
                 // Error should be already displayed
                 if (data.errcode)
                     return;
-                var new_node = edtrTree.ztree.addNodes(parent_node, [node], true)[0];
-                edtrTree.sort_node_in_parent(new_node, parent_node);
+                node = edtrTree._create_tree_node(data.meta);
+                var ztree_node = edtrTree.ztree.addNodes(parent_node, [node], true)[0];
+                edtrTree.sort_node_in_parent(ztree_node, parent_node);
                 // Notify user
                 messagesBar.show_notification(human_action[action].format(
                     filename, path, filename_new));

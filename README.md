@@ -3,6 +3,7 @@ edtr.me
 
 ## Quick run guide
 
+- It is **highly** recommended to use `virtualenv` for development and our personal preference is to use [virtualenvwrapper](http://virtualenvwrapper.readthedocs.org/en/latest/index.html)
 - `pip install -r requirements.txt`
 - `cp config.flags.sample config.flags`
 - Specify `dropbox_consumer_key`, `dropbox_consumer_secret`, `dropbox_access_type` in config.flags. You can find these at [http://www.dropbox.com/developers/apps](http://www.dropbox.com/developers/apps). Access type should be either `'dropbox'` or `'app_folder'`
