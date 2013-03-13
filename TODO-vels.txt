@@ -11,6 +11,7 @@ UI:
 - add search/replace with autocomplete and regexp, a search dialog should popup in top right corner of the editor (or bottom, like i sublime ?)
 - enable Ctrl - cursor movement (currently only Option works)
 - metadata editing dialog - add option to insert current preview theme and preview code theme and Style and CodeStyle
+- add CodeStyle: none (?)
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
