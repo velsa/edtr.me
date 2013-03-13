@@ -323,6 +323,9 @@ var modalDialog = {
 
         // Show modal
         modalDialog.dom_modal.modal({backdrop: true});
+        // Make backdrop see-through so that user will be able to see the effect
+        // of settings on editor, preview, etc..
+        $("body").find(".modal-backdrop").css("opacity", "0");
 
         // Set focus on first input element
         modalDialog.dom_modal.find("input").eq(0).focus().select();

@@ -558,13 +558,14 @@ span.cm-matchhighlight {
 /*
  * Rotating animation in modal divs
  */
-.file-loading {
+/*.file-loading {
     opacity:                1 !important;
     background-color:       rgba(55,55,55,0.3);
     background-image:       url('/static/images/file-loader.gif');
     background-repeat:      no-repeat;
     background-position:    50% 50%;
 }
+*/
 .file-saving {
     position:               absolute;
     opacity:                1 !important;
@@ -573,7 +574,7 @@ span.cm-matchhighlight {
     background-repeat:      no-repeat;
     background-position:    50% 50%;
 }
-.server-action {
+/*.server-action {
     position:               absolute;
     opacity:                1 !important;
     background-color:       rgba(55,55,55,0.3);
@@ -581,6 +582,7 @@ span.cm-matchhighlight {
     background-repeat:      no-repeat;
     background-position:    50% 50%;
 }
+*/
 
 /*
 *   Fancy box
@@ -627,6 +629,9 @@ span.cm-matchhighlight {
 }
 .modal-backdrop {
     opacity:            0.3;
+}
+.modal-backdrop-clear {
+    opacity:            0;
 }
 .modal-header {
     padding:            15px 15px 5px;;

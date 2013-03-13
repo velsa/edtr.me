@@ -1535,7 +1535,7 @@ function edtrCodemirror(content_type, content) {
             sanitize:         false,
             highlight:        function(code, lang) {
             //if (lang === 'js') {
-                // console.log(lang);
+                console.log(lang);
                 // debugger;
                 return hljs.highlightAuto(code).value;
             //}

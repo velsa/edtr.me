@@ -12,6 +12,9 @@ UI:
 - enable Ctrl - cursor movement (currently only Option works)
 - metadata editing dialog - add option to insert current preview theme and preview code theme and Style and CodeStyle
 - add CodeStyle: none (?)
+- Highlight meta-data, and show errors - codemirror mode
+- Add Shortcut/button to remove all trailng whitespace
+- add Ctrl-Shift-V dialog, to allow pasting from a list of previously copied texts (like in pycharm)
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
