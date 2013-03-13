@@ -18,8 +18,6 @@ class FolderType:
 
 
 MAX_HEADER_LINE = 10
-AVALIABLE_HEADERS = ('Author', 'Title', 'Status', 'Slug', 'Tags',
-    'HeaderAnchors', 'Style', 'DatePublished', 'DateModified', 'DateFormat')
 
 
 def get_user_root(user_name, folder_type):
@@ -64,7 +62,7 @@ def parse_md_headers(content):
             break
         else:
             (h, b, a, v) = _parse_header_line(line)
-            if h and h in AVALIABLE_HEADERS:
+            if h:
                 headers[h] = dict(value=v, space_before=b, space_after=a)
                 symbols_in_headers += len(line)
             else:
