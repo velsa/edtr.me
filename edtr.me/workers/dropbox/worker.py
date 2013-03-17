@@ -184,12 +184,13 @@ class DropboxWorkerMixin(DropboxMixin):
                      file_meta.get('thumb_exists', None)):
             yield gen.Task(copy_thumb, from_path, file_meta, user, self)
             remove_thumbnail(from_path, user.name)
-        yield gen.Task(update_meta, self.db, file_meta, user.name)
+        meta = yield gen.Task(update_meta, self.db, file_meta, user.name)
         # TODO: update some changes locally. For example, thumbnail.
         # Currently, if dir was moved, all thumbnails are created again
         # via dropbox
         yield gen.Task(update_dbox_delta, self.db, self, user, force_update=True)
-        callback({'errcode': ErrCode.ok})
+        meta = make_safe_python(DropboxFile, meta, 'public')
+        callback({'errcode': ErrCode.ok, 'meta': meta})
 
     @gen.engine
     def wk_dbox_copy(self, user, from_path, to_path, callback=None):

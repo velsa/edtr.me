@@ -313,8 +313,8 @@ DateFormat:       %B %e, %Y
         self.rev_first = meta_db['rev']
         self.db_save(self.test_user_name, meta_db)
 
-        self.get_call = 0
-        self.save_call = 0
+        self.get_call_count = 0
+        self.save_call_count = 0
 
         def fetch_mock(request, callback, **kwargs):
             if not isinstance(request, HTTPRequest):
@@ -326,7 +326,7 @@ DateFormat:       %B %e, %Y
                 meta['revision'] = self.updated_revision
                 meta['rev'] = self.updated_rev
                 dbox_resp = json.dumps(meta)
-                self.save_call += 1
+                self.save_call_count += 1
             elif "api-content.dropbox.com/1/files/" in request.url and\
               self.dbox_path in request.url:
                 dbox_resp = self.text_content.encode('utf8')
@@ -335,7 +335,7 @@ DateFormat:       %B %e, %Y
                     'X-Dropbox-Metadata': json.dumps(meta),
                     'Content-Type': 'text/plain; charset=UTF-8',
                 }
-                self.get_call += 1
+                self.get_call_count += 1
             else:
                 self.assertTrue(False)
                 callback(None)
@@ -362,8 +362,8 @@ DateFormat:       %B %e, %Y
             })
         self.assertEqual(response.code, 200)
 
-        self.assertEqual(self.get_call, 1)
-        self.assertEqual(self.save_call, 1)
+        self.assertEqual(self.get_call_count, 1)
+        self.assertEqual(self.save_call_count, 1)
 
         json_resp = json.loads(response.body)
         text_updated_heads =\
