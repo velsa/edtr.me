@@ -635,7 +635,7 @@ function edtrCodemirror(content_type, content) {
     this.scroll_to_anchor = function(force) {
         // getCursor lines start from 0, while aTags ids start from 1
         var line_num = self.cm_editor.getCursor(true).line+1-self.tabs[self.current_tab].metadata.lines;
-        console.log(line_num);
+        //console.log(line_num);
         if (line_num > 0 &&
             (line_num !== self.cur_line || force)) {
             self.cur_line = line_num;
@@ -693,6 +693,7 @@ function edtrCodemirror(content_type, content) {
                 self.parse_tab_metadata(self.current_tab);
                 // Generate preview
                 self.dom_preview_body.html(marked(self.tabs[self.current_tab].metadata.content));
+                // self.dom_preview_body.html(self.showdown.makeHtml(self.tabs[self.current_tab].metadata.content));
                 // Get anchors from generated preview
                 self.aTags = self.dom_preview_body.find("a.marked-anchor");
                 self.scroll_to_anchor(force_scroll);
@@ -828,9 +829,9 @@ function edtrCodemirror(content_type, content) {
             data:       data
         };
         // Some changes in metadata may requre a preview update
-        if (!old_metadata
-            || old_metadata.data.codestyle !== data.codestyle
-            || old_metadata.data.style !== data.style) {
+        if (!old_metadata ||
+            old_metadata.data.codestyle !== data.codestyle ||
+            old_metadata.data.style !== data.style) {
             self.update_preview_theme();
         }
     };
@@ -1252,8 +1253,8 @@ function edtrCodemirror(content_type, content) {
         if (dom_li.hasClass("active"))
             change_active = true;
 
-        // Change icon in tree
-        edtrTree.update_node_icon(self.tabs[index].node);
+        // Save node to update its icon later
+        var saved_node = self.tabs[index].node;
 
         // Remove tab node, item from tabs array and adjust current tab index
         dom_li.remove();
@@ -1271,6 +1272,8 @@ function edtrCodemirror(content_type, content) {
             self.switch_tab(self.tabs[self.current_tab].node.id, true);
         }
 
+        // Change icon in tree
+        edtrTree.update_node_icon(saved_node);
     };
 
     // Switch tab on click
@@ -1279,8 +1282,7 @@ function edtrCodemirror(content_type, content) {
         self.switch_tab($(this).data("node-id"));
     },
 
-    // Switch tab on click
-    // $(this) referes to clicked <li>
+    // Process right click
     this.on_tab_mousedown        = function(event) {
         // Right click - simulate edtrTree context menu
         if (event.which === 3) {
@@ -1414,6 +1416,9 @@ function edtrCodemirror(content_type, content) {
                                         // make it work in gfm mode as well
             autoCloseBrackets:  edtrSettings.general.editor.auto_close_brackets(),
 
+            // Markdown
+            fencedCodeBlocks:   true,
+
             // TODO: find Mac equivalents
             extraKeys: {
                 // General
@@ -1526,22 +1531,27 @@ function edtrCodemirror(content_type, content) {
         // Hides original text area, just in case
         // this.dom_elem.hide();
 
+        // Build list of languages that hljs supports
+        this.hljs_languages = [];
+        for (var lang in hljs.LANGUAGES)
+            this.hljs_languages.push(lang);
         // Set default options for marked
         marked.setOptions({
-            gfm:              true,
-            tables:           false,
-            breaks:           true,
-            pedantic:         false,
-            sanitize:         false,
-            highlight:        function(code, lang) {
-            //if (lang === 'js') {
-                console.log(lang);
-                // debugger;
-                return hljs.highlightAuto(code).value;
-            //}
-            //return code;
+            gfm:            true,
+            tables:         false,
+            breaks:         true,
+            pedantic:       false,
+            sanitize:       false,
+            smartLists:     true,
+            highlight:      function(code, lang) {
+                if (lang && self.hljs_languages.indexOf(lang) !== -1)
+                    return hljs.highlight(lang, code).value;
+                else
+                    return hljs.highlightAuto(code).value;
             }
         });
+
+        this.showdown = new Showdown.converter( {extensions: [ "github" ] } );
 
         // Actions for toolbar and buttonbar buttons
         this.dom_elem.find(".cme-button").on("click", function(event) {

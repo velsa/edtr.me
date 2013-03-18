@@ -350,10 +350,16 @@ var edtrTree = {
     // Change node icon to state
     // should be one of the values from node.icons
     update_node_icon:      function(node, state) {
-        // If state is not provided - set icon according to pub_state
-        if (state === undefined)
-            state = edtrSettings.PUB_STATUS[node.pub_status];
-        node.icon = node.icons[state];
+        // If node is opened in editor - set editing icon
+        if (edtrTree.editor && edtrTree.editor.find_tab(node.id, false) !== -1) {
+            node.icon = node.icons.editing;
+        }
+        else {
+            // If state is not provided - set icon according to pub_state
+            if (state === undefined)
+                state = edtrSettings.PUB_STATUS[node.pub_status];
+            node.icon = node.icons[state];
+        }
         edtrTree.ztree.updateNode(node);
     },
 
@@ -397,7 +403,11 @@ var edtrTree = {
             tree_node.icons.draft = tree_node.icons.def;
             tree_node.icons.unpublished = tree_node.icons.def;
             // Set icon according to publish status
-            tree_node.icon = tree_node.icons[edtrSettings.PUB_STATUS[tree_node.pub_status]];
+            // or, if node is opened in editor - set editing icon
+            if (edtrTree.editor && edtrTree.editor.find_tab(tree_node.id, false) !== -1)
+                tree_node.icon = tree_node.icons.editing;
+            else
+                tree_node.icon = tree_node.icons[edtrSettings.PUB_STATUS[tree_node.pub_status]];
             // Set thumbnail url to real thumb or to large icon
             if (server_data.thumbnail_url !== undefined)
                 tree_node.thumbnail_url = server_data.thumbnail_url;

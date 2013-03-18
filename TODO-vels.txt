@@ -15,6 +15,8 @@ UI:
 - Highlight meta-data, and show errors - codemirror mode
 - Add Shortcut/button to remove all trailng whitespace
 - add Ctrl-Shift-V dialog, to allow pasting from a list of previously copied texts (like in pycharm)
+- add to preview settings - preview location: bottom, top, right
+- add highlight to preview block/line that user is currently editing (cursor position). option to switch highlight off
 
 Marked:
 - Add highlighter mechanism (see how it is done in demo on github repo)
@@ -25,6 +27,7 @@ Marked:
 JS:
 - publish functionality:
     If file is already published and unmodified, Publish button is greyed out.
+- user metadata is erased after Ctrl-M - preserve it
 
 BUGS:
 - ztree: if parent node is checked, but not loaded with ajax, its check_Child_State is -1, but when it is loaded, the check_Child_State becomes 1, although none of it's children are checked. So the check_Child_State should actually become 0

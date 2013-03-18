@@ -50,8 +50,8 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   if (modeCfg.fencedCodeBlocks === undefined) modeCfg.fencedCodeBlocks = false;
 
   var codeDepth = 0;
-  var prevLineHasContent = false
-  ,   thisLineHasContent = false;
+  var prevLineHasContent = false,
+      thisLineHasContent = false;
 
   var header   = 'header'
   ,   code     = 'comment'
@@ -65,13 +65,18 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   ,   linkhref = 'string'
   ,   em       = 'em'
   ,   strong   = 'strong'
-  ,   emstrong = 'emstrong';
+  ,   emstrong = 'emstrong'
+  ,   meta_key = 'strong'
+  ,   meta_val = 'string'
+  ,   attrlist = 'attribute';
 
   var hrRE = /^([*\-=_])(?:\s*\1){2,}\s*$/
   ,   ulRE = /^[*\-+]\s+/
   ,   olRE = /^[0-9]+\.\s+/
   ,   headerRE = /^(?:\={1,}|-{1,})$/
-  ,   textRE = /^[^!\[\]*_\\<>` "'(]+/;
+  ,   textRE = /^[^!\[\]*_\\<>` "'(]+/
+  ,   metadataRE = /^[a-zA-Z0-9]+\s*:.*$/
+  ,   attrlistRE = /^\s*{:(.*)}/;
 
   function switchInline(stream, state, f) {
     state.f = state.inline = f;
@@ -87,6 +92,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   // Blocks
 
   function blankLine(state) {
+    state.in_metadata = false;
     // Reset linkTitle state
     state.linkTitle = false;
     // Reset EM state
@@ -103,7 +109,6 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   }
 
   function blockNormal(stream, state) {
-    debugger;
     if (state.list !== false && state.indentationDiff >= 0) { // Continued list
       if (state.indentationDiff < 4) { // Only adjust indentation if *not* a code block
         state.indentation -= state.indentationDiff;
@@ -137,6 +142,10 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
       if (state.localMode) state.localState = state.localMode.startState();
       switchBlock(stream, state, local);
       return code;
+    } else if (prevLineHasContent && stream.match(attrlistRE, true)) {
+      console.log(stream.string);
+      state.attrlist = true;
+      return attrlist;
     }
 
     return switchInline(stream, state, state.inline);
@@ -196,6 +205,38 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   }
 
   function inlineNormal(stream, state) {
+    if (state.in_metadata) {
+      if (state.on_metadata_val) {
+        state.on_metadata_val = false;
+        stream.skipToEnd();
+        return meta_val;
+      }
+      if (!stream.match(metadataRE, false)) {
+        stream.skipToEnd();
+        return "error";
+      } else {
+        stream.skipTo(':');
+        stream.next();
+        state.on_metadata_val = true;
+        meta_found = true;
+        return meta_key;
+      }
+    }
+
+    if (stream.string.match(/{:.*}/)) {
+      state.attrlist = false;
+      // debugger;
+      if (stream.string.match(/^ *#.*\S{:.*}\s*$/) ||
+          (!stream.string.match(/\S{:.*}/) && !stream.string.match(/^ *#.*\s+{:.*}\s*$/))) {
+           // !stream.string.match(/^[!]?[\[][^\]]*[\]][(][^)]*[)]{:/))) {
+        stream.skipToEnd();
+        return "error";
+      }
+
+      if (stream.match(/{:.*}/, false))
+        return switchInline(stream, state, inlineElement(attrlist, '}'));
+    }
+
     var style = state.text(stream, state);
     if (typeof style !== 'undefined')
       return style;
@@ -379,6 +420,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   }
 
   function inlineElement(type, endChar, next) {
+    // debugger;
     next = next || inlineNormal;
     return function(stream, state) {
       stream.match(inlineRE(endChar));
@@ -391,6 +433,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
     startState: function() {
       prevLineHasContent = false;
       thisLineHasContent = false;
+      meta_found = false;
       return {
         f: blockNormal,
 
@@ -400,6 +443,8 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
 
         inline: inlineNormal,
         text: handleText,
+
+        in_metadata: true,
 
         linkText: false,
         linkTitle: false,
@@ -422,6 +467,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
         localMode: s.localMode,
         localState: s.localMode ? CodeMirror.copyState(s.localMode, s.localState) : null,
 
+        in_metadata: s.in_metadata,
         inline: s.inline,
         text: s.text,
         linkTitle: s.linkTitle,
@@ -437,8 +483,15 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
     token: function(stream, state) {
       if (stream.sol()) {
         if (stream.match(/^\s*$/, true)) {
+          state.in_metadata = false;
           prevLineHasContent = false;
           return blankLine(state);
+        } else if (state.in_metadata && !stream.match(metadataRE, false)) {
+          state.in_metadata = false;
+          if (meta_found) {
+            stream.skipToEnd();
+            return "error";
+          }
         } else {
           if(thisLineHasContent){
             prevLineHasContent = true;

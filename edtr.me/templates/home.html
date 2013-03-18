@@ -76,7 +76,9 @@
     <script src="{{static_url('vendor/codemirror-3.1/lib/codemirror.js')}}"></script>
     <script src="{{static_url('vendor/codemirror-3.1/addon/mode/overlay.js')}}"></script>
     <script src="{{static_url('vendor/codemirror-3.1/mode/xml/xml.js')}}"></script>
-    <script src="{{static_url('vendor/codemirror-3.1/mode/markdown/markdown.js')}}"></script>
+    <!-- <script src="{{static_url('vendor/codemirror-3.1/mode/markdown/markdown.js')}}"></script> -->
+    <script src="{{static_url('js/markdown-vels.js')}}"></script>
+
     <script src="{{static_url('vendor/codemirror-3.1/mode/gfm/gfm.js')}}"></script>
     <script src="{{static_url('vendor/codemirror-3.1/addon/edit/closetag.js')}}"></script>
     <script src="{{static_url('vendor/codemirror-3.1/addon/edit/closebrackets.js')}}"></script>
@@ -106,6 +108,11 @@
     <!-- Marked (hacked for live preview)
     -->
     <script src="{{static_url('js/marked-vels.js')}}"></script>
+
+    <!-- Showdown (replacement for marked ?)
+    -->
+    <script src="{{static_url('vendor/showdown/showdown.js')}}"></script>
+    <script src="{{static_url('vendor/showdown/extensions/github.js')}}"></script>
 
     <!-- Highlighter for pre code
     -->

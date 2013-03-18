@@ -12,7 +12,6 @@
 
 var block = {
   newline: /^\n+/,
-  attr_list: /\s+((?={:).*})\s*$/,    // VELS
   code: /^( {4}[^\n]+\n*)+/,
   fences: noop,
   hr: /^( *[-*_]){3,} *(?:\n+|$)/,
@@ -25,7 +24,12 @@ var block = {
   def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)/,
   table: noop,
   paragraph: /^((?:[^\n]+\n?(?!hr|heading|lheading|blockquote|tag|def))+)\n*/,
-  text: /^[^\n]+/
+  text: /^[^\n]+/,
+  header_attr_list: /^ *#.+[ \t]({:.*})\s*$/,    // VELS
+  // link_attr_list: /^[!]?[\[][^\]]*[\]][(][^)]*[)]({:.*})/,    // VELS
+  inline_attr_list: /\S({:.*})/,                // VELS - conform to python restriction, where no spaces are allowed
+                                                // before attribute lists in inline elements
+  paragraph_attr_list: /.*\n *({:.*})\s*$/      // VELS
 };
 
 block.bullet = /(?:[*+-]|\d+\.)/;
@@ -87,6 +91,27 @@ block.tables = merge({}, block.gfm, {
   nptable: /^ *(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)\n*/,
   table: /^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/
 });
+
+// VELS
+var create_attr_style = function(cap) {
+  var attr = "", i, cap2;
+
+  if (cap2 = cap.match(/#\w+/g))
+    attr += 'id="'+cap2[0].substr(1)+'" ';
+
+  if (cap2 = cap.match(/\.\w+/g)) {
+    attr += 'class="';
+    for (i in cap2)
+      attr += cap2[i].substr(1)+' ';
+    attr += '" ';
+  }
+  if (cap2 = cap.match(/\s*(\w+)\s*=\s*(["'])(?:(?!\2)[^\\]|\\.)*\2/g)) {
+    for (i in cap2)
+      attr += cap2[i].substr(1).trim()+' ';
+  }
+
+  return attr;
+};
 
 /**
  * Block Lexer
@@ -152,9 +177,10 @@ Lexer.prototype.token = function(src, top) {
     , space
     , i
     , l
-    , token_lines, cap1, attr=""; // VELS
+    , token_lines, attr_cap, attr; // VELS
 
   while (src) {
+    attr = ""; // VELS
     // debugger;
     // newline
     if (cap = this.rules.newline.exec(src)) {
@@ -208,16 +234,14 @@ Lexer.prototype.token = function(src, top) {
     // heading
     if (cap = this.rules.heading.exec(src)) {
       src = src.substring(cap[0].length);
+      token_lines = cap[0].count("\n"); // VELS
 
       // VELS
-      // debugger;
-      if (cap1 = this.rules.attr_list.exec(cap[0])) {
-        //debugger;
-        cap[0] = cap[0].replace(cap1[1], "");
-        attr = 'style="background: yellow"';
+      if (attr_cap = this.rules.header_attr_list.exec(cap[0])) {
+        cap[2] = cap[2].replace(attr_cap[1], "");
+        attr = create_attr_style(attr_cap[1]);
       }
 
-      token_lines = cap[0].count("\n"); // VELS
       this.tokens.push({
         type: 'heading',
         lines: token_lines, // VELS
@@ -319,6 +343,7 @@ Lexer.prototype.token = function(src, top) {
     if (cap = this.rules.list.exec(src)) {
       src = src.substring(cap[0].length);
 
+      debugger;
       this.tokens.push({
         type: 'list_start',
         ordered: isFinite(cap[2])
@@ -372,6 +397,12 @@ Lexer.prototype.token = function(src, top) {
           if (!loose) loose = next;
         }
 
+        // VELS
+        if (attr_cap = this.rules.inline_attr_list.exec(item)) {
+          item = item.replace(attr_cap[1], "");
+          attr = create_attr_style(attr_cap[1]);
+        }
+
         this.tokens.push({
           type: loose
             ? 'loose_item_start'
@@ -382,6 +413,7 @@ Lexer.prototype.token = function(src, top) {
         this.token(item, false);
 
         this.tokens.push({
+          attr: attr,     // VELS
           type: 'list_item_end'
         });
       }
@@ -461,12 +493,20 @@ Lexer.prototype.token = function(src, top) {
 
     // top-level paragraph
     if (top && (cap = this.rules.paragraph.exec(src))) {
+      // debugger;
       src = src.substring(cap[0].length);
       token_lines = cap[0].count("\n"); // VELS
+      // VELS
+      if (attr_cap = this.rules.paragraph_attr_list.exec(cap[1])) {
+        cap[1] = cap[1].replace(attr_cap[1], "");
+        attr = create_attr_style(attr_cap[1]);
+      }
+
       this.tokens.push({
         type: 'paragraph',
         lines: token_lines,  // VELS
         line_num: this.cur_line, // VELS
+        attr: attr, // VELS
         text: cap[1][cap[1].length-1] === '\n'
           ? cap[1].slice(0, -1)
           : cap[1]
@@ -478,13 +518,22 @@ Lexer.prototype.token = function(src, top) {
 
     // text
     if (cap = this.rules.text.exec(src)) {
+      // debugger;
       // Top-level should never reach here.
       src = src.substring(cap[0].length);
       token_lines = cap[0].count("\n")+1; // VELS (new line character is not passed here)
+
+      // VELS
+      if (attr_cap = this.rules.paragraph_attr_list.exec(cap[0])) {
+        cap[0] = cap[0].replace(attr_cap[1], "");
+        attr = create_attr_style(attr_cap[1]);
+      }
+
       this.tokens.push({
         type: 'text',
         lines: token_lines,  // VELS
         line_num: this.cur_line, // VELS
+        attr: attr, // VELS
         text: cap[0]
       });
       //console.log(this.cur_line.toString(), ": ", cap[0]);
@@ -519,8 +568,8 @@ var inline = {
   br: /^ {2,}\n(?!\s*$)/,
   del: noop,
   text: /^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/,
-  attr_list: /\S((?={:).*})/    // VELS - conform to python restriction, where no spaces are allowed
-                                // before attribute lists in inline elements
+  inline_attr_list: /\S({:.*})/         // VELS - conform to python restriction, where no spaces are allowed
+                                        // before attribute lists in inline elements
 };
 
 inline._inside = /(?:\[[^\]]*\]|[^\]]|\](?=[^\[]*\]))*/;
@@ -636,10 +685,10 @@ InlineLexer.prototype.output = function(src) {
     }
 
     // VELS
-    if (cap = this.rules.attr_list.exec(src)) {
-      //debugger;
+    if (cap = this.rules.inline_attr_list.exec(src)) {
+      // debugger;
       src = src.replace(cap[1], "");
-      attr = 'style="background: red"';
+      attr = create_attr_style(cap[1]);
       //continue;
     }
 
@@ -1046,7 +1095,8 @@ Parser.prototype.tok = function() {
           : this.tok();
       }
 
-      return anchor+'<li>'
+      return anchor+'<li'
+        + ' '+this.token.attr+'>' // VELS
         + body
         + '</li>\n';
     }
@@ -1067,12 +1117,14 @@ Parser.prototype.tok = function() {
         : this.token.text);
     }
     case 'paragraph': {
-      return anchor+'<p>'
+      return anchor+'<p'
+        + ' '+this.token.attr+'>' // VELS
         + this.inline.output(this.token.text)
         + '</p>\n';
     }
     case 'text': {
-      return anchor+'<p>'
+      return anchor+'<p'
+        + ' '+this.token.attr+'>' // VELS
         + this.parseText()
         + '</p>\n';
     }
