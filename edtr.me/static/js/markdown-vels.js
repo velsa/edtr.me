@@ -143,7 +143,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
       switchBlock(stream, state, local);
       return code;
     } else if (prevLineHasContent && stream.match(attrlistRE, true)) {
-      console.log(stream.string);
+      // console.log(stream.string);
       state.attrlist = true;
       return attrlist;
     }

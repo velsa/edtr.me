@@ -836,10 +836,13 @@ function edtrCodemirror(content_type, content) {
         }
         // Some changes in metadata may require changing marked behavior
         // and preview update obviously
-        if (data.headeranchors &&
-            !old_metadata || old_metadata.data.headeranchors !== data.headeranchors) {
-            this.marked_options.headerAnchors =
-                _.map(data.headeranchors.split(","), function(el) { return parseInt(el, 10); });
+        if ((!old_metadata && data.headeranchors) ||
+            (old_metadata && old_metadata.data.headeranchors !== data.headeranchors)) {
+            if (data.headeranchors)
+                this.marked_options.headerAnchors =
+                    _.map(data.headeranchors.split(","), function(el) { return parseInt(el, 10); });
+            else
+                this.marked_options.headerAnchors = null;
             marked.setOptions(this.marked_options);
             self.update_live_preview(false);
         }
