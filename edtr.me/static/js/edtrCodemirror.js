@@ -828,12 +828,22 @@ function edtrCodemirror(content_type, content) {
             content:    content,
             data:       data
         };
-        // Some changes in metadata may requre a preview update
+        // Some changes in metadata may require a preview update
         if (!old_metadata ||
             old_metadata.data.codestyle !== data.codestyle ||
             old_metadata.data.style !== data.style) {
             self.update_preview_theme();
         }
+        // Some changes in metadata may require changing marked behavior
+        // and preview update obviously
+        if (data.headeranchors &&
+            !old_metadata || old_metadata.data.headeranchors !== data.headeranchors) {
+            this.marked_options.headerAnchors =
+                _.map(data.headeranchors.split(","), function(el) { return parseInt(el, 10); });
+            marked.setOptions(this.marked_options);
+            self.update_live_preview(false);
+        }
+
     };
 
     // Show modal for convenient meta-data editing
@@ -1535,8 +1545,9 @@ function edtrCodemirror(content_type, content) {
         this.hljs_languages = [];
         for (var lang in hljs.LANGUAGES)
             this.hljs_languages.push(lang);
+
         // Set default options for marked
-        marked.setOptions({
+        this.marked_options = {
             gfm:            true,
             tables:         false,
             breaks:         true,
@@ -1549,7 +1560,8 @@ function edtrCodemirror(content_type, content) {
                 else
                     return hljs.highlightAuto(code).value;
             }
-        });
+        };
+        marked.setOptions(this.marked_options);
 
         this.showdown = new Showdown.converter( {extensions: [ "github" ] } );
 

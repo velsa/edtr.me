@@ -343,7 +343,7 @@ Lexer.prototype.token = function(src, top) {
     if (cap = this.rules.list.exec(src)) {
       src = src.substring(cap[0].length);
 
-      debugger;
+      // debugger;
       this.tokens.push({
         type: 'list_start',
         ordered: isFinite(cap[2])
@@ -990,10 +990,23 @@ Parser.prototype.tok = function() {
       return anchor+'<hr>\n';
     }
     case 'heading': {
+      // VELS
+      var header_anchor_start = "",
+          header_anchor_end = "",
+          header_text = this.inline.output(this.token.text);
+      if (this.options.headerAnchors &&
+          this.options.headerAnchors.indexOf(this.token.depth) !== -1) {
+        header_anchor_start = '<a class="headerlink" href="#'
+          +header_text.trim().toLowerCase().replace(/ /g, "_").replace(/[^a-zA-Z0-9\-_]/g, "").substr(0, 30)
+          +'" title="Permalink to this headline">';
+        header_anchor_end   = ' &para;</a>';
+      }
       return anchor+'<h'
         + this.token.depth
         + ' '+this.token.attr+'>' // VELS
-        + this.inline.output(this.token.text)
+        + header_text
+        + header_anchor_start
+        + header_anchor_end
         + '</h'
         + this.token.depth
         + '>\n';

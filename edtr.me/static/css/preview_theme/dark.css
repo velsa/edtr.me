@@ -256,3 +256,21 @@ button::-moz-focus-inner {
   padding: 0;
   border: 0;
 }
+
+/* Header links
+*/
+a.headerlink {
+    visibility: hidden;
+    text-decoration: none;
+    border: none;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink,
+h5:hover > a.headerlink,
+h6:hover > a.headerlink,
+dt:hover > a.headerlink {
+    visibility: visible;
+}

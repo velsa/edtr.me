@@ -220,3 +220,20 @@ textarea {
 	margin: 0 0 10px 0;
 	width: 100%;
 }
+/* Header links
+*/
+a.headerlink {
+    visibility: hidden;
+    text-decoration: none;
+    border: none;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink,
+h5:hover > a.headerlink,
+h6:hover > a.headerlink,
+dt:hover > a.headerlink {
+    visibility: visible;
+}

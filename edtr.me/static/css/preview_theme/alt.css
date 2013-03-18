@@ -73,3 +73,21 @@ table.text th, table.text td {
 	border-top: 1px solid #ccc;
 	padding:5px;
 }
+
+/* Header links
+*/
+a.headerlink {
+    visibility: hidden;
+    text-decoration: none;
+    border: none;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink,
+h5:hover > a.headerlink,
+h6:hover > a.headerlink,
+dt:hover > a.headerlink {
+    visibility: visible;
+}
