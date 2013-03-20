@@ -34,7 +34,7 @@ def update_md_header_meta(text_content, publish):
             value=d['value'])
     updated_md_meta += "\n"
     text_updated_head = updated_md_meta + no_head_text
-    return text_updated_head
+    return text_updated_head, updated_md_meta
 
 
 @gen.engine

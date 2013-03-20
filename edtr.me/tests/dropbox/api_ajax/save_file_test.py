@@ -64,15 +64,16 @@ class SaveFileTest(BaseTest):
         self.assertEqual(json_resp['meta']['revision'], self.updated_revision)
         self.assertEqual(json_resp['meta']['rev'], self.updated_rev)
         self.assertEqual(json_resp['meta']['pub_status'], PS.draft)
-        text_updated_heads =\
-            u"Status:            draft\n\n" + self.text_content
-        self.check_preview_content(json_resp, text_updated_heads)
+        md_meta = u"Status:            draft\n\n"
+        self.assertEqual(json_resp['markdown_meta'], md_meta)
+        text_updated_heads = md_meta + self.text_content
+        self.check_preview_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
     def test_update_existing_with_md_meta(self, m_fetch, m_get_current_user):
         self.create_test_user(m_get_current_user)
-        self.text_content = """Author:           Vels
+        self.md_meta = """Author:           Vels
 Title:            Documentation on metadata
 Status:           {0}
 Slug:             edtr-meta-docs
@@ -83,10 +84,12 @@ DatePublished:    2012-1-1
 DateModified:     2012-1-3 21:33
 DateFormat:       %B %e, %Y
 SingleValue:      2
-EmptyValue:       
+EmptyValue:      
 EEmptyValue:
 
-## Hello"""
+"""
+        self.no_head_content = """## Hello"""
+        self.text_content = self.md_meta + self.no_head_content
         self.dbox_path = '/post.md'
         self.updated_revision = 100
         self.updated_rev = 'd0c3bdw93'
@@ -134,9 +137,10 @@ EEmptyValue:
         self.assertEqual(json_resp['meta']['rev'], self.updated_rev)
         self.assertEqual(json_resp['meta']['pub_status'], PS.draft)
         self.assertEqual(json_resp['meta']['pub_rev'], self.rev_first)
-        text_updated_heads = self.text_content.format(MdState.draft)
-        self.assertEqual(json_resp['markdown_content'], text_updated_heads)
-        self.check_preview_content(json_resp, text_updated_heads)
+        updated_md_meta = self.md_meta.format(MdState.draft)
+        self.assertEqual(json_resp['markdown_meta'], updated_md_meta)
+        text_updated_heads = updated_md_meta + self.no_head_content
+        self.check_preview_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -188,10 +192,10 @@ EEmptyValue:
         self.assertEqual(json_resp['meta']['revision'], self.updated_revision)
         self.assertEqual(json_resp['meta']['rev'], self.updated_rev)
         self.assertEqual(json_resp['meta']['pub_status'], PS.draft)
-        text_updated_heads =\
-            u"Status:            draft\n\n" + self.text_content
-        self.assertEqual(json_resp['markdown_content'], text_updated_heads)
-        self.check_preview_content(json_resp, text_updated_heads)
+        md_meta = u"Status:            draft\n\n"
+        self.assertEqual(json_resp['markdown_meta'], md_meta)
+        text_updated_heads = md_meta + self.text_content
+        self.check_preview_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -244,8 +248,8 @@ EEmptyValue:
         self.assertEqual(json_resp['meta']['rev'], self.updated_rev)
         self.assertEqual(json_resp['meta']['pub_status'], PS.draft)
         text_updated_heads = self.text_content
-        self.assertFalse('markdown_content' in json_resp)
-        self.check_preview_content(json_resp, text_updated_heads)
+        self.assertFalse('markdown_meta' in json_resp)
+        self.check_preview_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -298,8 +302,8 @@ EEmptyValue:
         self.assertEqual(json_resp['meta']['rev'], self.updated_rev)
         self.assertEqual(json_resp['meta']['pub_status'], PS.draft)
         text_updated_heads = self.text_content
-        self.assertFalse('markdown_content' in json_resp)
-        self.check_preview_content(json_resp, text_updated_heads)
+        self.assertFalse('markdown_meta' in json_resp)
+        self.check_preview_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -369,12 +373,12 @@ EEmptyValue:
         self.assertEqual(self.save_call_count, 1)
 
         json_resp = json.loads(response.body)
-        text_updated_heads =\
-            u"Status:            draft\n\n" + self.text_content
-        self.assertEqual(json_resp['markdown_content'], text_updated_heads)
-        self.check_preview_content(json_resp, text_updated_heads)
+        md_meta = u"Status:            draft\n\n"
+        self.assertEqual(json_resp['markdown_meta'], md_meta)
+        text_updated_heads = md_meta + self.text_content
+        self.check_preview_content(text_updated_heads)
 
-    def check_preview_content(self, json_resp, text_updated_heads):
+    def check_preview_content(self, text_updated_heads):
         # TODO: check, post is generated, not just copied
         md_file_path = os.path.join(
             get_user_root(self.test_user_name, FolderType.preview),
