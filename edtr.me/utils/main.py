@@ -17,7 +17,7 @@ class FolderType:
         return [getattr(cls, a) for a in dir(cls) if not a.startswith("_")]
 
 
-MAX_HEADER_LINE = 10
+MAX_HEADER_LINE = 50
 
 
 def get_user_root(user_name, folder_type):
@@ -34,18 +34,18 @@ def create_site_folder(user_name):
 
 def _parse_header_line(line):
     line_regex = re.search(r"""
-        (?P<key>\w+)
         (?P<space_before>\s*)
-        :
+        (?P<key>\w+)
         (?P<space_after>\s*)
-        (?P<value>[^\s].+)$
+        :
+        (?P<value>.*)$
         """, line, re.VERBOSE)
     if line_regex:
         return (
-            line_regex.group('key'),
             line_regex.group('space_before'),
+            line_regex.group('key'),
             line_regex.group('space_after'),
-            line_regex.group('value').strip()
+            line_regex.group('value')
         )
     else:
         return [None] * 4
@@ -61,7 +61,7 @@ def parse_md_headers(content):
         if lino > MAX_HEADER_LINE:
             break
         else:
-            (h, b, a, v) = _parse_header_line(line)
+            (b, h, a, v) = _parse_header_line(line)
             if h:
                 headers[h] = dict(value=v, space_before=b, space_after=a)
                 symbols_in_headers += len(line)
