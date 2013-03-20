@@ -1,4 +1,18 @@
 <script id="preview_head_template" type="text/x-underscore-template">
     <link rel="stylesheet" href="<%= theme_code_url %>?reload=<%= reload_hash %>">
     <link rel="stylesheet" href="<%= theme_url %>?reload=<%= reload_hash %>">
+    <%= script_start %>
+        // Change default link behavior in preview to prevent opening links in iframe
+        $(".preview-container").contents().unbind().delegate('a[href]', 'click', function(e) {
+            var href = $(this).attr("href");
+            if (href.match("^#")) {
+                this.scrollIntoView();
+                e.preventDefault();
+            } else if (href.match("^\\w+://")) {
+                $(this).attr('target', '_blank');
+            } else {
+                $(this).attr('target', '_blank');
+            }
+        });
+    <%= script_end %>
 </script> <!-- modal_add_file_template -->

@@ -153,7 +153,6 @@ var edtrSettings = {
 
         // React on meta style changes - update select choice
         subs.push(edtrSettings.file_meta.meta_style.subscribe(function(val) {
-            debugger;
             if (edtrSettings.file_meta.helper_style_list.indexOf(val) > 0)
                 edtrSettings.file_meta.helper_style(val);
         }));

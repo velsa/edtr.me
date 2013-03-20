@@ -752,7 +752,9 @@ function edtrCodemirror(content_type, content) {
         self.dom_preview_head.html(self.preview_head_template({
             theme_url:          self._get_theme("theme"),
             theme_code_url:     self._get_theme("theme_code"),
-            reload_hash:        (new Date()).getTime()
+            reload_hash:        (new Date()).getTime(),
+            script_start:       '<script type="text/javascript">',
+            script_end:         '</script>'
         }));
 
         self.update_live_preview(true);
@@ -1073,7 +1075,9 @@ function edtrCodemirror(content_type, content) {
                     // When saving markdown file we're get new (possibly updated) content
                     // with metadata at the top
                     if (data.markdown_content) {
+                        var cur = cur_tab.doc.getCursor();
                         cur_tab.doc.setValue(data.markdown_content);
+                        cur_tab.doc.setCursor(cur);
                         self.parse_tab_metadata(self.current_tab);
                     }
                     self.set_tab_state(self.TAB_STATES.SAVED);
