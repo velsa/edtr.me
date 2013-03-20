@@ -1074,10 +1074,11 @@ function edtrCodemirror(content_type, content) {
                     edtrTree._update_tree_node(cur_tab.node, data.meta);
                     // When saving markdown file we're get new (possibly updated) content
                     // with metadata at the top
-                    if (data.markdown_content) {
-                        var cur = cur_tab.doc.getCursor();
-                        cur_tab.doc.setValue(data.markdown_content);
-                        cur_tab.doc.setCursor(cur);
+                    if (data.markdown_meta) {
+                        cur_tab.doc.replaceRange(data.markdown_meta,
+                            {line: 0, ch: 0},
+                            {line: cur_tab.metadata.lines, ch: 0});
+                        self.focus();
                         self.parse_tab_metadata(self.current_tab);
                     }
                     self.set_tab_state(self.TAB_STATES.SAVED);
