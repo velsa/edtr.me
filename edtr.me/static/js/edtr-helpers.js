@@ -53,6 +53,12 @@ String.prototype.humanReadable = function() {
     return this.replace(/[-_]/g, ' ').capitalize();
 };
 
+// An advanced version of indexOf, which allows regexp
+String.prototype.regexIndexOf = function(regex, startpos) {
+    var indexOf = this.substring(startpos || 0).search(regex);
+    return (indexOf >= 0) ? (indexOf + (startpos || 0)) : indexOf;
+};
+
 // adds element any array
 if (!Array.prototype.push) {
     Array.prototype.push = function(elem) {

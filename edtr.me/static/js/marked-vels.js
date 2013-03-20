@@ -997,7 +997,7 @@ Parser.prototype.tok = function() {
       if (this.options.headerAnchors &&
           this.options.headerAnchors.indexOf(this.token.depth) !== -1) {
         header_anchor_start = '<a class="headerlink" href="#'
-          +header_text.trim().toLowerCase().replace(/ /g, "_").replace(/[^a-zA-Z0-9\-_]/g, "").substr(0, 30)
+          +header_text.trim().toLowerCase().replace(/ /g, "_").replace(/[^a-zA-Z0-9_]/g, "").substr(0, 30)
           +'" title="Permalink to this headline">';
         header_anchor_end   = ' &para;</a>';
       }

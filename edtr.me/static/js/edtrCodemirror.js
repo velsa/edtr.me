@@ -772,22 +772,18 @@ function edtrCodemirror(content_type, content) {
         self.update_live_preview(false);
     };
 
+    // Parse metadata in provided text (string)
     //
-    // Parse metadata at the beginning of markdown file (and others as well ?)
-    //      index       tab index to parse metadata for
-    // returns:
+    // returns object with:
     //      status:     true - success, false - error in metadata
     //      lines:      # of lines in metadata
-    //      content:    content without metadata AND without the new line after metadata
+    //      content:    content without metadata text AND without the new line after it
+    //      text:       metadata text WITH the new line at the end
     //      data:       { key: value, ... } array of metadata
     //
-    // TODO: optimize:  save all metadata as string and on each parse compare it to the text
-    //                  and see if it has changed or text has more metadata after the match
-    //
-    this.parse_tab_metadata = function(index) {
+    this.parse_metadata = function(text) {
         var i = 0, eol,
             line, j, key, val,
-            text = self.tabs[index].doc.getValue(),
             status = true, lines = 0, content = text, data = {};
         while (i < text.length) {
             // Get next line
@@ -796,13 +792,17 @@ function edtrCodemirror(content_type, content) {
             line = text.substr(i, eol-i);
             // Last line of metadata - new line
             if (!line.length) {
-                content = text.substr(i+1);
+                i++;
                 lines++;
                 break;
             }
-            // First character should be alphanumberical
-            if(!line[0].match('[a-zA-Z0-9]')) {
-                content = text.substr(i);
+            // Line with no text - consider it an empty line
+            if (line.match(/^\s*$/)) {
+                i = eol + 1;
+                break;
+            }
+            // See if metadata is in correct format
+            if(!line.match(/^ *[a-zA-Z0-9_]+\s*:/)) {
                 break;
             }
             // Find key:value
@@ -811,23 +811,39 @@ function edtrCodemirror(content_type, content) {
                 // TODO: should we discard ALL metadata and set content to text ?
                 // (also set lines to 0)
                 status = false;
-                content = text.substr(i);
                 break;
             }
             // Add key/value pair to data
-            data[text.substr(i, j).trim().toLowerCase()] = text.substr(i+j+1, eol-i-j-1).trim();
+            key = text.substr(i, j).trim().toLowerCase().replace(/-/g, "_");
+            data[key] = text.substr(i+j+1, eol-i-j-1).trim();
             // console.log(JSON.stringify(data));
             i = eol+1;
             lines++;
         }
-        // See if we need to update anything on metadata changes
-        var old_metadata = self.tabs[index].metadata;
-        self.tabs[index].metadata = {
+
+        return {
             status:     status,
             lines:      lines,
-            content:    content,
+            content:    text.substr(i),
+            text:       text.substr(0, i),
             data:       data
         };
+    };
+
+    //
+    // Parse metadata at the beginning of markdown file in specified tab
+    // and update values in tab object
+    //      index       tab index to parse metadata for
+    //
+    // TODO: optimize:  save all metadata as string and on each parse compare it to the text
+    //                  and see if it has changed or text has more metadata after the match
+    //
+    this.parse_tab_metadata = function(index) {
+        // Store old metadata to compare with new one
+        var old_metadata = self.tabs[index].metadata;
+        self.tabs[index].metadata = self.parse_metadata(self.tabs[index].doc.getValue());
+        var data = self.tabs[index].metadata.data;
+
         // Some changes in metadata may require a preview update
         if (!old_metadata ||
             old_metadata.data.codestyle !== data.codestyle ||
@@ -836,17 +852,16 @@ function edtrCodemirror(content_type, content) {
         }
         // Some changes in metadata may require changing marked behavior
         // and preview update obviously
-        if ((!old_metadata && data.headeranchors) ||
-            (old_metadata && old_metadata.data.headeranchors !== data.headeranchors)) {
-            if (data.headeranchors)
-                this.marked_options.headerAnchors =
-                    _.map(data.headeranchors.split(","), function(el) { return parseInt(el, 10); });
-            else
-                this.marked_options.headerAnchors = null;
-            marked.setOptions(this.marked_options);
+        if (data.header_anchors)
+            this.marked_options.headerAnchors =
+                _.map(data.header_anchors.split(","), function(el) { return parseInt(el, 10); });
+        else
+            this.marked_options.headerAnchors = null;
+        marked.setOptions(this.marked_options);
+        if (!old_metadata ||
+            old_metadata.data.header_anchors !== data.header_anchors) {
             self.update_live_preview(false);
         }
-
     };
 
     // Show modal for convenient meta-data editing
@@ -867,31 +882,50 @@ function edtrCodemirror(content_type, content) {
         }
         edtrSettings.file_meta_modal(cur_tab.node.id, function(args) {
             if (args.button === "ok") {
-                // TODO: Save metadata into codemirror's text
-                var metadata_text = "", max_key_length=0, key;
+                // Update changed values in metadata text and add new key:value pairs
+                // at the bottom
+                var old_meta_lines = cur_tab.metadata.lines,
+                    key, meta_key, pos, val_pos, text, append_space;
 
-                // Find longest key
+                // Remove empty line from bottom of metadata to be able to append to it
+                pos = cur_tab.metadata.text.search(/\n\s*\n/gm);
+                text = cur_tab.metadata.text.substr(0, pos);
+                text += "\n";
+                // Go through dialog keys
                 for (key in edtrSettings.file_meta) {
-                    if (key.startsWith(prefix) && key.length > max_key_length)
-                        max_key_length = key.length;
-                }
-                // Create aligned metadata text
-                for (key in edtrSettings.file_meta) {
-                    // Ignore knockout and validator fields
-                    if (!key.startsWith(prefix)) continue;
-                    // Add meta key only if it has value
-                    ko_meta = edtrSettings.file_meta[key];
-                    if (ko_meta().length) {
-                        // Align value with spaces
-                        metadata_text += key.replace(prefix, "").capitalize() + ":" +
-                            Array(max_key_length-key.length+2+4).join(" ") +
-                            ko_meta() + "\n";
+                    if (key.startsWith(prefix)) {
+                        // Search for key in metadata text
+                        meta_key = key.replace(prefix, "");
+                        rex = new RegExp("^ *"+meta_key+"\\s*:", "mi");
+                        pos = text.search(rex);
+                        append_space = " ";
+                        // If not found - append it
+                        if (pos < 0) {
+                            // But only if its value is not empty
+                            if (!edtrSettings.file_meta[key]().length)
+                                continue;
+                            meta_key = meta_key.replace(/_/g, ' ').capitalize().replace(/ /g, '_');
+                            text += meta_key+":"+append_space+edtrSettings.file_meta[key]()+"\n";
+                            cur_tab.metadata.lines++;
+                        } else {
+                            // Found - replace value skipping all the indentation
+                            val_start = text.indexOf(":", pos) + 1;
+                            val_start = text.regexIndexOf(/[^ \t]/, val_start);
+                            if (text[val_start] !== "\n")
+                                append_space = "";
+                            val_end = text.indexOf("\n", val_start);
+                            text = text.substr(0, val_start) +
+                                append_space +
+                                edtrSettings.file_meta[key]() +
+                                text.substr(val_end);
+                        }
                     }
                 }
-                // Always end metadata with new line
-                if (metadata_text.length)
-                    metadata_text += "\n";
-                self.cm_editor.setValue(metadata_text + cur_tab.metadata.content);
+                cur_tab.metadata.text = text + "\n";
+                cur_tab.doc.replaceRange(cur_tab.metadata.text,
+                    {line: 0, ch: 0},
+                    {line: old_meta_lines+1, ch: 0});
+                self.focus();
             } else if (args.button === "cancel") {
                 // Modal canceled
                 // Should we do anything here ?
@@ -1034,7 +1068,7 @@ function edtrCodemirror(content_type, content) {
                     messagesBar.show_error(serverComm.human_status[data.errcode]);
                     if (self.on_saved) self.on_saved.call(this, false);
                 } else {
-                    // Update node with new server data
+                    // Update node with new server data (dropbox meta)
                     edtrTree._update_tree_node(cur_tab.node, data.meta);
                     // When saving markdown file we're get new (possibly updated) content
                     // with metadata at the top

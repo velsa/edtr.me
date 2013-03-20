@@ -20,13 +20,20 @@ var edtrSettings = {
     // Markdown MetaData
     // HACK: we prepend meta_ to avoid clashes with knockout and validatedObservable properties
     file_meta: ko.mapping.fromJS({
-        meta_title:          ko.observable(""),
-        meta_author:         ko.observable(""),
-        meta_tags:           ko.observable(""),
-        meta_style:          ko.observable(""),
-        meta_slug:           ko.observable(""),
-        meta_status:         ko.observable(""),
-        meta_date:           ko.observable("")
+        meta_title:             ko.observable(""),
+        meta_author:            ko.observable(""),
+        meta_tags:              ko.observable(""),
+        meta_slug:              ko.observable(""),
+        meta_status:            ko.observable(""),
+        meta_date:              ko.observable(""),
+        meta_style:             ko.observable(""),
+        meta_code_style:        ko.observable(""),
+        meta_header_anchors:    ko.observable(""),
+        // Helpers used for select elements in dialogs
+        helper_style_list:      [],
+        helper_style:           ko.observable(""),
+        helper_code_style_list: [],
+        helper_code_style:      ko.observable("")
     }),
 
     // General Settings
@@ -88,6 +95,10 @@ var edtrSettings = {
         // TODO: should we get those from server as well ?
         edtrSettings.general.editor.default_icon =
             edtrSettings.base_icon_url+"dropbox-api-icons/16x16/page_white.gif";
+
+        // Init file meta helpers (lists for dialog, etc.)
+        edtrSettings.file_meta.helper_style_list(edtrSettings.general.preview.theme_list());
+        edtrSettings.file_meta.helper_code_style_list(edtrSettings.general.preview.theme_code_list());
     },
 
     // Show modal for general settings
@@ -116,6 +127,9 @@ var edtrSettings = {
     // We don't store model in local storage, because file_meta is used as temporary storage
     // for metadata
     file_meta_modal:            function(filename, cb) {
+        var subs = [],
+            orig_style = edtrSettings.file_meta.meta_style();
+            orig_code_style = edtrSettings.file_meta.meta_code_style();
         modalDialog.params = {
             action:         "edit_file_settings",
             view_model:     "file_meta",
@@ -123,9 +137,37 @@ var edtrSettings = {
                 filename:   filename
             },
             callback:       function(args) {
+                // unsubscribe from knockout notifications
+                for(var i in subs) subs[i].dispose();
                 cb.call(null, args);
+            },
+            fix_view_model: function() {
+                // Set helpers to correct values
+                // edtrSettings.file_meta.helper_style(orig_style);
+                // edtrSettings.file_meta.meta_style(orig_style);
+                // edtrSettings.file_meta.helper_code_style(orig_code_style);
+                // edtrSettings.file_meta.meta_code_style(orig_code_style);
             }
         };
         modalDialog.show_settings_modal();
+
+        // React on meta style changes - update select choice
+        subs.push(edtrSettings.file_meta.meta_style.subscribe(function(val) {
+            debugger;
+            if (edtrSettings.file_meta.helper_style_list.indexOf(val) > 0)
+                edtrSettings.file_meta.helper_style(val);
+        }));
+        subs.push(edtrSettings.file_meta.meta_code_style.subscribe(function(val) {
+            if (edtrSettings.file_meta.helper_code_style_list.indexOf(val) > 0)
+                edtrSettings.file_meta.helper_code_style(val);
+        }));
+
+        // React on select choices - update meta styles
+        subs.push(edtrSettings.file_meta.helper_style.subscribe(function(val) {
+                edtrSettings.file_meta.meta_style(val);
+        }));
+        subs.push(edtrSettings.file_meta.helper_code_style.subscribe(function(val) {
+            edtrSettings.file_meta.meta_code_style(val);
+        }));
     }
 };

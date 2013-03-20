@@ -43,7 +43,7 @@
                                 <td colspan="5">
                                     <input type="text"
                                         data-bind="value: meta_author, valueUpdate: 'keyup'"
-                                        placeholder="author(s) name, coma separated">
+                                        placeholder="author name(s), coma separated">
                                 </td>
                             </tr>
                             <tr>
@@ -51,7 +51,7 @@
                                 <td colspan="5">
                                     <input type="text"
                                         data-bind="value: meta_tags, valueUpdate: 'keyup'"
-                                        pattern="^([-a-zA-Z0-9 ']{3,50},)*([-a-zA-Z0-9 ']{3,50})?$"
+                                        pattern="^( *[-_a-zA-Z0-9']{3,50}, *)*( *[-_a-zA-Z0-9']{3,50} *)?$"
                                         placeholder="coma separated, at least 3 chars">
                                 </td>
                             </tr>
@@ -83,7 +83,54 @@
                     </table>
                 </div> <!-- tab-pane -->
                 <div class="tab-pane" id="efs_tab_extended">
-                    Coming soon...
+                    <table class="table-condensed"> <!-- cells in a table row: 6 -->
+                        <tbody>
+                            <tr>
+                                <td colspan="1"> <label>Style:</label> </td>
+                                <td colspan="3">
+                                    <input type="text"
+                                        data-bind="value: meta_style, valueUpdate: 'keyup'"
+                                        placeholder="preset or css file">
+                                </td>
+                                <td colspan="1"> <label>Predefined:</label> </td>
+                                <td colspan="1">
+                                    <select class="edtr-select2"
+                                        data-bind= "options: helper_style_list,
+                                                    optionsText: function(item) {
+                                                        return item.humanReadable()
+                                                    },
+                                                    value: helper_style">
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="1"> <label>Code Style:</label> </td>
+                                <td colspan="3">
+                                    <input type="text"
+                                        data-bind="value: meta_code_style, valueUpdate: 'keyup'"
+                                        placeholder="preset or css file">
+                                </td>
+                                <td colspan="1"> <label>Predefined:</label> </td>
+                                <td colspan="1">
+                                    <select class="edtr-select2"
+                                        data-bind= "options: helper_code_style_list,
+                                                    optionsText: function(item) {
+                                                        return item.humanReadable()
+                                                    },
+                                                    value: helper_code_style">
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="1"> <label>Header Anchors:</label> </td>
+                                <td colspan="3">
+                                    <input type="text"
+                                        data-bind="value: meta_header_anchors, valueUpdate: 'keyup'"
+                                        placeholder="header numbers, coma separated (e.g. '2, 3')">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div> <!-- tab-pane -->
                 <div class="tab-pane" id="efs_tab_advanced">
                     Coming not so soon...

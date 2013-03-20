@@ -642,6 +642,10 @@ span.cm-matchhighlight {
 }
 .modal-body {
     padding:            5px 15px;
+    overflow:           visible;
+}
+.modal-body .tab-content {
+    overflow:           visible;
 }
 .modal .controls {
     margin-left:        30px;

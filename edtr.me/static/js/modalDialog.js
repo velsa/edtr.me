@@ -311,6 +311,10 @@ var modalDialog = {
                 errorElementClass:      "edtr-input-error"
             });
 
+        // Fix values which may have mutated after applyBindings call
+        if (modalDialog.params.fix_view_model)
+            setTimeout(modalDialog.params.fix_view_model, 100);
+
         // Subscribe to validation checks
         var dom_modal_ok_button = modalDialog.dom_modal.find(".modal-submit-button[data-modal-button=ok]");
         modalDialog.view_model_validated.isValid.subscribe(function(valid) {
@@ -326,6 +330,17 @@ var modalDialog = {
         // Make backdrop see-through so that user will be able to see the effect
         // of settings on editor, preview, etc..
         $("body").find(".modal-backdrop").css("opacity", "0");
+
+        // If dialog has select elements - modify them to use Chosen plugin
+        // modalDialog.dom_modal.find('.chosen-select').chosen({
+        //     disable_search_threshold:   20
+        // });
+
+        // If dialog has select elements - modify them to use Select2 plugin
+        modalDialog.dom_modal.find('.edtr-select2').select2({
+            width:                      "element",
+            minimumResultsForSearch:    20
+        });
 
         // Set focus on first input element
         modalDialog.dom_modal.find("input").eq(0).focus().select();

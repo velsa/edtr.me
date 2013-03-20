@@ -21,7 +21,7 @@
                         <tr>
                             <td colspan="1"> <label>Theme:</label> </td>
                             <td colspan="3">
-                                <select
+                                <select class="edtr-select2"
                                     data-bind= "options: editor.theme_list,
                                                 optionsText: function(item) {
                                                     return item.humanReadable()
@@ -31,7 +31,7 @@
                             </td>
                             <td colspan="1"> <label>Font size:</label> </td>
                             <td colspan="1">
-                                <select class="input-mini"
+                                <select class="input-mini edtr-select2"
                                     data-bind= "options: editor.font_size_list,
                                                 value: editor.font_size">
                                 </select>
@@ -94,7 +94,7 @@
                         <tr>
                             <td colspan="1"> <label>Preview theme:</label> </td>
                             <td colspan="3">
-                                <select class="selectpicker"
+                                <select class="edtr-select2"
                                     data-bind= "options: preview.theme_list,
                                                 optionsText: function(item) {
                                                     return item.humanReadable()
@@ -106,7 +106,7 @@
                         <tr>
                             <td colspan="1"> <label>Theme for code blocks:</label> </td>
                             <td colspan="3">
-                                <select class="selectpicker"
+                                <select class="edtr-select2"
                                     data-bind= "options: preview.theme_code_list,
                                                 optionsText: function(item) {
                                                     return item.humanReadable()

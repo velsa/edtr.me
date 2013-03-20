@@ -75,7 +75,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
   ,   olRE = /^[0-9]+\.\s+/
   ,   headerRE = /^(?:\={1,}|-{1,})$/
   ,   textRE = /^[^!\[\]*_\\<>` "'(]+/
-  ,   metadataRE = /^[a-zA-Z0-9]+\s*:.*$/
+  ,   metadataRE = /^[a-zA-Z0-9_]+\s*:.*$/
   ,   attrlistRE = /^\s*{:(.*)}/;
 
   function switchInline(stream, state, f) {
@@ -206,6 +206,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
 
   function inlineNormal(stream, state) {
     if (state.in_metadata) {
+      // debugger;
       if (state.on_metadata_val) {
         state.on_metadata_val = false;
         stream.skipToEnd();
@@ -217,7 +218,7 @@ CodeMirror.defineMode("markdown", function(cmCfg, modeCfg) {
       } else {
         stream.skipTo(':');
         stream.next();
-        state.on_metadata_val = true;
+        if (stream.peek()) state.on_metadata_val = true;
         meta_found = true;
         return meta_key;
       }
