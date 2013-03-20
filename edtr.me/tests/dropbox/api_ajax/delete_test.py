@@ -103,3 +103,10 @@ class DeleteTest(BaseTest):
         file_gone = self.db_find_one(self.test_user_name, {'_id': self.file_path})
         self.assertEqual(file_gone, None)
         self.assertFalse(os.path.exists(self.thumb_serv_path))
+
+    @patch.object(BaseHandler, 'get_current_user')
+    @patch.object(SimpleAsyncHTTPClient, 'fetch')
+    def test_delete_published_file(self, m_fetch, m_get_current_user):
+        self.create_test_user(m_get_current_user)
+        # TODO
+        self.assertTrue(False)

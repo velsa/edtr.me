@@ -128,6 +128,8 @@ def get_dbox_meta(path, o_type, with_path=True):
               "mime_type": "{f_type}",
               "size": "489 bytes"
           }}""".format(path=path, f_type=o_type)
+    else:
+        meta_data = 'null'
     if with_path:
         meta_data = """[
           "{path}",
