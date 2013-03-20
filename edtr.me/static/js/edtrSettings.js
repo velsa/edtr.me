@@ -143,9 +143,9 @@ var edtrSettings = {
             },
             fix_view_model: function() {
                 // Set helpers to correct values
-                // edtrSettings.file_meta.helper_style(orig_style);
+                edtrSettings.file_meta.helper_style(orig_style);
                 // edtrSettings.file_meta.meta_style(orig_style);
-                // edtrSettings.file_meta.helper_code_style(orig_code_style);
+                edtrSettings.file_meta.helper_code_style(orig_code_style);
                 // edtrSettings.file_meta.meta_code_style(orig_code_style);
             }
         };

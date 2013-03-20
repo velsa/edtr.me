@@ -709,7 +709,7 @@ function edtrCodemirror(content_type, content) {
         var theme = edtrSettings.general.preview[type](),
             fix_path = true,
             cur_tab = self.tabs[self.current_tab],
-            meta_key = type === "theme" ? "style" : "codestyle";
+            meta_key = type === "theme" ? "style" : "code_style";
         // Metadata style has precedence over general settings
         if (cur_tab.metadata && cur_tab.metadata.data[meta_key]) {
             var user_theme = cur_tab.metadata.data[meta_key].toLowerCase();
@@ -848,7 +848,7 @@ function edtrCodemirror(content_type, content) {
 
         // Some changes in metadata may require a preview update
         if (!old_metadata ||
-            old_metadata.data.codestyle !== data.codestyle ||
+            old_metadata.data.code_style !== data.code_style ||
             old_metadata.data.style !== data.style) {
             self.update_preview_theme();
         }
@@ -926,7 +926,7 @@ function edtrCodemirror(content_type, content) {
                 cur_tab.metadata.text = text + "\n";
                 cur_tab.doc.replaceRange(cur_tab.metadata.text,
                     {line: 0, ch: 0},
-                    {line: old_meta_lines+1, ch: 0});
+                    {line: old_meta_lines, ch: 0});
                 self.focus();
             } else if (args.button === "cancel") {
                 // Modal canceled
