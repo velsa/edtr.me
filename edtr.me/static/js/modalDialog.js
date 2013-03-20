@@ -342,6 +342,15 @@ var modalDialog = {
             minimumResultsForSearch:    20
         });
 
+        // If dialog has select elements - modify them to use Select2 plugin
+        modalDialog.dom_modal.find('.edtr-select2-tags').select2({
+            width:                      "100%",
+            tags:                       [],
+            formatInputTooShort:        false,
+            formatNoMatches:            function() {return "at least 3 chars"; },
+            tokenSeparators:            [',', ' ']
+        });
+
         // Set focus on first input element
         modalDialog.dom_modal.find("input").eq(0).focus().select();
     }

@@ -102,6 +102,7 @@ var edtrSettings = {
     },
 
     // Show modal for general settings
+    _last_es_pane: undefined,
     edtr_settings_modal:        function() {
         // Save model to browser storage
         amplify.store(edtrSettings.amplify_key, ko.mapping.toJSON(edtrSettings.general));
@@ -118,18 +119,23 @@ var edtrSettings = {
                 if (args.button !== "ok") {
                     ko.mapping.fromJSON(amplify.store(edtrSettings.amplify_key), edtrSettings.general);
                 }
+                // Remember last opened pane
+                edtrSettings._last_es_pane = modalDialog.dom_modal.find(".nav-tabs li.active a").attr("href");
             }
         };
         modalDialog.show_settings_modal();
+
+        // Switch to last used pane
+        if (edtrSettings._last_es_pane)
+            modalDialog.dom_modal.find("a[href="+edtrSettings._last_es_pane+"]").tab("show");
     },
 
     // Show modal for file-meta settings
     // We don't store model in local storage, because file_meta is used as temporary storage
     // for metadata
+    _last_fm_pane: undefined,
     file_meta_modal:            function(filename, cb) {
-        var subs = [],
-            orig_style = edtrSettings.file_meta.meta_style();
-            orig_code_style = edtrSettings.file_meta.meta_code_style();
+        var subs = [];
         modalDialog.params = {
             action:         "edit_file_settings",
             view_model:     "file_meta",
@@ -137,28 +143,43 @@ var edtrSettings = {
                 filename:   filename
             },
             callback:       function(args) {
-                // unsubscribe from knockout notifications
+                // Unsubscribe from knockout notifications
                 for(var i in subs) subs[i].dispose();
+                // Remember last opened pane
+                edtrSettings._last_fm_pane = modalDialog.dom_modal.find(".nav-tabs li.active a").attr("href");
                 cb.call(null, args);
             },
             fix_view_model: function() {
-                // Set helpers to correct values
-                edtrSettings.file_meta.helper_style(orig_style);
                 // edtrSettings.file_meta.meta_style(orig_style);
-                edtrSettings.file_meta.helper_code_style(orig_code_style);
                 // edtrSettings.file_meta.meta_code_style(orig_code_style);
             }
         };
+
+        // Set helpers to correct values
+        edtrSettings.file_meta.helper_style(edtrSettings.file_meta.meta_style());
+        edtrSettings.file_meta.helper_code_style(edtrSettings.file_meta.meta_code_style());
+
+        // Show modal
         modalDialog.show_settings_modal();
 
+        // Switch to last used pane
+        if (edtrSettings._last_fm_pane)
+            modalDialog.dom_modal.find("a[href="+edtrSettings._last_fm_pane+"]").tab("show");
+
         // React on meta style changes - update select choice
-        subs.push(edtrSettings.file_meta.meta_style.subscribe(function(val) {
-            if (edtrSettings.file_meta.helper_style_list.indexOf(val) > 0)
-                edtrSettings.file_meta.helper_style(val);
+        var dom_helper_style = modalDialog.dom_modal.find('[data-bind*="helper_style"]');
+        subs.push(edtrSettings.file_meta.meta_style.subscribe(function(value) {
+            if (edtrSettings.file_meta.helper_style_list.indexOf(value) !== -1) {
+                dom_helper_style.val(value).trigger("change");
+                // edtrSettings.file_meta.helper_style(value);
+            }
         }));
-        subs.push(edtrSettings.file_meta.meta_code_style.subscribe(function(val) {
-            if (edtrSettings.file_meta.helper_code_style_list.indexOf(val) > 0)
-                edtrSettings.file_meta.helper_code_style(val);
+        var dom_helper_code_style = modalDialog.dom_modal.find('[data-bind*="helper_code_style"]');
+        subs.push(edtrSettings.file_meta.meta_code_style.subscribe(function(value) {
+            if (edtrSettings.file_meta.helper_code_style_list.indexOf(value) !== -1) {
+                dom_helper_code_style.val(value).trigger("change");
+                // edtrSettings.file_meta.helper_code_style(value);
+            }
         }));
 
         // React on select choices - update meta styles

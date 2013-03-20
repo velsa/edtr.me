@@ -49,19 +49,13 @@
                             <tr>
                                 <td colspan="1"> <label>Tags:</label> </td>
                                 <td colspan="5">
-                                    <input type="text"
-                                        data-bind="value: meta_tags, valueUpdate: 'keyup'"
+                                    <input type="hidden" class="edtr-select2-tags"
+                                        data-bind="value: meta_tags"
                                         pattern="^( *[-_a-zA-Z0-9']{3,50}, *)*( *[-_a-zA-Z0-9']{3,50} *)?$"
                                         placeholder="coma separated, at least 3 chars">
                                 </td>
                             </tr>
                             <tr>
-                                <td colspan="1"> <label>Style:</label> </td>
-                                <td colspan="3">
-                                    <input type="text"
-                                        data-bind="value: meta_style, valueUpdate: 'keyup'"
-                                        placeholder="preset or css file">
-                                </td>
                                 <td colspan="1"> <label>Slug:</label> </td>
                                 <td colspan="1">
                                     <input type="text"
@@ -92,9 +86,9 @@
                                         data-bind="value: meta_style, valueUpdate: 'keyup'"
                                         placeholder="preset or css file">
                                 </td>
-                                <td colspan="1"> <label>Predefined:</label> </td>
-                                <td colspan="1" style="width: 150px">
-                                    <select class="edtr-select2"
+                                <td colspan="1"> <label>Presets:</label> </td>
+                                <td colspan="1">
+                                    <select class="edtr-select2" style="width: 200px"
                                         data-bind= "options: helper_style_list,
                                                     optionsText: function(item) {
                                                         return item.humanReadable()
@@ -110,9 +104,9 @@
                                         data-bind="value: meta_code_style, valueUpdate: 'keyup'"
                                         placeholder="preset or css file">
                                 </td>
-                                <td colspan="1"> <label>Predefined:</label> </td>
+                                <td colspan="1"> <label>Presets:</label> </td>
                                 <td colspan="1">
-                                    <select class="edtr-select2"
+                                    <select class="edtr-select2" style="width: 200px"
                                         data-bind= "options: helper_code_style_list,
                                                     optionsText: function(item) {
                                                         return item.humanReadable()
