@@ -82,6 +82,9 @@ Style:            github
 DatePublished:    2012-1-1
 DateModified:     2012-1-3 21:33
 DateFormat:       %B %e, %Y
+SingleValue:      2
+EmptyValue:       
+EEmptyValue:
 
 ## Hello"""
         self.dbox_path = '/post.md'
