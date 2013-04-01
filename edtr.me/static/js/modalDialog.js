@@ -346,8 +346,8 @@ var modalDialog = {
         modalDialog.dom_modal.find('.edtr-select2-tags').select2({
             width:                      "100%",
             tags:                       [],
-            formatInputTooShort:        false,
-            formatNoMatches:            function() {return "at least 3 chars"; },
+            formatInputTooShort:        function() { return "at least 3 chars"; },
+            formatNoMatches:            function() { return "at least 3 chars"; },
             tokenSeparators:            [',', ' ']
         });
 

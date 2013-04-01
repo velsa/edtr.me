@@ -172,7 +172,7 @@ function edtrCodemirror(content_type, content) {
     // We get here if something is selected and selection spans one or more lines
     this.toggle_code_block = function() {
         var sel = self.cm_editor.getSelection(),
-            cb_markup = "~~~";
+            cb_markup = "```";
         if (sel.startsWith(cb_markup)) {
             // Remove codeblock markup
             var lines = CodeMirror.splitLines(sel);
