@@ -15,7 +15,7 @@ from utils.error import ErrCode
 from .dbox_utils import (check_bad_response, update_meta, is_image_thumb,
     delta_called_recently)
 from .dbox_thumb import remove_thumbnail, create_thumbnail
-from .dbox_publish import dbox_process_publish
+from .dbox_publish import dbox_process_publish, dbox_unpublish
 logger = logging.getLogger('edtr_logger')
 
 
@@ -62,8 +62,8 @@ def update_dbox_delta(db, async_dbox, user, reg_update=False,
                         # TODO
                         # maybe there is a way to delete files in one db call
                         updates[e_path] = None
-                        yield motor.Op(
-                            DropboxFile.remove_entries, db,
+                        dbox_unpublish(dfile, user)
+                        yield motor.Op(DropboxFile.remove_entries, db,
                             {"_id": e_path}, collection=user.name)
                         if is_image_thumb(dfile.mime_type, dfile.thumb_exists):
                             remove_thumbnail(dfile.path, user.name)

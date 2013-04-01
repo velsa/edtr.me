@@ -13,7 +13,7 @@ from .dbox_utils import (unify_path, get_file_url, check_bad_response,
     update_meta, is_image_thumb, save_meta, get_content_type, is_md, is_md_ext)
 from .dbox_thumb import remove_thumbnail, copy_thumb
 from .dbox_settings import DEFAULT_ENCODING, TEXT_MIMES
-from .dbox_publish import publish_object, update_md_header_meta
+from .dbox_publish import publish_object, update_md_header_meta, dbox_unpublish
 from .dbox_op import get_obj_content, get_tree_from_db
 from .dbox_delta import update_dbox_delta, dbox_sync_user
 logger = logging.getLogger('edtr_logger')
@@ -145,21 +145,25 @@ class DropboxWorkerMixin(DropboxMixin):
             return
         file_meta = json.loads(response.body)
         is_dir, f_path = file_meta['is_dir'], file_meta['path']
+        ret_code = ErrCode.ok
         if is_dir:
-            # TODO: try to avoid full collection scan
-            # to include root_path.startswith(f_path) elements
-            yield motor.Op(DropboxFile.remove_entries, self.db,
-                {"$or": [{"_id": f_path},
-                    {"root_path":
-                        {'$regex': '^%s.*' % f_path, '$options': 'i'}}]},
-                collection=user.name)
+            yield gen.Task(update_dbox_delta, self.db, self, user,
+                force_update=True)
         else:
-            yield motor.Op(DropboxFile.remove_entries, self.db,
-                {"_id": f_path}, collection=user.name)
-            if is_image_thumb(file_meta.get('mime_type', None),
-                         file_meta.get('thumb_exists', None)):
-                remove_thumbnail(f_path, user.name)
-        callback({'errcode': ErrCode.ok})
+            success, meta = yield gen.Task(self._get_filemeta,
+                path, user.name)
+            if success:
+                dbox_unpublish(meta, user)
+                yield motor.Op(DropboxFile.remove_entries, self.db,
+                    {"_id": f_path}, collection=user.name)
+                if is_image_thumb(file_meta.get('mime_type', None),
+                             file_meta.get('thumb_exists', None)):
+                    remove_thumbnail(f_path, user.name)
+            else:
+                ret_code = ErrCode.not_found
+                logger.error(u"wk_dbox_delete: file_meta not found '{0}'"
+                    .format(path))
+        callback({'errcode': ret_code})
 
     @gen.engine
     def wk_dbox_move(self, user, from_path, to_path, callback=None):

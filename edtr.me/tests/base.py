@@ -2,14 +2,17 @@ import os.path
 import shutil
 import Cookie
 from datetime import timedelta
+
 from tornado.testing import AsyncHTTPTestCase, LogTrapTestCase
 from tornado.options import options
 from tornado.ioloop import IOLoop
 from tornado import gen
-from tests.lib.httpclient import AsyncHTTPClient
 import motor
-from app import EdtrmeApp
+from django.utils import simplejson as json
+
+from tests.lib.httpclient import AsyncHTTPClient
 from tests.lib.http_test_client import TestClient
+from app import EdtrmeApp
 
 MONGO_TEST_DB = 'edtrme_test'
 
@@ -125,3 +128,9 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         post_data["_xsrf"] = _xsrf
         return self.post(url, data=post_data,
             headers={'Cookie': '_xsrf={0}'.format(_xsrf)})
+
+    def check_json_response(self, response):
+        self.assertEqual(response.code, 200)
+        json_resp = json.loads(response.body)
+        self.assertEqual(json_resp['errcode'], 0)
+        return json_resp
