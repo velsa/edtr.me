@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import os.path
 import cStringIO
 from django.utils import simplejson as json
 
@@ -14,7 +13,6 @@ from handlers.base import BaseHandler
 from models.dropbox import PS
 from workers.dropbox.dbox_utils import _adopt_meta
 from workers.dropbox.dbox_settings import MdState
-from utils.main import get_user_root, FolderType
 
 
 class SaveFileTest(BaseTest):
@@ -54,9 +52,7 @@ class SaveFileTest(BaseTest):
         response = self.post_with_xsrf(
             self.reverse_url('dropbox_save_file'),
             {'path': self.dbox_path, 'content': self.text_content})
-        self.assertEqual(response.code, 200)
-        json_resp = json.loads(response.body)
-        self.assertEqual(json_resp['errcode'], 0)
+        json_resp = self.check_json_response(response)
         file_meta_params = set(["_id", "revision", "rev", "thumb_exists",
             "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
             "mime_type", "bytes", "size", 'pub_status'])
@@ -67,7 +63,7 @@ class SaveFileTest(BaseTest):
         md_meta = u"Status:            draft\n\n"
         self.assertEqual(json_resp['markdown_meta'], md_meta)
         text_updated_heads = md_meta + self.text_content
-        self.check_preview_content(text_updated_heads)
+        self.check_pub_md_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -84,7 +80,7 @@ DatePublished:    2012-1-1
 DateModified:     2012-1-3 21:33
 DateFormat:       %B %e, %Y
 SingleValue:      2
-EmptyValue:      
+EmptyValue:
 EEmptyValue:
 
 """
@@ -126,9 +122,7 @@ EEmptyValue:
                 'path': self.dbox_path,
                 'content': self.text_content.format(MdState.published)
             })
-        self.assertEqual(response.code, 200)
-        json_resp = json.loads(response.body)
-        self.assertEqual(json_resp['errcode'], 0)
+        json_resp = self.check_json_response(response)
         file_meta_params = set(["_id", "revision", "rev", "thumb_exists",
             "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
             "mime_type", "bytes", "size", 'pub_status', 'pub_rev'])
@@ -140,7 +134,7 @@ EEmptyValue:
         updated_md_meta = self.md_meta.format(MdState.draft)
         self.assertEqual(json_resp['markdown_meta'], updated_md_meta)
         text_updated_heads = updated_md_meta + self.no_head_content
-        self.check_preview_content(text_updated_heads)
+        self.check_pub_md_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -182,9 +176,7 @@ EEmptyValue:
                 'path': self.dbox_path,
                 'content': self.text_content
             })
-        self.assertEqual(response.code, 200)
-        json_resp = json.loads(response.body)
-        self.assertEqual(json_resp['errcode'], 0)
+        json_resp = self.check_json_response(response)
         file_meta_params = set(["_id", "revision", "rev", "thumb_exists",
             "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
             "mime_type", "bytes", "size", 'pub_status'])
@@ -195,7 +187,7 @@ EEmptyValue:
         md_meta = u"Status:            draft\n\n"
         self.assertEqual(json_resp['markdown_meta'], md_meta)
         text_updated_heads = md_meta + self.text_content
-        self.check_preview_content(text_updated_heads)
+        self.check_pub_md_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -237,9 +229,7 @@ EEmptyValue:
                 'path': self.dbox_path,
                 'content': self.text_content
             })
-        self.assertEqual(response.code, 200)
-        json_resp = json.loads(response.body)
-        self.assertEqual(json_resp['errcode'], 0)
+        json_resp = self.check_json_response(response)
         file_meta_params = set(["_id", "revision", "rev", "thumb_exists",
             "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
             "mime_type", "bytes", "size", 'pub_status'])
@@ -249,7 +239,7 @@ EEmptyValue:
         self.assertEqual(json_resp['meta']['pub_status'], PS.draft)
         text_updated_heads = self.text_content
         self.assertFalse('markdown_meta' in json_resp)
-        self.check_preview_content(text_updated_heads)
+        self.check_pub_md_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -291,9 +281,7 @@ EEmptyValue:
                 'path': self.dbox_path,
                 'content': self.text_content
             })
-        self.assertEqual(response.code, 200)
-        json_resp = json.loads(response.body)
-        self.assertEqual(json_resp['errcode'], 0)
+        json_resp = self.check_json_response(response)
         file_meta_params = set(["_id", "revision", "rev", "thumb_exists",
             "modified", "client_mtime", "root_path", "is_dir", "icon", "root",
             "mime_type", "bytes", "size", 'pub_status'])
@@ -303,7 +291,7 @@ EEmptyValue:
         self.assertEqual(json_resp['meta']['pub_status'], PS.draft)
         text_updated_heads = self.text_content
         self.assertFalse('markdown_meta' in json_resp)
-        self.check_preview_content(text_updated_heads)
+        self.check_pub_md_content(text_updated_heads)
 
     @patch.object(BaseHandler, 'get_current_user')
     @patch.object(SimpleAsyncHTTPClient, 'fetch')
@@ -357,8 +345,7 @@ EEmptyValue:
 
         response = self.post_with_xsrf(
             self.reverse_url('dropbox_get_file'), {'path': self.dbox_path})
-        self.assertEqual(response.code, 200)
-        json_get_resp = json.loads(response.body)
+        json_get_resp = self.check_json_response(response)
         self.assertEqual(json_get_resp['content'], self.text_content)
 
         response = self.post_with_xsrf(
@@ -376,13 +363,4 @@ EEmptyValue:
         md_meta = u"Status:            draft\n\n"
         self.assertEqual(json_resp['markdown_meta'], md_meta)
         text_updated_heads = md_meta + self.text_content
-        self.check_preview_content(text_updated_heads)
-
-    def check_preview_content(self, text_updated_heads):
-        # TODO: check, post is generated, not just copied
-        md_file_path = os.path.join(
-            get_user_root(self.test_user_name, FolderType.preview),
-            self.dbox_path.lstrip('/'))
-        self.assertTrue(os.path.exists(md_file_path))
-        with open(md_file_path) as f:
-            self.assertEqual(f.read().decode('utf8'), text_updated_heads)
+        self.check_pub_md_content(text_updated_heads)

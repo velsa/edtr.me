@@ -13,6 +13,7 @@ from django.utils import simplejson as json
 from tests.lib.httpclient import AsyncHTTPClient
 from tests.lib.http_test_client import TestClient
 from app import EdtrmeApp
+from utils.main import get_user_root, FolderType
 
 MONGO_TEST_DB = 'edtrme_test'
 
@@ -134,3 +135,20 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
         json_resp = json.loads(response.body)
         self.assertEqual(json_resp['errcode'], 0)
         return json_resp
+
+    def check_pub_md_content(self, content=None, encoding='utf8', publish=False):
+        # TODO: check, post is generated, not just copied
+        f_types = [FolderType.preview]
+        if publish:
+            f_types.append(FolderType.publish)
+        for f_type in f_types:
+            file_path = os.path.join(
+                get_user_root(self.test_user_name, f_type),
+                self.dbox_path.lstrip('/'))
+            self.assertTrue(os.path.exists(file_path))
+            if content:
+                with open(file_path) as f:
+                    read_data = f.read()
+                    if encoding:
+                        read_data = read_data.decode(encoding)
+                    self.assertEqual(read_data, content)

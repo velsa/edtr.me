@@ -15,6 +15,7 @@ TEST_MODULES = [
     'tests.dropbox.api_ajax.delete_test',
     'tests.dropbox.api_ajax.move_test',
     'tests.dropbox.api_ajax.copy_test',
+    'tests.dropbox.api_ajax.publish_test',
 ]
 
 

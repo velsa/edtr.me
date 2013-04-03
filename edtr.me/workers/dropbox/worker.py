@@ -50,8 +50,7 @@ class DropboxWorkerMixin(DropboxMixin):
         callback(result)
 
     @gen.engine
-    def wk_dbox_save_file(self, user, path, text_content, publish=False,
-                                                               callback=None):
+    def wk_dbox_save_file(self, user, path, text_content, callback=None):
         # TODO: not allow call this api very often
         path = unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
@@ -61,46 +60,13 @@ class DropboxWorkerMixin(DropboxMixin):
         elif data.mime_type not in TEXT_MIMES:
             callback({'errcode': ErrCode.bad_request})
             return
-        if text_content:
-            if not isinstance(text_content, unicode):
-                try:
-                    text_content = text_content.decode(DEFAULT_ENCODING)
-                except UnicodeEncodeError:
-                    text_content = text_content.decode('ascii', 'replace')
-        else:
-            text_content = ''
-        md_meta = None
-        if (data and is_md(data)) or is_md_ext(path):
-            text_content, md_meta = update_md_header_meta(text_content, publish)
-        # make dropbox request
-        api_url = get_file_url(path, 'files_put')
-        access_token = user.get_dropbox_token()
-        response = yield gen.Task(self.dropbox_request,
-            "api-content", api_url,
-            access_token=access_token,
-            put_body=text_content,
-            overwrite='true')
-        if check_bad_response(response, callback):
-            return
-        dbox_meta = json.loads(response.body)
-        # TODO: save meta of all transitional folders, but maybe let it be
-        # just not allow user in UI to create /a/b/f.txt, if /a not exists
-        if data:
-            yield gen.Task(update_meta, self.db, dbox_meta, user.name)
-            file_meta = data
-            for f in dbox_meta:
-                setattr(file_meta, f, dbox_meta[f])
-        else:
-            new_data = yield gen.Task(save_meta, self.db, dbox_meta, user.name)
-            file_meta = DropboxFile(**new_data)
-        obj_for_pub = {
-            'errcode': ErrCode.ok,
-            'type': get_content_type(file_meta),
-            'content': text_content,
-            'meta': file_meta
-        }
+
+        saved_data = yield gen.Task(self._save_text_content,
+            path, data, user, text_content)
+        file_meta, obj_for_pub, md_meta = saved_data
+
         result = yield gen.Task(publish_object,
-            file_meta, user, self.db, self, preview=not publish,
+            file_meta, user, self.db, self, preview=True,
             obj=obj_for_pub)
         if md_meta:
             result['markdown_meta'] = md_meta
@@ -225,7 +191,8 @@ class DropboxWorkerMixin(DropboxMixin):
         callback({'errcode': ErrCode.ok, 'meta': meta})
 
     @gen.engine
-    def wk_dbox_publish(self, user, path, recurse=False, callback=None):
+    def wk_dbox_publish(self, user, path, text_content=None, recurse=False,
+                                                               callback=None):
         path = unify_path(path)
         success, data = yield gen.Task(self._get_filemeta, path, user.name)
         if not success:
@@ -234,11 +201,21 @@ class DropboxWorkerMixin(DropboxMixin):
         file_meta = data
         if file_meta.is_dir or recurse:
             callback({"errcode": ErrCode.not_implemented})
+            return
         if file_meta.pub_status == PS.published:
             callback({"errcode": ErrCode.already_published})
             return
 
-        result = yield gen.Task(publish_object, file_meta, user, self.db, self)
+        obj_for_pub, md_meta = None, None
+        if file_meta.mime_type in TEXT_MIMES:
+            saved_data = yield gen.Task(self._save_text_content,
+                path, data, user, text_content, publish=True)
+            file_meta, obj_for_pub, md_meta = saved_data
+
+        result = yield gen.Task(publish_object,
+            file_meta, user, self.db, self, obj=obj_for_pub)
+        if md_meta:
+            result['markdown_meta'] = md_meta
         callback(result)
 
     @gen.engine
@@ -249,3 +226,46 @@ class DropboxWorkerMixin(DropboxMixin):
             callback((False, {'errcode': ErrCode.not_found}))
             return
         callback((True, file_meta))
+
+    @gen.engine
+    def _save_text_content(self, path, file_meta, user, text_content,
+                                                publish=False, callback=None):
+        if text_content:
+            if not isinstance(text_content, unicode):
+                try:
+                    text_content = text_content.decode(DEFAULT_ENCODING)
+                except UnicodeEncodeError:
+                    text_content = text_content.decode('ascii', 'replace')
+        else:
+            text_content = ''
+        md_meta = None
+        if (file_meta and is_md(file_meta)) or is_md_ext(path):
+            text_content, md_meta = update_md_header_meta(text_content, publish)
+        # make dropbox request
+        api_url = get_file_url(path, 'files_put')
+        access_token = user.get_dropbox_token()
+        response = yield gen.Task(self.dropbox_request,
+            "api-content", api_url,
+            access_token=access_token,
+            put_body=text_content,
+            overwrite='true')
+        if check_bad_response(response, callback):
+            return
+        dbox_meta = json.loads(response.body)
+        # TODO: save meta of all transitional folders, but maybe let it be
+        # just not allow user in UI to create /a/b/f.txt, if /a not exists
+        if file_meta:
+            yield gen.Task(update_meta, self.db, dbox_meta, user.name)
+            file_meta = file_meta
+            for f in dbox_meta:
+                setattr(file_meta, f, dbox_meta[f])
+        else:
+            new_data = yield gen.Task(save_meta, self.db, dbox_meta, user.name)
+            file_meta = DropboxFile(**new_data)
+        obj_for_pub = {
+            'errcode': ErrCode.ok,
+            'type': get_content_type(file_meta),
+            'content': text_content,
+            'meta': file_meta
+        }
+        callback((file_meta, obj_for_pub, md_meta))

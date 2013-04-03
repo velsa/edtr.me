@@ -23,7 +23,7 @@ def update_md_header_meta(text_content, publish):
         md_heads['Status'] = dict(space_before='', space_after='', value='            x')
     stripped_status = md_heads['Status']['value'].strip()
     md_heads['Status']['value'] = md_heads['Status']['value'].replace(
-        stripped_status, MdState.publish if publish else MdState.draft)
+        stripped_status, MdState.published if publish else MdState.draft)
     no_head_text = text_content[md_heads_len:]
     updated_md_meta = u""
     for h, d in md_heads.items():
