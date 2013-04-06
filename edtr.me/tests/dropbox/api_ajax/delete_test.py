@@ -120,9 +120,9 @@ class DeleteTest(DeleteBaseTest):
         self.db_save(self.test_user_name, meta_db)
 
         preview_file_path = create_published_file(self.file_path,
-             self.test_user_name, FolderType.preview)
+             self.test_user_name, FolderType.preview_content)
         published_file_path = create_published_file(self.file_path,
-            self.test_user_name, FolderType.publish)
+            self.test_user_name, FolderType.publish_content)
 
         self.assertTrue(os.path.exists(preview_file_path))
         self.assertTrue(os.path.exists(published_file_path))
@@ -159,13 +159,13 @@ class DeleteTest(DeleteBaseTest):
             meta_db, _ = _adopt_meta(meta, separate_id=False)
             meta_db['pub_status'] = PS.draft
             preview_file_path = create_published_file(file_path,
-                 self.test_user_name, FolderType.preview)
+                 self.test_user_name, FolderType.preview_content)
             self.previewed_file_paths.append(preview_file_path)
             if count != 0:
                 meta_db['pub_status'] = PS.published
                 meta_db['pub_rev'] = 1
                 published_file_path = create_published_file(file_path,
-                    self.test_user_name, FolderType.publish)
+                    self.test_user_name, FolderType.publish_content)
                 self.published_file_paths.append(published_file_path)
             self.db_save(self.test_user_name, meta_db)
 

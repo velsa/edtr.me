@@ -98,9 +98,9 @@ def publish_object(file_meta, user, db, async_dbox, preview=False,
         obj = yield gen.Task(get_obj_content,
             file_meta, user, db, async_dbox, for_publish=True)
     if obj['errcode'] == ErrCode.ok:
-        pub_paths = [get_user_root(user.name, FolderType.preview)]
+        pub_paths = [get_user_root(user.name, FolderType.preview_content)]
         if not preview:
-            pub_paths.append(get_user_root(user.name, FolderType.publish))
+            pub_paths.append(get_user_root(user.name, FolderType.publish_content))
         if obj.get('type', None) == ContentType.text_file:
             # Text content
             pub_func = _publish_text
@@ -120,12 +120,12 @@ def publish_object(file_meta, user, db, async_dbox, preview=False,
 
 def dbox_unpublish(file_meta, user):
     if file_meta.pub_status in (PS.published, PS.draft):
-        preview_path = get_user_root(user.name, FolderType.preview)
+        preview_path = get_user_root(user.name, FolderType.preview_content)
         preview_path_file = get_server_path(preview_path, file_meta)
         os.remove(preview_path_file)
 
         if file_meta.pub_rev:
-            publish_path = get_user_root(user.name, FolderType.publish)
+            publish_path = get_user_root(user.name, FolderType.publish_content)
             publish_path_file = get_server_path(publish_path, file_meta)
             os.remove(publish_path_file)
 

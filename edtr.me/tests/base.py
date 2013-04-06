@@ -138,9 +138,9 @@ class BaseTest(AsyncHTTPTestCase, LogTrapTestCase, TestClient):
 
     def check_pub_md_content(self, content=None, encoding='utf8', publish=False):
         # TODO: check, post is generated, not just copied
-        f_types = [FolderType.preview]
+        f_types = [FolderType.preview_content]
         if publish:
-            f_types.append(FolderType.publish)
+            f_types.append(FolderType.publish_content)
         for f_type in f_types:
             file_path = os.path.join(
                 get_user_root(self.test_user_name, f_type),

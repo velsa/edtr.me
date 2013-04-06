@@ -8,8 +8,10 @@ logger = logging.getLogger('edtr_logger')
 
 
 class FolderType:
-    publish = "www"
-    preview = "preview"
+    publish_content = "www_content"
+    publish_output = "www"
+    preview_content = "preview_content"
+    preview_output = "preview"
     thumbnail = "thumbnail"
 
     @classmethod
