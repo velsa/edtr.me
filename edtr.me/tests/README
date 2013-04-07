@@ -1,4 +1,4 @@
-To run all tests:
+To run all non socketio tests:
 python -m tests.runtests
 
 To run all tests including socketio:

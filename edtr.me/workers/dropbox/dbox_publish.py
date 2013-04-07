@@ -23,7 +23,7 @@ def update_md_header_meta(text_content, publish):
         md_heads['Status'] = dict(space_before='', space_after='', value='            x')
     stripped_status = md_heads['Status']['value'].strip()
     md_heads['Status']['value'] = md_heads['Status']['value'].replace(
-        stripped_status, MdState.publish if publish else MdState.draft)
+        stripped_status, MdState.published if publish else MdState.draft)
     no_head_text = text_content[md_heads_len:]
     updated_md_meta = u""
     for h, d in md_heads.items():
@@ -37,6 +37,10 @@ def update_md_header_meta(text_content, publish):
     return text_updated_head, updated_md_meta
 
 
+def get_server_path(root_path, file_meta):
+    return os.path.join(root_path, file_meta.path.lstrip('/'))
+
+
 @gen.engine
 def _publish_binary(fm, user, preview, pub_paths, body, db, callback):
     if not preview and fm.pub_status == PS.published:
@@ -44,7 +48,7 @@ def _publish_binary(fm, user, preview, pub_paths, body, db, callback):
         callback({"errcode": ErrCode.already_published})
         return
     for pp in pub_paths:
-        path_file = os.path.join(pp, fm.path.lstrip('/'))
+        path_file = get_server_path(pp, fm)
         create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(body)
@@ -68,7 +72,7 @@ def _publish_text(fm, user, preview, pub_paths, file_content, db, callback):
         callback({"errcode": ErrCode.already_published})
         return
     for pp in pub_paths:
-        path_file = os.path.join(pp, fm.path.lstrip('/'))
+        path_file = get_server_path(pp, fm)
         create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(file_content.encode(DEFAULT_ENCODING))
@@ -114,6 +118,18 @@ def publish_object(file_meta, user, db, async_dbox, preview=False,
         callback(obj)
 
 
+def dbox_unpublish(file_meta, user):
+    if file_meta.pub_status in (PS.published, PS.draft):
+        preview_path = get_user_root(user.name, FolderType.preview)
+        preview_path_file = get_server_path(preview_path, file_meta)
+        os.remove(preview_path_file)
+
+        if file_meta.pub_rev:
+            publish_path = get_user_root(user.name, FolderType.publish)
+            publish_path_file = get_server_path(publish_path, file_meta)
+            os.remove(publish_path_file)
+
+
 @gen.engine
 def dbox_process_publish(updates, user, db, async_dbox, callback):
     errors = []
@@ -153,12 +169,10 @@ def dbox_process_publish(updates, user, db, async_dbox, callback):
                                     if hasattr(meta, f):
                                         setattr(meta, f, result['meta'][f])
                         elif meta.pub_status != PS.dbox:
-                            # TODO md file was published or preview
-                            # and now it has state regular
-                            # remove it from publish and preview
-                            errors.append({"description":
-                                u"Removing from pub state not implemented ({0})"\
-                                .foramt(path)})
+                            # TODO headers['state'] is missing or regular
+                            # maybe just set state to draft and do
+                            # corresponding tasks
+                            pass
                 else:
                     errors.append(md_obj)
             else:
@@ -169,8 +183,8 @@ def dbox_process_publish(updates, user, db, async_dbox, callback):
                     if not result['errcode'] == ErrCode.ok:
                         errors.append(result)
         else:
-            # process deleted file
-            print "Processing DELETED file", path
+            # deleted published or previewed file already processed by
+            # update_dbox_delta
             pass
     if errors:
         logger.error(u"dbox_process_publish errors: {0}".format(
