@@ -1,58 +1,174 @@
-<div class="well sidebar-nav"> <!-- well effect -->
-    <ul class="nav nav-list">
-<!--         
-        <form class="form-search" _lpchecked="1">
-            <i class="icon-search icon-black"></i>
-            <input type="text" class="input-large search-query" 
-                placeholder="Find in files…"/>
-        </form>
- -->        
-        <li class="nav-header" style="height: 30px;">
-            <ul class="nav nav-tabs">
-                <li class="active">
-                    <a href="#">Files in Dropbox:</a>
-                </li>
-                <li class="dropdown" style="text-transform: none;">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">
-                        Actions<b class="caret"></b>
-                    </a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a data-toggle="modal" id="action_add_file" href="#">
-                                <i class="icon-file icon-black"></i>
-                                New File...
-                            </a>
-                        </li>
-                        <li>
-                            <a data-toggle="modal" id="action_add_subdir" href="#">
-                                <i class="icon-folder-close icon-black"></i>
-                                New Subdir...
-                            </a>
-                        </li>
-                        <li>
-                            <a data-toggle="modal" id="action_rename" href="#">
-                                <i class="icon-pencil icon-black"></i>
-                                Rename...
-                            </a>
-                        </li>
-                        <li>
-                            <a data-toggle="modal" id="action_delete" href="#">
-                                <i class="icon-trash icon-black"></i>
-                                Delete...
-                            </a>
-                        </li>
-                    </ul>
-                </li>
-                <li id="rotate-on-click-li">
-                    <img src="{{ static_url('images/refresh-static.gif') }}" 
-                        alt="()"
-                        class="rotate-on-click">
-                </li>
-            </ul>
-        </li>
-        <li id="ul_tree_control" ></li>
-        <li id="db_tree">
-            <!-- Dropbox TreeView will be inserted here with Ajax -->
-        </li>
-    </ul>
+<ul class="sidebar-header nav nav-list">
+<!--
+    <form class="form-search" _lpchecked="1">
+        <i class="icon-search icon-black"></i>
+        <input type="text" class="input-large search-query"
+            placeholder="Find in files…"/>
+    </form>
+-->
+    <!-- Server action animation -->
+    <div class="modal-backdrop server-action" style="display:none"></div>
+
+    <li class="nav-header">
+        <ul class="nav nav-tabs">
+<!--
+            <li class="active">
+                <a href="#">Files:</a>
+            </li>
+ -->
+            <li class="dropdown menu-file" style="text-transform: none;">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    File<b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">
+                    <li class="dir-context">
+                        <a class="sb-file" data-action="add_file" href="#">
+                            <i class="icon-file icon-black"></i>
+                            New File...<strong class="shortcut">Ctrl-N</strong>
+                        </a>
+                    </li>
+                    <li class="dir-context">
+                        <a class="sb-file" data-action="add_subdir" href="#">
+                            <i class="icon-folder-close icon-black"></i>
+                            New Directory...<strong class="shortcut">Ctrl-Alt-N</strong>
+                        </a>
+                    </li>
+                    <li class="dir-context file-context">
+                        <a class="sb-file" data-action="rename" href="#">
+                            <i class="icon-pencil icon-black"></i>
+                            Rename...<strong class="shortcut">Ctrl-Shift-N</strong>
+                        </a>
+                    </li>
+                    <li class="file-context disabled">
+                        <a class="sb-file" data-action="remove" href="#">
+                            <i class="icon-plus-sign icon-black"></i>
+                            Duplicate file...<strong class="shortcut"></strong>
+                        </a>
+                    </li>
+                    <li class="dir-context file-context">
+                        <a class="sb-file" data-action="remove" href="#">
+                            <i class="icon-trash icon-black"></i>
+                            Delete...<strong class="shortcut"></strong>
+                        </a>
+                    </li>
+                    <li class="divider dir-context"></li>
+                    <li class="dir-context">
+                        <a class="sb-file" data-action="refresh" href="#">
+                            <i class="icon-refresh icon-black"></i>
+                            Refresh Directory<strong class="shortcut">Ctrl-R</strong>
+                        </a>
+                    </li>
+                    <li class="dir-context">
+                        <a class="sb-file" data-action="edit" href="#">
+                            <i class="icon-wrench icon-black"></i>
+                            Directory settings...<strong class="shortcut">Ctrl-E</strong>
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li class="disabled" style="opacity: 1">
+                        <a class="sb-file" href="#">
+                            <i class="icon-info-sign icon-black"></i>
+                            Show info<strong class="shortcut">Hold Shift...</strong>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="dropdown menu-edit" style="text-transform: none;">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    Edit<b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">
+                    <li class="divider dir-context file-context" style="display:none"></li>
+                    <li class="dir-context file-context">
+                        <a class="sb-edit" data-action="cut" href="#">
+                            <!-- <i class="icon-trash icon-black"></i> -->
+                            Cut<strong class="shortcut">{0}X</strong>
+                        </a>
+                    </li>
+                    <li class="dir-context file-context">
+                        <a class="sb-edit" data-action="copy" href="#">
+                            <!-- <i class="icon-trash icon-black"></i> -->
+                            Copy<strong class="shortcut">{0}C</strong>
+                        </a>
+                    </li>
+                    <li class="dir-context file-context">
+                        <a class="sb-edit disabled" data-action="paste" href="#">
+                            <!-- <i class="icon-trash icon-black"></i> -->
+                            Paste<strong class="shortcut">{0}V</strong>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="dropdown menu-view" style="text-transform: none;">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    View<b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">
+                    <li>
+                        <a class="sb-view" data-action="show_clipboard" href="#">
+                            Show clipped files...<strong class="shortcut"></strong>
+                        </a>
+                    </li>
+                    <li>
+                        <a class="sb-view" data-action="clear_clipboard" href="#">
+                            Clear clipped files
+                        </a>
+                    </li>
+                    <li class="divider"></li>
+                    <li class="disabled">
+                        <a class="sb-view" data-action="clear_checkboxes" href="#">
+                            <i class="icon-remove-circle icon-black"></i>
+                            Clear all checkboxes<strong class="shortcut"></strong>
+                        </a>
+                    </li>
+                    <li>
+                        <label style="padding-right: 20px;">
+                            <input type="checkbox" class="sb-view"
+                                data-action="toggle_checkboxes">
+                            Toggle checkboxes<strong class="shortcut"></strong>
+                        </label>
+                    </li>
+                </ul>
+            </li>
+            <li class="dropdown menu-web" style="text-transform: none;">
+                <a class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    Web<b class="caret"></b>
+                </a>
+                <ul class="dropdown-menu">
+                    <li class="divider dir-context file-context" style="display:none"></li>
+                    <li class="dir-context file-context">
+                        <a class="sb-web" data-action="preview" href="#">
+                            <i class="icon-eye-open icon-black"></i>
+                            Preview in new tab<strong class="shortcut">Ctrl-P</strong>
+                        </a>
+                    </li>
+                    <li class="divider dir-context file-context"></li>
+                    <li class="dir-context file-context">
+                        <a class="sb-web" data-action="publish" href="#">
+                            <i class="icon-globe icon-black"></i>
+                            Publish to Web<strong class="shortcut">Ctrl-Shift-P</strong>
+                        </a>
+                    </li>
+                    <li class="dir-context file-context">
+                        <a class="sb-web" data-action="unpublish" href="#">
+                            <i class="icon-remove-sign icon-black"></i>
+                            Unpublish from Web<strong class="shortcut">Ctrl-Shift-U</strong>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="sync-button-li">
+                <img src="{{ static_url('images/refresh-static.gif') }}"
+                    alt="()" class="sync-button edtr-tooltip"
+                    title="Refresh opened directories"
+                    >
+            </li>
+        </ul>
+    </li>
+</ul>
+<div id="edtr_tree" class="sidebar-tree"> <!-- well effect -->
+    <!-- tabindex allows us to focus() this div for keyboard input -->
+    <div id="db_tree" class="ztree" tabindex="0">
+        <!-- Dropbox TreeView will be inserted here -->
+    </div>
 </div><!--/well -->

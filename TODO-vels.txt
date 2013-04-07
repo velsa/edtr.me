@@ -1,10 +1,43 @@
+
 UI:
-- left sidebar should be fixed size (?) and content area should be resizable and shouldn't jump
-- bottom preview should be resizable and hidable and movable to top
-- fullscreen editing
-- codemirror themes
+- In general settings dialog:  preview follows cursor (?)
+- folder settings: edit as text file (python style, like in pelican ?)
+- special icons for each type: 'editing', 'published'. ask outsource designer to make those
+- add sort by name, ext (default), date, sort order (ascending/descending)
+- recent files submenu in File menu
+- Allow viewing/choosing dropbox revisions of the edited file
+- Add Shortcut/button to remove all trailng whitespace
+- tree and editor keyboard shortcuts. decide where to use alt and ctrl (avoid clashing with mac and windows browser shortcuts) and make tree actions accessible from within editor
+- add search/replace with autocomplete and regexp, a search dialog should popup in top right corner of the editor (or bottom, like i sublime ?)
+- enable Ctrl - cursor movement (currently only Option works)
+- metadata editing dialog - add option to insert current preview theme and preview code theme and Style and CodeStyle
+- add CodeStyle: none (?)
+- Highlight meta-data, and show errors - codemirror mode
+- Add Shortcut/button to remove all trailng whitespace
+- add Ctrl-Shift-V dialog, to allow pasting from a list of previously copied texts (like in pycharm)
+- add to preview settings - preview location: bottom, top, right
+- add highlight to preview block/line that user is currently editing (cursor position). option to switch highlight off
+
+Marked:
+- Add highlighter mechanism (see how it is done in demo on github repo)
+- Add support for dt/dd (definition lists):
+    http://kramdown.rubyforge.org/syntax.html#definition-lists
+- Add support for custom attributes to markdown block and inline elements as in here: [Attribute Lists](http://pythonhosted.org/Markdown/extensions/attr_list.html). Configure them in text file and specify it in metadata (?). This way a user can have 3 files: template, attrlist and css, which define site structure.
 
 JS:
-- dropbox tree with icons
-- marked: add code highlighting (see example on their github page) 
-- codemirror hangs on gfm and on smart enter
+- publish functionality:
+    If file is already published and unmodified, Publish button is greyed out.
+- user metadata is erased after Ctrl-M - preserve it
+
+BUGS:
+- ztree: if parent node is checked, but not loaded with ajax, its check_Child_State is -1, but when it is loaded, the check_Child_State becomes 1, although none of it's children are checked. So the check_Child_State should actually become 0
+- ztree: refresh dir node without closing it first
+- save doesn't check for exceptions (network errors, etc). Show "Saving..." text above rotating circle
+- _xsrf: make a test ajax request on page load to force tornado to set the cookie
+
+After alfa:
+- Ad comments from facebook and disqus
+- Integrate with ftp, livejournal and habrahanr for external publishing (in directory settings). Make a post on habr about it and work with feedback
+
+Ideas:
+- Add [reStructuredText mode](http://javascript.ru/forum/job/33595-js-professional-v-startap.html) in Codemirror and integration with [readthedocs.org](http://readthedocs.org)

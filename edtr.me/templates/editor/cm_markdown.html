@@ -1,146 +1,105 @@
 <!--
-    CodeMirror with toolbar and buttons for Markdown editing
+    Toolbar, CodeMirror and buttons for Markdown editing
 -->
 
-<!-- 
-    Toolbar 
+<!-- Saving animation -->
+<div class="modal-backdrop file-saving" style="display:none"></div>
+
+<!-- Editor file tabs -->
+<div class="editor-tabs well">
+    <ul id="edtr_tabs" class="nav nav-tabs">
+    </ul>
+</div>
+
+<!-- Editor toolbar -->
+<div class="editor-toolbar">
+    {% include "editor/cm_markdown_tb.html" %}
+</div>
+
+<!--
+    Buttons below
+    (.cme-buttons div can be replaced with .cme-search and .cme-replace)
 -->
-<div id="cme-toolbar-container">
-    <div class="cme-toolbar btn-toolbar well">
-        <div class="btn-group">
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_header"
-               title="Header (1-6): <b>Ctrl-H</b>" href="#">
-                <!--
-                <b>H</b>
-                -->
-                <i class="icon-text-height icon-black"></i>
-            </a>
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_bold"
-               title="Toggle Bold: <b>Ctrl-B</b>" href="#">
-                <!--
-                <b>B</b>
-                -->
-                <i class="icon-bold icon-black"></i>
-            </a>
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_italic"
-               title="Toggle Italic: <b>Ctrl-I</b>" href="#">
-                <!--
-                <b><i>I</i></b>
-                -->
-                <i class="icon-italic icon-black"></i>
-            </a>
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_code"
-               title="Toggle Code: <b>Ctrl-K</b>" href="#">
-                <i class="icon-barcode icon-black"></i>
-            </a>
-        </div><!--/btn-group-->
+<div class="editor-buttons">
+    <div class="cme-buttonbar well">
+        <!-- Editor buttons -->
+        <div class="cme-buttons">
+            <button id="btn_save"
+                    title="Save to Dropbox"
+                    class="btn btn-success btn-small cme-button cme-button-tooltip-bottom" href="#"
+                    data-action="save_codemirror">
+                <i class="icon-ok-sign icon-white"></i>
+                <span id="btn_save_text">Save Draft</span>
+            </button>
+            <button id="btn_preview"
+                    title="Open page preview in new window"
+                    class="btn btn-info btn-small cme-button cme-button-tooltip-bottom" href="#"
+                    data-action="preview_codemirror">
+                <i class="icon-eye-open icon-white"></i>
+                Preview...
+            </button>
+            <button id="btn_publish"
+                    title="Publish HTML to your website (also saves file to Dropbox)"
+                    class="btn btn-primary btn-small cme-button cme-button-tooltip-bottom pull-right"
+                    href="#" data-action="publish_codemirror">
+                <i class="icon-globe icon-white"></i>
+                Publish
+            </button>
+        </div><!-- .cme-buttons -->
+        <!-- Editor search/replace -->
+        <div class="cme-search input-perepend" style="display:none">
+            <table><tr><td>
+            <div class="btn-group" data-toggle="buttons-checkbox">
+                <button type="button" class="btn btn-mini cme-button cme-button-tooltip-bottom"
+                    title="Case sensitive" tabindex="-1"
+                    data-action="search_toggle_case">Aa</button>
+                <button type="button" class="btn btn-mini cme-button cme-button-tooltip-bottom"
+                    title="Wrap" tabindex="-1"
+                    data-action="search_toggle_wrap">
+                    <i class="icon-retweet icon-black"></i>
+                </button>
+            </div>
+            </td><td>
+                <label>Search for:</label>
+            </td><td>
+                <input type="text" class="search-input input-xlarge"
+                    tabindex="1"
+                    placeholder="text or regexp (use /re/ syntax)">
+            </td><td>
+                <button type="button"
+                    class="btn btn-small cme-button"
+                    title="Find next match" tabindex="-1"
+                    data-action="search_find_next">
+                    <i class="icon-arrow-down icon-black"></i>
+                </button>
+                <button type="button"
+                    class="btn btn-small cme-button"
+                    title="Find previous match" tabindex="-1"
+                    data-action="search_find_previous">
+                    <i class="icon-arrow-up icon-black"></i>
+                </button>
+            </td></tr><tr><td>
+            </td><td>
+                <label class="cme-replace" style="display:none">Replace with:</label>
+            </td><td>
+                <input type="text" class="cme-replace replace-input input-xlarge"
+                    style="display:none" tabindex="2"
+                    placeholder="">
+            </td><td>
+                <button type="button"
+                    class="cme-replace btn btn-small cme-button cme-button-tooltip-bottom"
+                    title="Replace match" tabindex="-1" style="display:none"
+                    data-action="search_replace">Replace</button>
+            </td></tr></table>
+        </div><!-- .cme-search -->
+    </div><!-- .cme-buttonbar -->
+</div>
 
-        <div class="btn-group">
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_ulist"
-               title="Unordered List: <b>Ctrl-U</b>" href="#">
-                <i class="icon-th-list icon-black"></i>
-            </a>
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_olist"
-               title="Ordered List: <b>Ctrl-O</b>" href="#">
-                <i class="icon-list-alt icon-black"></i>
-            </a>
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_quote"
-               title="Quote: <b>Ctrl-Q</b>" href="#">
-                <i class="icon-chevron-right icon-black"></i>
-            </a>
-        </div><!--/btn-group-->
-
-        <div class="btn-group">
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_divider"
-               title="Divider (Horizontal Rule): <b>Ctrl-D</b>" href="#">
-                <i class="icon-minus icon-black"></i>
-            </a>
-        </div><!--/btn-group-->
-
-        <div class="btn-group">
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_image_url"
-               title="Insert Image: <b>Ctrl-G</b>" href="#">
-                <i class="icon-picture icon-black"></i>
-            </a>
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_url"
-               title="Insert URL: <b>Ctrl-L</b>" href="#">
-                <i class="icon-magnet icon-black"></i>
-            </a>
-        </div><!--/btn-group-->
-
-        <div class="btn-group">
-            <a class="btn dropdown-toggle" data-toggle="dropdown"
-               title="Custom tags. You can add/remove those in Settings" href="#">
-                <!--
-                &nbsp;<i class="icon-font icon-black"></i>&nbsp;
-                -->
-                T
-                <span class="caret"></span>
-            </a>
-            <ul class="dropdown-menu" style="max-width: 350px;">
-                <li><a id="tbb_style1" href="#">
-                    <b>&lt;mycap&gt;</b> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Enlarge letter
-                </a></li>
-                <li><a id="tbb_style2" href="#">
-                    <b>&lt;mycolor&gt;</b> &nbsp;&nbsp;&nbsp; Custom color
-                </a></li>
-                <li class="divider"></li>
-                <li><a id="tbb_style3" href="#">
-                    <b>&lt;myback&gt;</b> &nbsp;&nbsp;&nbsp; Custom background
-                </a></li>
-            </ul>
-        </div><!--/btn-group-->
-
-        <div id="tbb_right_group" class="btn-group pull-right">
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_width"
-               title="Toggle Width: <b>Ctrl-F11</b>" href="#">
-                <i class="icon-resize-horizontal icon-black"></i>
-            </a>
-            <a class="btn btn-default btn-small cme-toolbar-tooltip" id="tbb_fullscreen"
-               title="Fullscreen: <b>Ctrl-Shift-F11</b>" href="#">
-                <i class="icon-fullscreen icon-black"></i>
-            </a>
-            <!--
-           <i class="icon-search icon-black "></i>
-           <input type="text" class="span2 search-query"
-                  id="text_search" data-items="4" data-provide="typeahead"
-                  placeholder="Search in text…"/>
-            -->
-        </div><!--/btn-group-->
-    </div><!--/btn-toolbar-->
-</div><!--/cme-toolbar-container-->
-
-
-<!-- 
-    Editing area 
+<!--
+    Editing area - should come last to be on top of the above divs
 -->
-<div class="cme-textarea-container">
+<div class="editor-area">
     <textarea class="cme-textarea" rows="35" disabled="true">
     </textarea>
 </div>
 
-<!-- 
-    Buttons below  
--->
-<div class="cme-buttonbar-container well">
-    <div class="cme-buttonbar">
-        <button id="btn_save"
-                title="Save to Dropbox (in .draft folder)"
-                class="btn btn-success btn-small cme-button-tooltip" href="#">
-            <i class="icon-ok-sign icon-white"></i>
-            <span id="btn_save_text">Save draft</span>
-        </button>
-        <button id="btn_preview"
-                title="Open page preview in new window"
-                class="btn btn-info btn-small cme-button-tooltip" href="#">
-            <i class="icon-eye-open icon-white"></i>
-            Preview...
-        </button>
-        <button id="btn_publish"
-                title="Publish HTML to your website (also saves file to Dropbox)"
-                class="btn btn-primary btn-small cme-button-tooltip pull-right" href="#">
-            <i class="icon-globe icon-white"></i>
-            Publish
-        </button>
-    </div><!-- cme-buttonbar -->
-</div>

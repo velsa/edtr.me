@@ -2,6 +2,11 @@ import logging
 import tornado.web
 from tornado import gen
 import motor
+from settings import jinja_env
+
+from workers.dropbox import DropboxWorkerMixin
+from models.accounts import UserModel
+from handlers.base import BaseHandler
 
 from workers.dropbox import DropboxWorkerMixin
 from handlers.base import BaseHandler
@@ -49,3 +54,19 @@ class HomeHandler(BaseHandler, DropboxWorkerMixin):
                 return
 
         self.render_async("home.html", {"user": user})
+
+
+class GetEditorHandler(BaseHandler):
+    """ Handler for serving correct editor (with toolbar) to browser
+    """
+    def initialize(self, **kwargs):
+        super(GetEditorHandler, self).initialize(**kwargs)
+
+    def get(self, *args, **kwargs):
+        editor_type = self.get_argument("editor_type", None)
+        editor_tmpl = "editor/cm_" + editor_type + ".html"
+        context = self.get_template_namespace()
+        self.write({
+                "html":      jinja_env.get_template(editor_tmpl).render(context),
+            })
+        self.flush()

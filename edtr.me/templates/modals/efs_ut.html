@@ -1,0 +1,149 @@
+<!--
+    Dialog for editing markdown Meta-Data - all input fields are data-bound via knockout
+-->
+<script id="modal_edit_file_settings_template" class="modal-template"
+    type="text/x-underscore-template">
+    <div id="modal_edit_file_settings" class="modal edtr-settings hide" tabindex="-1">
+        <div class="modal-header">
+            <a class="close" data-dismiss="modal">×</a>
+            <h3>Edit metadata for:</h3>
+            <p></p>
+            <pre><%= filename %></pre>
+        </div>
+        <div class="modal-body">
+<!--
+                            <div id="efs_datetime" class="datetime-picker input-append">
+                                <input data-format="MM/dd/yyyy HH:mm PP" type="text"
+                                data-bind="value: date, valueUpdate: 'keyup'"></input>
+                                <span class="add-on">
+                                  <i data-time-icon="icon-time"
+                                  data-date-icon="icon-calendar"></i>
+                                </span>
+                            </div>
+-->
+            <ul class="nav nav-tabs">
+              <li class="active"><a href="#efs_tab_basic" data-toggle="tab">Basic</a></li>
+              <li><a href="#efs_tab_extended" data-toggle="tab">Extended</a></li>
+              <li><a href="#efs_tab_advanced" data-toggle="tab">Advanced</a></li>
+            </ul>
+            <div class="tab-content">
+                <div class="tab-pane active" id="efs_tab_basic">
+                    <table class="table-condensed"> <!-- cells in a table row: 6 -->
+                        <tbody>
+                            <tr>
+                                <td colspan="1"> <label>Title:</label> </td>
+                                <td colspan="5">
+                                    <input type="text"
+                                        data-bind="value: meta_title, valueUpdate: 'keyup'"
+                                        placeholder="page title">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="1"> <label>Author(s):</label> </td>
+                                <td colspan="5">
+                                    <input type="text"
+                                        data-bind="value: meta_author, valueUpdate: 'keyup'"
+                                        placeholder="author name(s), coma separated">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="1"> <label>Tags:</label> </td>
+                                <td colspan="5">
+                                    <input type="hidden" class="edtr-select2-tags"
+                                        data-bind="value: meta_tags"
+                                        pattern="^( *[-_a-zA-Z0-9']{3,50}, *)*( *[-_a-zA-Z0-9']{3,50} *)?$"
+                                        placeholder="coma separated, at least 3 chars">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="1"> <label>Slug:</label> </td>
+                                <td colspan="1">
+                                    <input type="text"
+                                        data-bind="value: meta_slug, valueUpdate: 'keyup'"
+                                        placeholder="no spaces">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="1"> <label>Status:</label> </td>
+                                <td colspan="2">
+                                    <span class="label" data-bind="text: meta_status"></span>
+                                </td>
+                                <td colspan="1"> <label>Last published on:</label> </td>
+                                <td colspan="2">
+                                    <span class="label label-info" data-bind="text: meta_date"></span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div> <!-- tab-pane -->
+                <div class="tab-pane" id="efs_tab_extended">
+                    <table class="table-condensed"> <!-- cells in a table row: 6 -->
+                        <tbody>
+                            <tr>
+                                <td colspan="1"> <label>Style:</label> </td>
+                                <td colspan="3">
+                                    <input type="text"
+                                        data-bind="value: meta_style, valueUpdate: 'keyup'"
+                                        placeholder="preset or css file">
+                                </td>
+                                <td colspan="1"> <label>Presets:</label> </td>
+                                <td colspan="1">
+                                    <select class="edtr-select2" style="width: 200px"
+                                        data-bind= "options: helper_style_list,
+                                                    optionsText: function(item) {
+                                                        return item.humanReadable()
+                                                    },
+                                                    value: helper_style">
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="1"> <label>Code Style:</label> </td>
+                                <td colspan="3">
+                                    <input type="text"
+                                        data-bind="value: meta_code_style, valueUpdate: 'keyup'"
+                                        placeholder="preset or css file">
+                                </td>
+                                <td colspan="1"> <label>Presets:</label> </td>
+                                <td colspan="1">
+                                    <select class="edtr-select2" style="width: 200px"
+                                        data-bind= "options: helper_code_style_list,
+                                                    optionsText: function(item) {
+                                                        return item.humanReadable()
+                                                    },
+                                                    value: helper_code_style">
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td colspan="1"> <label>Header Anchors:</label> </td>
+                                <td colspan="3">
+                                    <input type="text"
+                                        data-bind="value: meta_header_anchors, valueUpdate: 'keyup'"
+                                        placeholder="header numbers, coma separated (e.g. '2, 3')">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div> <!-- tab-pane -->
+                <div class="tab-pane" id="efs_tab_advanced">
+                    Coming not so soon...
+                </div> <!-- tab-pane -->
+            </div>  <!-- tab-content -->
+
+        </div>  <!-- modal-body -->
+
+        <div class="modal-footer">
+            <a data-modal-button="ok" href="#"
+               style="width: 120px;"
+               class="btn btn-success modal-submit-button pull-left">
+                OK
+            </a>
+            <a data-modal-button="cancel" href="#"
+               style="width: 120px;"
+               class="btn btn-danger modal-submit-button pull-right">
+                Cancel
+            </a>
+        </div>
+    </div>
+</script> <!-- modal_edit_file_settings_template -->

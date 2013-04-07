@@ -6,59 +6,39 @@
     <meta charset="utf-8">
     <title>edtr.me - {% block extra_title %}{% endblock %}</title>
     <meta name="description" content="edtr.me - Simple hosting and blogging for perfectionists">
-    <meta name="author" content="Vladimir Lobak; Alexey Evseev; Bova Bovaev">
+    <meta name="author" content="Vladimir Lobak; Alexey Evseev">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
-    <!--[if lt IE 9]>
-      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
-    <![endif]-->
-
-    <!-- Le styles -->    
-    <!--
-    <link href="{{ static_url('bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ static_url('bootstrap/css/bootstrap-responsive.min.css') }}" rel="stylesheet">
-    <link href="{{ static_url('bootstrap/css/bootstrap-responsive.css') }}" rel="stylesheet">
-	-->
-    <link href="{{ static_url('bootstrap/css/bootstrap.css') }}" rel="stylesheet">
+    <!-- Bootstrap is default for all site -->
+    <link href="{{ static_url('vendor/bootstrap-2.3.0/css/bootstrap.css') }}" rel="stylesheet">
 
     <!-- Le fav and touch icons -->
     <link rel="shortcut icon" href="{{ static_url('images/favicon.ico') }}">
 
-    <!-- Le javascript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-    <!--
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.js"></script>
-    <script src="{{ static_url('bootstrap/js/bootstrap.min.js') }}"></script>
-    -->
-    <script src="{{ static_url('jquery/jquery-1.8.3.min.js') }}"></script>
-    <script src="{{ static_url('bootstrap/js/bootstrap.js') }}"></script>
+    <!-- Le javascript -->
+    <script src="{{ static_url('vendor/jquery/jquery-1.9.0.js') }}"></script>
+    <!-- // <script src="{{ static_url('jquery/jquery-1.8.3.min.js') }}"></script> -->
+    <script src="{{ static_url('vendor/bootstrap-2.3.0/js/bootstrap.js') }}"></script>
 
-    <!-- More plugins -->
+    <!-- More plugins
     <script src="{{ static_url('js/jquery_cookie.js') }}"></script>
+    -->
 
-    <!-- Our JS -->
-    <script src="{{ static_url('js/mdb-helpers.js') }}"></script>
+    <!-- JS customizations -->
+    <script src="{{ static_url('js/edtr-helpers.js') }}"></script>
 
     {% block extra_head %}
-    {% endblock %} <!-- extra_head -->
+    {% endblock %}
 </head>
 
 <body>
     {% block body_before_container %}
-    {% endblock %} <!-- body_before_container -->
+    {% endblock %}
 
-    <div class="main-container"> <!-- container-fluid -->
-        {% block body_container %}
-        {% endblock %} <!-- body_container -->
-        <div class="sticky-footer"> 
-            {% block extra_footer %}
-            {% endblock %} <!-- extra_footer -->
-            <p class="pull-right">&copy; Some company </p>
-        </div>
-    </div><!--/.container-->
+    {% block body_container %}
+    {% endblock %}
 
+    {% block extra_footer %}
+    {% endblock %}
 </body>
 </html>

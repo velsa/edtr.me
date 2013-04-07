@@ -4,13 +4,7 @@
  * https://github.com/chjj/marked
  */
 
-
-// VELS
-String.prototype.count=function(s1) { 
-    return (this.length - this.replace(new RegExp(s1,"g"), '').length) / s1.length;
-}
-
-;(function() {
+(function() {
 
 /**
  * Block-Level Grammar
@@ -30,7 +24,12 @@ var block = {
   def: /^ *\[([^\]]+)\]: *<?([^\s>]+)>?(?: +["(]([^\n]+)[")])? *(?:\n+|$)/,
   table: noop,
   paragraph: /^((?:[^\n]+\n?(?!hr|heading|lheading|blockquote|tag|def))+)\n*/,
-  text: /^[^\n]+/
+  text: /^[^\n]+/,
+  header_attr_list: /^ *#.+[ \t]({:.*})\s*$/,    // VELS
+  // link_attr_list: /^[!]?[\[][^\]]*[\]][(][^)]*[)]({:.*})/,    // VELS
+  inline_attr_list: /\S({:.*})/,                // VELS - conform to python restriction, where no spaces are allowed
+                                                // before attribute lists in inline elements
+  paragraph_attr_list: /.*\n *({:.*})\s*$/      // VELS
 };
 
 block.bullet = /(?:[*+-]|\d+\.)/;
@@ -92,6 +91,27 @@ block.tables = merge({}, block.gfm, {
   nptable: /^ *(\S.*\|.*)\n *([-:]+ *\|[-| :]*)\n((?:.*\|.*(?:\n|$))*)\n*/,
   table: /^ *\|(.+)\n *\|( *[-:]+[-| :]*)\n((?: *\|.*(?:\n|$))*)\n*/
 });
+
+// VELS
+var create_attr_style = function(cap) {
+  var attr = "", i, cap2;
+
+  if (cap2 = cap.match(/#\w+/g))
+    attr += 'id="'+cap2[0].substr(1)+'" ';
+
+  if (cap2 = cap.match(/\.\w+/g)) {
+    attr += 'class="';
+    for (i in cap2)
+      attr += cap2[i].substr(1)+' ';
+    attr += '" ';
+  }
+  if (cap2 = cap.match(/\s*(\w+)\s*=\s*(["'])(?:(?!\2)[^\\]|\\.)*\2/g)) {
+    for (i in cap2)
+      attr += cap2[i].substr(1).trim()+' ';
+  }
+
+  return attr;
+};
 
 /**
  * Block Lexer
@@ -157,12 +177,14 @@ Lexer.prototype.token = function(src, top) {
     , space
     , i
     , l
-    , token_lines; // VELS
+    , token_lines, attr_cap, attr; // VELS
 
   while (src) {
+    attr = ""; // VELS
+    // debugger;
     // newline
     if (cap = this.rules.newline.exec(src)) {
-      src = src.substring(cap[0].length);      
+      src = src.substring(cap[0].length);
       token_lines = cap[0].count("\n"); // VELS
       if (!top) --token_lines; // VELS
       if (cap[0].length > 1) {
@@ -213,10 +235,18 @@ Lexer.prototype.token = function(src, top) {
     if (cap = this.rules.heading.exec(src)) {
       src = src.substring(cap[0].length);
       token_lines = cap[0].count("\n"); // VELS
+
+      // VELS
+      if (attr_cap = this.rules.header_attr_list.exec(cap[0])) {
+        cap[2] = cap[2].replace(attr_cap[1], "");
+        attr = create_attr_style(attr_cap[1]);
+      }
+
       this.tokens.push({
         type: 'heading',
         lines: token_lines, // VELS
         line_num: this.cur_line, // VELS
+        attr: attr, // VELS
         depth: cap[1].length,
         text: cap[2]
       });
@@ -313,6 +343,7 @@ Lexer.prototype.token = function(src, top) {
     if (cap = this.rules.list.exec(src)) {
       src = src.substring(cap[0].length);
 
+      // debugger;
       this.tokens.push({
         type: 'list_start',
         ordered: isFinite(cap[2])
@@ -366,6 +397,12 @@ Lexer.prototype.token = function(src, top) {
           if (!loose) loose = next;
         }
 
+        // VELS
+        if (attr_cap = this.rules.inline_attr_list.exec(item)) {
+          item = item.replace(attr_cap[1], "");
+          attr = create_attr_style(attr_cap[1]);
+        }
+
         this.tokens.push({
           type: loose
             ? 'loose_item_start'
@@ -376,6 +413,7 @@ Lexer.prototype.token = function(src, top) {
         this.token(item, false);
 
         this.tokens.push({
+          attr: attr,     // VELS
           type: 'list_item_end'
         });
       }
@@ -391,6 +429,7 @@ Lexer.prototype.token = function(src, top) {
     if (cap = this.rules.html.exec(src)) {
       src = src.substring(cap[0].length);
       token_lines = cap[0].count("\n"); // VELS
+      //console.log(cap[0]);
       this.tokens.push({
         type: this.options.sanitize
           ? 'paragraph'
@@ -411,6 +450,9 @@ Lexer.prototype.token = function(src, top) {
         href: cap[2],
         title: cap[3]
       };
+      // No tokens to add, just increment cur_line
+      token_lines = cap[0].count("\n"); // VELS
+      this.cur_line += token_lines; // VELS
       continue;
     }
 
@@ -451,12 +493,20 @@ Lexer.prototype.token = function(src, top) {
 
     // top-level paragraph
     if (top && (cap = this.rules.paragraph.exec(src))) {
+      // debugger;
       src = src.substring(cap[0].length);
       token_lines = cap[0].count("\n"); // VELS
+      // VELS
+      if (attr_cap = this.rules.paragraph_attr_list.exec(cap[1])) {
+        cap[1] = cap[1].replace(attr_cap[1], "");
+        attr = create_attr_style(attr_cap[1]);
+      }
+
       this.tokens.push({
         type: 'paragraph',
         lines: token_lines,  // VELS
         line_num: this.cur_line, // VELS
+        attr: attr, // VELS
         text: cap[1][cap[1].length-1] === '\n'
           ? cap[1].slice(0, -1)
           : cap[1]
@@ -468,13 +518,22 @@ Lexer.prototype.token = function(src, top) {
 
     // text
     if (cap = this.rules.text.exec(src)) {
+      // debugger;
       // Top-level should never reach here.
       src = src.substring(cap[0].length);
       token_lines = cap[0].count("\n")+1; // VELS (new line character is not passed here)
+
+      // VELS
+      if (attr_cap = this.rules.paragraph_attr_list.exec(cap[0])) {
+        cap[0] = cap[0].replace(attr_cap[1], "");
+        attr = create_attr_style(attr_cap[1]);
+      }
+
       this.tokens.push({
         type: 'text',
         lines: token_lines,  // VELS
         line_num: this.cur_line, // VELS
+        attr: attr, // VELS
         text: cap[0]
       });
       //console.log(this.cur_line.toString(), ": ", cap[0]);
@@ -508,7 +567,9 @@ var inline = {
   code: /^(`+)\s*([\s\S]*?[^`])\s*\1(?!`)/,
   br: /^ {2,}\n(?!\s*$)/,
   del: noop,
-  text: /^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/
+  text: /^[\s\S]+?(?=[\\<!\[_*`]| {2,}\n|$)/,
+  inline_attr_list: /\S({:.*})/         // VELS - conform to python restriction, where no spaces are allowed
+                                        // before attribute lists in inline elements
 };
 
 inline._inside = /(?:\[[^\]]*\]|[^\]]|\](?=[^\[]*\]))*/;
@@ -612,13 +673,25 @@ InlineLexer.prototype.output = function(src) {
     , href
     , cap;
 
+  var attr;   // VELS
+
   while (src) {
+    attr = ''; // VELS
     // escape
     if (cap = this.rules.escape.exec(src)) {
       src = src.substring(cap[0].length);
       out += cap[1];
       continue;
     }
+
+    // VELS
+    if (cap = this.rules.inline_attr_list.exec(src)) {
+      // debugger;
+      src = src.replace(cap[1], "");
+      attr = create_attr_style(cap[1]);
+      //continue;
+    }
+
 
     // autolink
     if (cap = this.rules.autolink.exec(src)) {
@@ -634,7 +707,8 @@ InlineLexer.prototype.output = function(src) {
       }
       out += '<a href="'
         + href
-        + '">'
+        // + '">'
+        + '" '+attr+'>'   // VELS
         + text
         + '</a>';
       continue;
@@ -647,7 +721,8 @@ InlineLexer.prototype.output = function(src) {
       href = text;
       out += '<a href="'
         + href
-        + '">'
+        // + '">'
+        + '" '+attr+'>'   // VELS
         + text
         + '</a>';
       continue;
@@ -668,7 +743,7 @@ InlineLexer.prototype.output = function(src) {
       out += this.outputLink(cap, {
         href: cap[2],
         title: cap[3]
-      });
+      }, attr);  // VELS
       continue;
     }
 
@@ -683,14 +758,14 @@ InlineLexer.prototype.output = function(src) {
         src = cap[0].substring(1) + src;
         continue;
       }
-      out += this.outputLink(cap, link);
+      out += this.outputLink(cap, link, attr); // VELS
       continue;
     }
 
     // strong
     if (cap = this.rules.strong.exec(src)) {
       src = src.substring(cap[0].length);
-      out += '<strong>'
+      out += '<strong '+attr+'>'  // VELS
         + this.output(cap[2] || cap[1])
         + '</strong>';
       continue;
@@ -699,7 +774,7 @@ InlineLexer.prototype.output = function(src) {
     // em
     if (cap = this.rules.em.exec(src)) {
       src = src.substring(cap[0].length);
-      out += '<em>'
+      out += '<em '+attr+'>'  // VELS
         + this.output(cap[2] || cap[1])
         + '</em>';
       continue;
@@ -708,7 +783,7 @@ InlineLexer.prototype.output = function(src) {
     // code
     if (cap = this.rules.code.exec(src)) {
       src = src.substring(cap[0].length);
-      out += '<code>'
+      out += '<code '+attr+'>'  // VELS
         + escape(cap[2], true)
         + '</code>';
       continue;
@@ -717,14 +792,14 @@ InlineLexer.prototype.output = function(src) {
     // br
     if (cap = this.rules.br.exec(src)) {
       src = src.substring(cap[0].length);
-      out += '<br>';
+      out += '<br '+attr+'>';  // VELS
       continue;
     }
 
     // del (gfm)
     if (cap = this.rules.del.exec(src)) {
       src = src.substring(cap[0].length);
-      out += '<del>'
+      out += '<del '+attr+'>'  // VELS
         + this.output(cap[1])
         + '</del>';
       continue;
@@ -750,7 +825,7 @@ InlineLexer.prototype.output = function(src) {
  * Compile Link
  */
 
-InlineLexer.prototype.outputLink = function(cap, link) {
+InlineLexer.prototype.outputLink = function(cap, link, attr) {
   if (cap[0][0] !== '!') {
     return '<a href="'
       + escape(link.href)
@@ -760,7 +835,7 @@ InlineLexer.prototype.outputLink = function(cap, link) {
       + escape(link.title)
       + '"'
       : '')
-      + '>'
+      + ' ' + attr + '>' // VELS
       + this.output(cap[1])
       + '</a>';
   } else {
@@ -774,7 +849,7 @@ InlineLexer.prototype.outputLink = function(cap, link) {
       + escape(link.title)
       + '"'
       : '')
-      + '>';
+      + ' ' + attr + '>'; // VELS
   }
 };
 
@@ -860,13 +935,13 @@ Parser.prototype.parseText = function() {
   // VELS
   var anchor='';
   if (this.token.line_num !== undefined) {
-    anchor = "<a name='" + 
-              this.token.line_num.toString() + 
+    anchor = "<a name='" +
+              this.token.line_num.toString() +
               "' data-lines='" +
-              this.token.lines.toString() + 
-              "' class='marked-anchor'" + 
+              this.token.lines.toString() +
+              "' class='marked-anchor'" +
               "/>\n";
-    //console.log('TOK: ', anchor);      
+    //console.log('TOK: ', anchor);
   }
   var body = anchor+this.inline.output(this.token.text);
   //var body = this.token.text;
@@ -874,13 +949,13 @@ Parser.prototype.parseText = function() {
   while (this.peek().type === 'text') {
     // VELS
     if (this.token.line_num !== undefined) {
-      anchor = "<a name='" + 
-                this.token.line_num.toString() + 
+      anchor = "<a name='" +
+                this.token.line_num.toString() +
                 "' data-lines='" +
-                this.token.lines.toString() + 
-                "' class='marked-anchor'" + 
+                this.token.lines.toString() +
+                "' class='marked-anchor'" +
                 "/>\n";
-      //console.log('TOK: ', anchor);      
+      //console.log('TOK: ', anchor);
     }
     body = anchor + '\n' + this.inline.output(this.next().text);
     //body += '\n' + this.next().text;
@@ -898,13 +973,13 @@ Parser.prototype.tok = function() {
   // VELS
   var anchor='';
   if (this.token.line_num !== undefined) {
-    anchor = "<a name='" + 
-              this.token.line_num.toString() + 
+    anchor = "<a name='" +
+              this.token.line_num.toString() +
               "' data-lines='" +
-              this.token.lines.toString() + 
-              "' class='marked-anchor'" + 
+              this.token.lines.toString() +
+              "' class='marked-anchor'" +
               "/>\n";
-    //console.log('TOK: ', anchor);      
+    //console.log('TOK: ', anchor);
   }
 
   switch (this.token.type) {
@@ -915,10 +990,23 @@ Parser.prototype.tok = function() {
       return anchor+'<hr>\n';
     }
     case 'heading': {
+      // VELS
+      var header_anchor_start = "",
+          header_anchor_end = "",
+          header_text = this.inline.output(this.token.text);
+      if (this.options.headerAnchors &&
+          this.options.headerAnchors.indexOf(this.token.depth) !== -1) {
+        header_anchor_start = '<a class="headerlink" href="#'
+          +header_text.trim().toLowerCase().replace(/ /g, "_").replace(/[^a-zA-Z0-9_]/g, "").substr(0, 30)
+          +'" title="Permalink to this headline">';
+        header_anchor_end   = ' &para;</a>';
+      }
       return anchor+'<h'
         + this.token.depth
-        + '>'
-        + this.inline.output(this.token.text)
+        + ' '+this.token.attr+'>' // VELS
+        + header_text
+        + header_anchor_start
+        + header_anchor_end
         + '</h'
         + this.token.depth
         + '>\n';
@@ -1020,7 +1108,8 @@ Parser.prototype.tok = function() {
           : this.tok();
       }
 
-      return anchor+'<li>'
+      return anchor+'<li'
+        + ' '+this.token.attr+'>' // VELS
         + body
         + '</li>\n';
     }
@@ -1041,12 +1130,14 @@ Parser.prototype.tok = function() {
         : this.token.text);
     }
     case 'paragraph': {
-      return anchor+'<p>'
+      return anchor+'<p'
+        + ' '+this.token.attr+'>' // VELS
         + this.inline.output(this.token.text)
         + '</p>\n';
     }
     case 'text': {
-      return anchor+'<p>'
+      return anchor+'<p'
+        + ' '+this.token.attr+'>' // VELS
         + this.parseText()
         + '</p>\n';
     }

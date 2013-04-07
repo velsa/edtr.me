@@ -6,7 +6,7 @@
 
 {% block body_before_container %}
     {{ super() }}
-    <div class="navbar"> <!-- navbar-fixed-top -->
+    <div class="main-header navbar"> <!-- navbar-fixed-top -->
         <div class="navbar-inner">
             <div class="container-fluid">
                 <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
@@ -14,16 +14,18 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </a>
-                <a class="brand" href="/">EDTR</a>
+                <a class="brand" href="/">#EDTR</a>
                 <div class="nav-collapse">
-                    <ul class="nav">
-                        <li id="navbar_home" class="navbar_li">
+                    <ul class="nav main-menu">
+                        <li class="navbar_li">
                             <a href="/">Home</a>
                         </li>
-                        <li id="navbar_settings" class="navbar_li">
-                            <a href="{{reverse_url('settings')}}">Settings</a>
+                        <li class="navbar-settings navbar_li"
+                            data-action="edtr_settings_modal">
+                            <a href="#">Settings</a>
                         </li>
-                        <li id="navbar_profile" class="navbar_li">
+                        <li class="navbar-settings navbar_li"
+                            data-action="user_profile_modal">
                             <a href="{{reverse_url('profile')}}">Profile</a>
                         </li>
                     </ul>
@@ -39,7 +41,7 @@
     </div>
 {% endblock %} <!-- body_before_container -->
 
-{% block body_container %}
+{% block extra_main_container %}
     {{ super() }}
 {% endblock %}
 

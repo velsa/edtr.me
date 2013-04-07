@@ -3,12 +3,14 @@ edtr.me
 
 ## Quick run guide
 
+- It is **highly** recommended to use `virtualenv` for development and our personal preference is to use [virtualenvwrapper](http://virtualenvwrapper.readthedocs.org/en/latest/index.html)
 - `pip install -r requirements.txt`
 - `cp config.flags.sample config.flags`
 - Specify `dropbox_consumer_key`, `dropbox_consumer_secret`, `dropbox_access_type` in config.flags. You can find these at [http://www.dropbox.com/developers/apps](http://www.dropbox.com/developers/apps). Access type should be either `'dropbox'` or `'app_folder'`
 - Download and install mongodb from [here](http://www.mongodb.org/downloads). On Mac OS with [Homebrew](http://mxcl.github.com/homebrew/) you can simply run `brew install mongodb`
 - Run `mongod`. It will automatically bind to port `27017` with simple web UI on [localhost:28017](localhost:28017)
 - Run `python app.py` *or for debug mode* `python app.py --debug=True`
+- A number of command line options can be used to assist in development. E.g. `python app.py --debug=True --socketio=True --dbox_time=1000000 --site-root=/tmp/www --local=True`
 - Access the site on [localhost:8888](localhost:8888)
 
 ## Description
@@ -75,7 +77,7 @@ Contains configuration files, needed to launch project (nginx, etc)
 
 #### edtr.me/app.py
 
-The main Tornado application, and also a runnable file that starts the Tornado 
+The main Tornado application, and also a runnable file that starts the Tornado
 server.
 
 to start tornado server in debug mode:

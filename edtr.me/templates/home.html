@@ -4,57 +4,151 @@
 
 {% block extra_head %}
     {{ super() }}
-    <!-- JQuery TreeView
-    <link rel="stylesheet" href="{{ static_url('treeview/jquery.treeview.css') }}" type="text/css" />
+    <!--
+
+        Styles
+
     -->
 
-    <!-- 
-        CSS 
+    <!-- CodeMirror CSS
+    -->
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/lib/codemirror.css')}}">
+    <!-- By default include all themes -->
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/neat.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/elegant.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/erlang-dark.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/night.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/monokai.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/cobalt.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/eclipse.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/rubyblue.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/lesser-dark.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/xq-dark.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/ambiance.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/blackboard.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/vibrant-ink.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/solarized.css')}}">
+    <link rel="stylesheet" href="{{static_url('vendor/codemirror-3.1/theme/twilight.css')}}">
+
+    <!-- Chosen plugin for changing select elements
+    <link rel="stylesheet" href="{{static_url('vendor/chosen/chosen.css')}}">
     -->
 
-    <!-- CodeMirror -->
-    <link rel="stylesheet" href="{{ static_url('codemirror/lib/codemirror.css') }}">
-    <link rel="stylesheet" href="{{ static_url('codemirror/theme/eclipse.css') }}">
+    <!-- Select2 plugin for changing select elements
+    -->
+    <link rel="stylesheet" href="{{static_url('vendor/select2-release-3.2/select2.css')}}">
 
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="{{ static_url('css/style.css') }}">
-    <link rel="stylesheet" href="{{ static_url('css/md_preview/default.css') }}">
+    <!-- Datetime picker for file settings dialog
+    -->
+    <link rel="stylesheet" href="{{static_url('vendor/bootstrap-datetimepicker-0.0.8/css/bootstrap-datetimepicker.min.css')}}">
 
-    <!-- 
-        JS 
+    <!-- JQuery FancyBox CSS
+    -->
+    <link rel="stylesheet" href="{{static_url('vendor/fancybox-2.1.4/source/jquery.fancybox.css')}}">
+
+    <!-- zTree styles
+    -->
+    <link rel="stylesheet" href="{{static_url('vendor/ztree/css/zTreeStyle/zTreeStyle.css')}}">
+
+    <!-- Custom CSS
+    -->
+    <link rel="stylesheet" href="{{static_url('css/style.css')}}">
+
+    <!--
+
+        Javascript
+
     -->
 
-    <!-- JQuery UI
-    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
-     -->
-    
-    <!-- jQuery TreeView JS
-    <script type="text/javascript" src="{{ static_url('treeview/jquery.treeview.js') }}"></script>
-     -->
-
-    <!-- JQuery JSTree
-    <script src="{{ static_url('jstree/jquery.jstree.js') }}"></script>
-     -->
-
-    <!-- 
-    CodeMirror 
-    <script src="{{ static_url('codemirror/mode/gfm/gfm.js') }}"></script>
+    <!-- JQuery UI custom (mostly for dragging and dropping objects)
     -->
-    <script src="{{ static_url('codemirror/lib/codemirror.js') }}"></script>
-    <script src="{{ static_url('codemirror/mode/markdown/markdown.js') }}"></script>
-    <script src="{{ static_url('codemirror/addon/mode/overlay.js') }}"></script>
-    <script src="{{ static_url('codemirror/addon/search/searchcursor.js') }}"></script>
-    <script src="{{ static_url('codemirror/addon/search/match-highlighter.js') }}"></script>
+    <script src="{{static_url('vendor/jquery-ui-1.10.1.custom/js/jquery-ui-1.10.1.custom.js')}}">
+    </script>
 
-    <!-- Marked (hacked for live preview) -->
-    <script src="{{ static_url('js/marked-vels.js') }}"></script>
+    <!-- Datetime picker for file settings dialog
+    -->
+    <script src="{{static_url('vendor/bootstrap-datetimepicker-0.0.8/js/bootstrap-datetimepicker.min.js')}}"></script>
 
-    <!-- Our own code (order is important !) -->
-    <script src="{{ static_url('js/mdb-home-utils.js') }}"></script>
-    <script src="{{ static_url('js/mdb-home-codemirror.js') }}"></script>
-    <script src="{{ static_url('js/mdb-home-tree.js') }}"></script>
-    <script src="{{ static_url('js/mdb-home-modal.js') }}"></script>
-    <script src="{{ static_url('js/mdb-home.js') }}"></script>
+    <!-- Chosen plugin for changing select elements
+    <script src="{{static_url('vendor/chosen/chosen.jquery.js')}}"></script>
+    -->
+
+    <!-- Select2 plugin for changing select elements
+    -->
+    <script src="{{static_url('vendor/select2-release-3.2/select2.js')}}"></script>
+
+    <!-- JQuery FancyBox
+    -->
+    <script src="{{static_url('vendor/fancybox-2.1.4/source/jquery.fancybox.js')}}"></script>
+
+    <!-- JQuery zTree
+    -->
+    <script src="{{static_url('vendor/ztree/js/jquery.ztree.core-3.5.js')}}"></script>
+    <script src="{{static_url('vendor/ztree/js/jquery.ztree.excheck-3.5.js')}}"></script>
+    <script src="{{static_url('vendor/ztree/js/jquery.ztree.exedit-3.5.js')}}"></script>
+
+    <!-- CodeMirror
+    -->
+    <script src="{{static_url('vendor/codemirror-3.1/lib/codemirror.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/mode/overlay.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/mode/xml/xml.js')}}"></script>
+    <!-- <script src="{{static_url('vendor/codemirror-3.1/mode/markdown/markdown.js')}}"></script> -->
+    <script src="{{static_url('js/markdown-vels.js')}}"></script>
+
+    <script src="{{static_url('vendor/codemirror-3.1/mode/gfm/gfm.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/edit/closetag.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/edit/closebrackets.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/search/searchcursor.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/search/match-highlighter.js')}}"></script>
+    <script src="{{static_url('vendor/codemirror-3.1/addon/selection/active-line.js')}}"></script>
+
+    <!-- Handlebars - preview template handling
+    <script src="{{static_url('vendor/handlebars-1.0.0/handlebars.js')}}"></script>
+    -->
+
+    <!-- Underscore - lots of helpers and local template handling
+    -->
+    <script src="{{static_url('vendor/underscore-1.4.4/underscore.js')}}"></script>
+
+    <!-- Amplify - store knockout models in browser storage
+         (used to process Cancel in modals)
+    -->
+    <script src="{{static_url('vendor/amplify-1.1.0/amplify.js')}}"></script>
+
+    <!-- Knockout (with mapping plugin)
+    -->
+    <script src="{{static_url('vendor/knockout-2.2.1/knockout.debug.js')}}"></script>
+    <script src="{{static_url('vendor/knockout-2.2.1/knockout.mapping.debug.js')}}"></script>
+    <script src="{{static_url('vendor/knockout-validation/Dist/knockout.validation.js')}}"></script>
+
+    <!-- Marked (hacked for live preview)
+    -->
+    <script src="{{static_url('js/marked-vels.js')}}"></script>
+
+    <!-- Showdown (replacement for marked ?)
+    -->
+    <script src="{{static_url('vendor/showdown/showdown.js')}}"></script>
+    <script src="{{static_url('vendor/showdown/extensions/github.js')}}"></script>
+
+    <!-- Highlighter for pre code
+    -->
+    <script src="{{static_url('vendor/highlight.min.js')}}"></script>
+
+    <!-- Socket IO - used for auto updates from server
+    -->
+    <script src="{{static_url('vendor/socket.io.js')}}"></script>
+
+    <!-- Our own code (order is important !)
+    -->
+    <script src="{{static_url('js/edtr-utils.js')}}"></script>
+    <script src="{{static_url('js/edtrSettings.js')}}"></script>
+    <script src="{{static_url('js/modalDialog.js')}}"></script>
+    <script src="{{static_url('js/edtrCodemirror.js')}}"></script>
+    <script src="{{static_url('js/edtrTree.js')}}"></script>
+
+    <!-- This one actually runs
+    -->
+    <script src="{{static_url('js/main.js')}}"></script>
 {% endblock %} <!-- extra_head -->
 
 {% block body_before_container %}
@@ -63,65 +157,77 @@
 
 {% block body_container %}
     {{ super() }}
-    <!--
-        Modal dialogs
-    -->
-    <div id="modal_placeholder"></div>
-    <div id="modal_dialogs" style="display:none">
-        {% include "editor/modals.html" %}
-    </div>
-    <!--
-        Bar for messages, errors and info
-    -->
-    <div id="messages_bar"></div>
-
-    <!--
-        Main view
-    -->
-    <div id = "main_view">
+    <div class="main-container">
         <!--
-            Left navigation sidebar
+            Misc divs
         -->
-        <div id="left_sidebar">
-            {% include "sidebar/sb_default.html" %}
+        <!-- Placeholder for modal dialogs -->
+        <div id="modal_placeholder"></div>
+        <!-- Templates for modals -->
+        {% include "modals/file_ut.html" %}
+        {% include "modals/settings_ut.html" %}
+        {% include "modals/efs_ut.html" %}
+
+        <!-- Template for preview iframe (for head element) -->
+        {% include "preview/head_ut.html" %}
+
+        <!-- Bar for messages, errors and info -->
+        <div id="messages_bar"></div>
+
+        <!-- Editors (include specific toolbar) -->
+        <div id="edtr_editor_template" style="display:none">
+            <div class="edtr-editor">
+                {% include "editor/cm_markdown.html" %}
+            </div>
         </div>
 
-        <!--
-            Vertical splitter between sidebar and editor area
-        -->
-        <div class="vertical-splitter">
-        </div>
-        <!--
-            Content area
-        -->
-        <div id="editor_area">
-            {% include "editor/cm_stub.html" %}
-        </div>
-        <div id="footer" style="clear: both;"/>
-    </div>  <!-- main view -->
+        <!-- Context menu for ztree nodes -->
+        <div class="dir-context-menu"></div>
+        <div class="file-context-menu"></div>
 
-    <!--
-        Horizontal splitter between sidebar/editor and preview area
-    -->
-    <div class="horizontal-splitter">
-    </div>
+        <!-- Templates for popovers in ztree -->
+        {% include "sidebar/popover_ut.html" %}
+
+        <!--
+            Main view
+        -->
+        <div class="main-view-container">
+            <div class="main-view-left">
+                <!-- Left navigation sidebar -->
+                <div class="left-sidebar well">
+                    {% include "sidebar/sb_default.html" %}
+                </div>
+                <!-- Vertical splitter between sidebar and editor area -->
+                <div class="left-splitter">
+                </div>
+            </div>   <!-- .main-view-left -->
+            <div class="main-view-right">
+                {% include "editor/stub.html" %}
+            </div>  <!-- .main-view-right -->
+            <!-- Vertical splitter on the right side of editor area -->
+            <div class="right-splitter">
+            </div>
+        </div>  <!-- .main-view-container -->
+        <div class="sticky-footer">
+            <!-- Horizontal splitter between main-view-container and extra footer -->
+            <div class="bottom-splitter">
+            </div>
+            <!--
+                Preview pane - by including it into footer , we glue it to the bottom
+            -->
+            <iframe src="about:blank" class="preview-container">
+                <div class="preview-area">
+                    <pre class="preview-area-stub">
+            Realtime preview will be available here
+
+            when you select file on the left or create a new one
+                    </pre>
+                </div>
+            </div><!--/row-->
+        </div> <!-- sticky-footer -->
+    </div><!-- main-container -->
 {% endblock %} <!-- body_container -->
 
 {% block extra_footer %}
     {{ super() }}
-    <!--
-        Preview pane - by including it into footer , we stick it to bottom 
-    -->
-    <div class="preview-container">
-        <div class="preview-area">
-            <pre class="preview-area-stub">
-
-
-
-    Realtime preview will be available here 
-
-    when you select file on the left or create a new one
-            </pre>
-        </div>
-    </div><!--/row-->
 {% endblock %} <!-- extra_footer -->
