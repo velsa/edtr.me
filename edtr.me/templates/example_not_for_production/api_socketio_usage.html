@@ -115,6 +115,9 @@
         <div>
             <span>Path:</span><input id='publish_path' type="text" value="">
         </div>
+        <div>File contents:</div>
+        <textarea name="pub_file_content" id="pub_file_content" cols="300" rows="10" style="height:30px;width:500px"></textarea>
+
         <button id="publish_elem"
                 class="btn btn-success btn-small cme-button-tooltip" href="#">
             <span id="btn_publish_elem">AJAX publish</span>
@@ -337,7 +340,8 @@
             $.post("{{reverse_url('dropbox_publish')}}",
                 {
                     "_xsrf": getCookie("_xsrf"),
-                    "path": path
+                    "path": path,
+                    "content": $("#pub_file_content").val()
                 },
                 function(response) {
                     checkStatus(response);

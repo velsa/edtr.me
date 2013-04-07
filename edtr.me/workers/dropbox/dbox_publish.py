@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 import logging
-import os.path
+import os
+from itertools import imap
 
 from tornado import gen
 import motor
 from schematics.serialize import make_safe_python
 
+from utils.generators.pelican import run_pelican
 from utils.error import ErrCode
 from models.dropbox import DropboxFile, PS
 from utils.main import (get_user_root, parse_md_headers, FolderType,
@@ -15,6 +17,11 @@ from .dbox_settings import (DEFAULT_ENCODING, MAND_MD_HEADERS, MdState,
     ContentType)
 from .dbox_op import get_obj_content
 logger = logging.getLogger('edtr_logger')
+
+
+class PubEnum:
+    preview = 0
+    publish = 1
 
 
 def update_md_header_meta(text_content, publish):
@@ -47,11 +54,21 @@ def _publish_binary(fm, user, preview, pub_paths, body, db, callback):
         logger.debug(u"{0} is already published".format(fm.path))
         callback({"errcode": ErrCode.already_published})
         return
-    for pp in pub_paths:
-        path_file = get_server_path(pp, fm)
+    for p_type in pub_paths:
+        if p_type == PubEnum.preview:
+            path_content = FolderType.preview_content
+            path_output = FolderType.preview_output
+        else:
+            path_content = FolderType.publish_content
+            path_output = FolderType.publish_output
+        path_content = get_user_root(user.name, path_content)
+        path_output = get_user_root(user.name, path_output)
+        path_file = get_server_path(path_content, fm)
         create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(body)
+        create_path_if_not_exist(path_output)
+        run_pelican(path=path_content, output_path=path_output)
     if preview:
         if not (fm.pub_status == PS.published or fm.rev == fm.pub_rev):
             fm.pub_status = PS.draft
@@ -71,11 +88,22 @@ def _publish_text(fm, user, preview, pub_paths, file_content, db, callback):
         logger.debug(u"{0} is already published".format(fm.path))
         callback({"errcode": ErrCode.already_published})
         return
-    for pp in pub_paths:
-        path_file = get_server_path(pp, fm)
+    for p_type in pub_paths:
+        if p_type == PubEnum.preview:
+            path_content = FolderType.preview_content
+            path_output = FolderType.preview_output
+        else:
+            path_content = FolderType.publish_content
+            path_output = FolderType.publish_output
+        path_content = get_user_root(user.name, path_content)
+        path_output = get_user_root(user.name, path_output)
+        path_file = get_server_path(path_content, fm)
         create_path_if_not_exist(path_file)
         with open(path_file, 'wb') as f:
             f.write(file_content.encode(DEFAULT_ENCODING))
+        create_path_if_not_exist(path_output)
+        run_pelican(path=path_content, output_path=path_output)
+
     if preview:
         if not (fm.pub_status == PS.published and fm.rev == fm.pub_rev):
             fm.pub_status = PS.draft
@@ -98,9 +126,11 @@ def publish_object(file_meta, user, db, async_dbox, preview=False,
         obj = yield gen.Task(get_obj_content,
             file_meta, user, db, async_dbox, for_publish=True)
     if obj['errcode'] == ErrCode.ok:
-        pub_paths = [get_user_root(user.name, FolderType.preview_content)]
+        # pub_paths = [get_user_root(user.name, FolderType.preview_content)]
+        pub_paths = [PubEnum.preview]
         if not preview:
-            pub_paths.append(get_user_root(user.name, FolderType.publish_content))
+            # pub_paths.append(get_user_root(user.name, FolderType.publish_content))
+            pub_paths.append(PubEnum.publish)
         if obj.get('type', None) == ContentType.text_file:
             # Text content
             pub_func = _publish_text
@@ -134,58 +164,59 @@ def dbox_unpublish(file_meta, user):
 def dbox_process_publish(updates, user, db, async_dbox, callback):
     errors = []
     for path, meta in updates.items():
-        if meta:
-            # process updated file
-            if is_md(meta):
-                # md file
-                md_obj = yield gen.Task(get_obj_content,
-                    meta, user, db, async_dbox, for_publish=True, rev=meta.rev)
-                if md_obj['errcode'] == ErrCode.ok:
-                    headers = parse_md_headers(md_obj['content'])
-                    missed_headers = [
-                        h for h in MAND_MD_HEADERS if h not in headers]
-                    if not headers:
-                        errors.append(
-                            {"description": u"headers not found for {0}".format(
-                                path)})
-                    elif missed_headers:
-                        errors.append(
-                            {"description": u"missed headers for {0}".format(
-                                path)})
-                    else:
-                        preview = None
-                        if MdState.draft in headers['state']:
-                            preview = True
-                        elif MdState.published in headers['state']:
-                            preview = False
-                        if preview is not None:
-                            result = yield gen.Task(publish_object, meta,
-                                user, db, async_dbox, preview=preview, obj=md_obj)
-                            if not result['errcode'] == ErrCode.ok:
-                                errors.append(result)
-                            else:
-                                # update fields in meta
-                                for f in result['meta']:
-                                    if hasattr(meta, f):
-                                        setattr(meta, f, result['meta'][f])
-                        elif meta.pub_status != PS.dbox:
-                            # TODO headers['state'] is missing or regular
-                            # maybe just set state to draft and do
-                            # corresponding tasks
-                            pass
-                else:
-                    errors.append(md_obj)
-            else:
-                # non md file
-                if meta.pub_status in (PS.draft, PS.published):
-                    result = yield gen.Task(publish_object, meta,
-                        user, db, async_dbox, preview=True)
-                    if not result['errcode'] == ErrCode.ok:
-                        errors.append(result)
-        else:
+        if not meta:
             # deleted published or previewed file already processed by
             # update_dbox_delta
-            pass
+            continue
+        # process updated file
+        if is_md(meta):
+            # md file
+            md_obj = yield gen.Task(get_obj_content,
+                meta, user, db, async_dbox, for_publish=True, rev=meta.rev)
+            if md_obj['errcode'] == ErrCode.ok:
+                headers, _ = parse_md_headers(md_obj['content'])
+                missed_headers = [
+                    h for h in MAND_MD_HEADERS if h not in imap(
+                        lambda x: x.lower(), headers)]
+                if not headers:
+                    errors.append(
+                        {"description": u"headers not found for {0}"
+                            .format(path)})
+                elif missed_headers:
+                    errors.append(
+                        {"description": u"missed headers for {0}: {1}"
+                            .format(path, missed_headers)})
+                else:
+                    status_key = 'status' if 'status' in headers else 'Status'
+                    preview = None
+                    if MdState.draft in headers[status_key]['value']:
+                        preview = True
+                    elif MdState.published in headers[status_key]['value']:
+                        preview = False
+                    if preview is not None:
+                        result = yield gen.Task(publish_object, meta,
+                            user, db, async_dbox, preview=preview, obj=md_obj)
+                        if not result['errcode'] == ErrCode.ok:
+                            errors.append(result)
+                        else:
+                            # update fields in meta
+                            for f in result['meta']:
+                                if hasattr(meta, f):
+                                    setattr(meta, f, result['meta'][f])
+                    elif meta.pub_status != PS.dbox:
+                        # TODO headers['state'] is missing or regular
+                        # maybe just set state to draft and do
+                        # corresponding tasks
+                        pass
+            else:
+                errors.append(md_obj)
+        else:
+            # non md file
+            if meta.pub_status in (PS.draft, PS.published):
+                result = yield gen.Task(publish_object, meta,
+                    user, db, async_dbox, preview=True)
+                if not result['errcode'] == ErrCode.ok:
+                    errors.append(result)
     if errors:
         logger.error(u"dbox_process_publish errors: {0}".format(
             errors))

@@ -16,7 +16,7 @@ TEXT_MIMES = (
     MIME_MD,
 )
 
-MAND_MD_HEADERS = ['state', ]
+MAND_MD_HEADERS = ['status', ]
 
 
 class MdState:
